@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "underwriting"
+version = "1.0.0"
+description = "BIOFIN Underwriting core framework"
+authors = [
+    { name = "Felipe Arruda", email = "felipe.arrudapontes@maastrichtuniversity.nl" }
+]
+dependencies = [
+    "earthengine-api==1.6.15",
+    "python-decouple==3.8",
+    "requests==2.32.5",
+    "geopandas==1.1.1",
+    "pandas==2.3.3",
+#    "numpy==2.3.4",
+#    "shapely==2.1.2",
+#    "scipy==1.16.3",
+    "geemap==0.36.6",
+    "statsmodels==0.14.5",
+    "rasterio==1.4.3",
+    "scikit-learn==1.7.2",
+    "imbalanced-learn==0.14.0",
+    "xgboost==3.1.1",
+    "lightgbm==4.6.0",
+    "catboost==1.2.8",
+
+]
+
+[project.optional-dependencies]
+dev = [
+    "build",     # For building the package
+#    "twine",      # For uploading to PyPI
+    "ipdb",      # For debugging
+]
+
+[tool.setuptools]
+packages = ["underwriting"]
