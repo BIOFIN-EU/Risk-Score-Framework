@@ -175,4 +175,4 @@ cython_debug/
 data/*
 .continue/*
 catboost_info/*
-notebooks/.ipynb_checkpoints/*
+notebooks/*
