@@ -36,7 +36,6 @@ from underwriting.species_models.utils import (
     filter_variables_by_vif,
     generate_presence_absence_data,
     export_aoi_csv_files,
-    # relocate_with_linger_and_purge,
     verify_files_exist,
     find_aoi_shapefile,
     load_aoi_or_fallback,
