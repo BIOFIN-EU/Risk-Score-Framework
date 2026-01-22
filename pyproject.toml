@@ -26,7 +26,7 @@ dependencies = [
     "xgboost==3.1.1",
     "lightgbm==4.6.0",
     "catboost==1.2.8",
-
+    "scikit-fuzzy==0.5.0",
 ]
 
 [project.optional-dependencies]
