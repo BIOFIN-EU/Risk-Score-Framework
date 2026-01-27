@@ -214,8 +214,9 @@ def simplified_predict_future_species_suitability():
         scenarios=SCENARIOS,
         periods=PERIODS,
         species_safe=SPECIES_SAFE,
-        summary_only=True
+        summary_only=False
     )
+    import ipdb; ipdb.set_trace()
     print(json.dumps(ret_json, indent=4))
 
 def main():
