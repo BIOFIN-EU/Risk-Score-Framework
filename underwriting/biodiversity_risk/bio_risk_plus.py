@@ -15,10 +15,19 @@ class BioRiskPlusFIS(object):
         * PA: Protected Area: 0-1 ??? Possibily make it % of area inside protected area?
         * (Inverted ^-1) UCC-SRI: Urbanisation and Climate Change Influenced Species Reachness Index: 0-1
     FIS:
-     - Antecedents: CH, PA, SSI
+     - Antecedents: CH, PA, SRI (this is the one with HFI already applied to it)
      - Consequents: (Biodiversity)Risk
      - Rules:
-        IF CH is Unknown AND PA is Unprotected AND SI is High THEN RISK is Low
+        Extreme cases:
+            IF CH is Likely AND PA is Protected AND SI is Low THEN RISK is High
+            IF CH is Unknown AND PA is Unprotected AND SI is High THEN RISK is Low
+        Medium:
+            IF CH is Possibly AND PA is Unprotected AND SI is Medium THEN RISK is Medium <-- probably best to add intermediary values
+        Original Edge Cases:
+            IF CH is Likely AND PA is Unprotected AND SI is Low THEN RISK is Medium
+            IF CH is Unknown AND PA is Protected AND SI is Low THEN RISK is Medium
+
+
     """
     def __init__(self, chl_raster, pa_raster, sri_raster):
         self.chl_raster = chl_raster
