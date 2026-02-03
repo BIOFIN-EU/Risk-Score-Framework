@@ -97,7 +97,7 @@ class BioRiskPlusFIS(object):
 
 
         # if two criteria are bad, and one is good, risk should be medium-high
-        # if the last one is medium or more good then risk should be high
+        # if the last one is medium or more bad then risk should be high
 
 
         # self.rules = extreme_cases
