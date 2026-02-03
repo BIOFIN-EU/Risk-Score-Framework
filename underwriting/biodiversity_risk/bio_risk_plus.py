@@ -22,9 +22,10 @@ class BioRiskPlusFIS(object):
             IF CH is Likely AND PA is Protected AND SI is Low THEN RISK is High
             IF CH is Unknown AND PA is Unprotected AND SI is High THEN RISK is Low
         Medium:
-            IF CH is Possibly AND PA is Unprotected AND SI is Medium THEN RISK is Medium <-- probably best to add intermediary values
-        Original Edge Cases:
-            IF CH is Likely AND PA is Unprotected AND SI is Low THEN RISK is Medium
+            IF CH is potential AND PA is Unprotected AND SI is Medium THEN RISK is Medium
+        Original Edge Cases: <-- probably best to add intermediary medium values for rate MFs
+            # if Any two are criteria are "good" but one is bad: then Medium-Low, never low.
+            IF CH is Likely AND PA is Unprotected AND SI is Low THEN RISK is Medium-Low
             IF CH is Unknown AND PA is Protected AND SI is Low THEN RISK is Medium
 
 
@@ -34,9 +35,10 @@ class BioRiskPlusFIS(object):
         self.ch_raster = None
         self.pa_raster = pa_raster
         self.sri_raster = sri_raster
-        self.get_rates_uod = lambda: np.arange(0, 1.1, 0.1)
+        self.default_score_names = ['low', 'medium-low', 'medium', 'medium-high', 'high']
+        self.get_rates_uod = lambda: np.arange(0, 1.01, 0.01)
 
-    def setup_mfs(self):
+    def setup_vars_and_mfs(self):
         self.ch_var = ctrl.Antecedent(self.get_rates_uod(), 'ch')
         self.ch_var['unknown'] = fuzz.trapmf(self.ch_var.universe, [0, 0, 0.4, 0.60])
         self.ch_var['potential'] = fuzz.trimf(self.ch_var.universe, [0.2, 0.6, 0.8])
@@ -47,6 +49,54 @@ class BioRiskPlusFIS(object):
         self.pa_var['unprotected'] = np.array([1, 0, 0, 0], dtype=np.float32)
         self.pa_var['protected'] = np.array([0, 0, 0, 1], dtype=np.float32)
 
+        self.si_var = ctrl.Antecedent(self.get_rates_uod(), 'si')
+        self.si_var.automf(5, names=self.default_score_names)
+
+        self.risk_var = ctrl.Consequent(self.get_rates_uod(), 'risk')
+        self.risk_var.automf(5, names=self.default_score_names)
+
+    def setup_rules(self):
+        #Extreme cases:
+        extreme_cases = []
+        extreme_cases.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['protected'] & self.si_var['low'],
+            self.risk_var['high']
+        ))
+        extreme_cases.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['high'],
+            self.risk_var['low']
+        ))
+
+        # Medium:
+        #     IF CH is potential AND PA is Unprotected AND SI is Medium THEN RISK is Medium
+        #mid cases:
+        mid_cases = []
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['medium'],
+            self.risk_var['medium']
+        ))
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['protected'] & self.si_var['medium'],
+            self.risk_var['medium']
+        ))
+
+        # Original Edge Cases: <-- probably best to add intermediary medium values for rate MFs
+        #     # if Any two are criteria are "good" but one is bad: then Medium-Low, never low.
+        #     IF CH is Likely AND PA is Unprotected AND SI is Low THEN RISK is Medium-Low
+        #     IF CH is Unknown AND PA is Protected AND SI is Low THEN RISK is Medium
+        low_vars_list = [self.ch_var['unknown'], self.pa_var['unprotected'], self.si_var['low']]
+        high_vars_list = [self.ch_var['likely'], self.pa_var['protected'], self.si_var['high']]
+        one_high_edge_cases = []
+        for var_i, high_var in enumerate(high_vars_list):
+            low_vars = [v for li, v in enumerate(low_vars_list) if var_i != li]
+            one_high_edge_cases.append(ctrl.Rule(
+                low_vars[0] & low_vars[1] & high_var,
+                self.risk_var['medium-low']
+            ))
+
+
+
+        self.rules = extreme_cases + mid_cases + one_high_edge_cases
 
     def map_ch_fuzzy_label_to_crisp(self):
         # Create mapping dictionary
@@ -60,8 +110,9 @@ class BioRiskPlusFIS(object):
         return mapped_raster
 
     def setup(self):
-        self.setup_mfs()
+        self.setup_vars_and_mfs()
         self.ch_raster = self.map_ch_fuzzy_label_to_crisp()
+        self.setup_rules()
 
 
 
