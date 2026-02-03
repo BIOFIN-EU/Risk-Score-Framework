@@ -51,6 +51,85 @@ Compare the explanation and interpretability of the original risk score from the
 
 
 
+### missing rules from initial rule creations
+.============================================================
+FAILED INPUTS - CRISP VALUES & DOMINANT MEMBERSHIP FUNCTIONS
+============================================================
+Input  1: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.25 (medium-low )
+Input  2: ch= 0.5 (potential) | pa=1 (protected  ) | si= 0.25 (medium-low )
+Input  3: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.25 (medium-low )
+Input  4: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.30 (medium-low )
+Input  5: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.30 (medium-low )
+Input  6: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.35 (medium-low )
+Input  7: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.35 (medium-low )
+Input  8: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.40 (medium-low )
+Input  9: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.40 (medium-low )
+Input 10: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.45 (medium     )
+Input 11: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.45 (medium     )
+Input 12: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.50 (medium     )
+Input 13: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.50 (medium     )
+Input 14: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.55 (medium     )
+Input 15: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.55 (medium     )
+Input 16: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.60 (medium-high)
+Input 17: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.60 (medium-high)
+Input 18: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.65 (medium-high)
+Input 19: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.65 (medium-high)
+Input 20: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.70 (medium-high)
+Input 21: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.70 (medium-high)
+Input 22: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.75 (medium-high)
+Input 23: ch= 0.5 (potential) | pa=1 (protected  ) | si= 0.75 (medium-high)
+Input 24: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.75 (medium-high)
+Input 25: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.80 (medium-high)
+Input 26: ch= 0.5 (potential) | pa=1 (protected  ) | si= 0.80 (medium-high)
+Input 27: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.80 (medium-high)
+Input 28: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.85 (high       )
+Input 29: ch= 0.5 (potential) | pa=1 (protected  ) | si= 0.85 (high       )
+Input 30: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.85 (high       )
+Input 31: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.90 (high       )
+Input 32: ch= 0.5 (potential) | pa=1 (protected  ) | si= 0.90 (high       )
+Input 33: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.90 (high       )
+Input 34: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 0.95 (high       )
+Input 35: ch= 0.5 (potential) | pa=1 (protected  ) | si= 0.95 (high       )
+Input 36: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 0.95 (high       )
+Input 37: ch= 0.0 (unknown  ) | pa=1 (protected  ) | si= 1.00 (high       )
+Input 38: ch= 0.5 (potential) | pa=1 (protected  ) | si= 1.00 (high       )
+Input 39: ch= 1.0 (likely   ) | pa=1 (protected  ) | si= 1.00 (high       )
+============================================================
+
+MISSING RULE PATTERNS (Grouped by frequency):
+----------------------------------------
+Pattern: ch=unknown, pa=protected, si=medium-high           | Count:  5
+Pattern: ch=likely, pa=protected, si=medium-high            | Count:  5
+Pattern: ch=unknown, pa=protected, si=high                  | Count:  4
+Pattern: ch=potential, pa=protected, si=high                | Count:  4
+Pattern: ch=likely, pa=protected, si=high                   | Count:  4
+Pattern: ch=unknown, pa=protected, si=medium-low            | Count:  3
+Pattern: ch=likely, pa=protected, si=medium-low             | Count:  3
+Pattern: ch=unknown, pa=protected, si=medium                | Count:  3
+Pattern: ch=likely, pa=protected, si=medium                 | Count:  3
+Pattern: ch=potential, pa=protected, si=medium-high         | Count:  2
+Pattern: ch=unknown, pa=protected, si=low                   | Count:  1
+Pattern: ch=potential, pa=protected, si=low                 | Count:  1
+Pattern: ch=likely, pa=protected, si=low                    | Count:  1
+
+============================================================
+SUGGESTED RULES TO ADD:
+----------------------------------------
+Rule 1: IF ch IS likely AND pa IS protected AND si IS high THEN risk IS ???
+Rule 2: IF ch IS likely AND pa IS protected AND si IS low THEN risk IS ???
+Rule 3: IF ch IS likely AND pa IS protected AND si IS medium THEN risk IS ???
+Rule 4: IF ch IS likely AND pa IS protected AND si IS medium-high THEN risk IS ???
+Rule 5: IF ch IS likely AND pa IS protected AND si IS medium-low THEN risk IS ???
+Rule 6: IF ch IS potential AND pa IS protected AND si IS high THEN risk IS ???
+Rule 7: IF ch IS potential AND pa IS protected AND si IS low THEN risk IS ???
+Rule 8: IF ch IS potential AND pa IS protected AND si IS medium-high THEN risk IS ???
+Rule 9: IF ch IS unknown AND pa IS protected AND si IS high THEN risk IS ???
+Rule 10: IF ch IS unknown AND pa IS protected AND si IS low THEN risk IS ???
+Rule 11: IF ch IS unknown AND pa IS protected AND si IS medium THEN risk IS ???
+Rule 12: IF ch IS unknown AND pa IS protected AND si IS medium-high THEN risk IS ???
+Rule 13: IF ch IS unknown AND pa IS protected AND si IS medium-low THEN risk IS ???
+
+
 
 # References
 [1]: Yang H, Simmons BA, Ray R, Nolte C, Gopal S, Ma Y, Ma X, Gallagher KP. Risks to global biodiversity and Indigenous lands from China’s overseas development finance. Nature Ecology & Evolution. 2021 Nov;5(11):1520-9.

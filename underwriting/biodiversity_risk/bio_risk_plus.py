@@ -55,6 +55,7 @@ class BioRiskPlusFIS(object):
         self.risk_var = ctrl.Consequent(self.get_rates_uod(), 'risk')
         self.risk_var.automf(5, names=self.default_score_names)
 
+
     def setup_rules(self):
         #Extreme cases:
         extreme_cases = []
@@ -95,7 +96,11 @@ class BioRiskPlusFIS(object):
             ))
 
 
+        # if two criteria are bad, and one is good, risk should be medium-high
+        # if the last one is medium or more good then risk should be high
 
+
+        # self.rules = extreme_cases
         self.rules = extreme_cases + mid_cases + one_high_edge_cases
 
     def map_ch_fuzzy_label_to_crisp(self):
@@ -113,8 +118,18 @@ class BioRiskPlusFIS(object):
         self.setup_vars_and_mfs()
         self.ch_raster = self.map_ch_fuzzy_label_to_crisp()
         self.setup_rules()
+        self.fis = ctrl.ControlSystem(self.rules)
+        self.fis_sim = ctrl.ControlSystemSimulation(self.fis, cache=False)
+        self.failed = []
 
-
+    def run(self, **input_kwargs):
+        for key, value in input_kwargs.items():
+            self.fis_sim.input[key] = value
+        self.fis_sim.compute()
+        if 'risk' not in self.fis_sim.output:
+            self.failed.append((input_kwargs, ))
+            return 0
+        return self.fis_sim.output['risk']
 
 class BioRiskPlusExtendedFIS(object):
     """
