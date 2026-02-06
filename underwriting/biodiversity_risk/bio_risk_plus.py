@@ -49,9 +49,13 @@ class BioRiskPlusFIS(object):
 
     def setup_vars_and_mfs(self):
         self.ch_var = ctrl.Antecedent(self.get_rates_uod(), 'ch')
-        self.ch_var['unknown'] = fuzz.trapmf(self.ch_var.universe, [0, 0, 0.4, 0.60])
-        self.ch_var['potential'] = fuzz.trimf(self.ch_var.universe, [0.2, 0.6, 0.8])
-        self.ch_var['likely'] = fuzz.trapmf(self.ch_var.universe, [0.50, 0.8, 1., 1.])
+        # self.ch_var['unknown'] = fuzz.trapmf(self.ch_var.universe, [0, 0, 0.4, 0.60])
+        # self.ch_var['potential'] = fuzz.trimf(self.ch_var.universe, [0.2, 0.6, 0.8])
+        # self.ch_var['likely'] = fuzz.trapmf(self.ch_var.universe, [0.50, 0.8, 1., 1.])
+
+        self.ch_var['unknown'] = fuzz.trimf(self.ch_var.universe, [0, 0, 0.60])
+        self.ch_var['potential'] = fuzz.trimf(self.ch_var.universe, [0.2, 0.5, 0.8])
+        self.ch_var['likely'] = fuzz.trimf(self.ch_var.universe, [0.60, 1., 1.])
 
         # True/False "singleton"  (will actually behave like it for all intents and purposes: tested)
         self.pa_var = ctrl.Antecedent(np.array([0., 0.01, 0.99, 1.]), 'pa')
