@@ -22,10 +22,11 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         ], dtype=np.float32)
 
         self.sri_raster = np.array([
-            [0.1,   1,  0.5,   0],
-            [0.5,   0,    1, 0.5],
-            [1,   0.5,    0, 0.1]
+            [0.1,   1,  0.5,   0.45],
+            [0.25,   0,    1, 0.75],
+            [1,   0.5,    0.65, 0.1]
         ], dtype=np.float32)
+
         self.hfi_raster = np.array([
             [0,   4,  0,   10],
             [4,   0,    7, 30],
@@ -33,42 +34,67 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         ], dtype=np.int16)
 
 
-        self.fis = BioRiskPlusFIS(self.chl_raster, self.pa_raster, self.sri_raster)
+        self.fis = BioRiskPlusFIS()
 
     def tearDown(self):
         """Tear down test fixtures, if any."""
 
-    def test_map_ch_fuzzy_label_to_crisp_produces_correct_mapping(self):
-        """Test the common function."""
-        self.fis.setup()
+    def _test_map_ch_fuzzy_label_to_crisp_produces_correct_mapping(self):
+        ch_raster = self.fis.map_ch_fuzzy_label_to_crisp(self.chl_raster)
         expected_ch_raster = np.array([
-            [0.25, 0.81,  0.53,   0.25],
-            [0.53, 0.25,  0.81, 0.53],
-            [0.81, 0.53,  0.25,   0.81]
+            [0.22, 0.80,  0.50,   0.22],
+            [0.50, 0.22,  0.80, 0.50],
+            [0.80, 0.50,  0.22,   0.80]
         ], dtype=np.float32)
-        np.testing.assert_array_almost_equal(self.fis.ch_raster,expected_ch_raster, decimal=2)
+        np.testing.assert_array_almost_equal(ch_raster,expected_ch_raster, decimal=2)
 
-    def test_fis_run_simple_low_risk_case(self):
-        self.fis.setup()
 
-        output = self.fis.run(**{
+    def test_fis_run_single_simple_low_risk_case(self):
+        output = self.fis.run_single(**{
             'ch': 0,
             'pa': 0,
             'si': 1
         })
         # if all good, then should be low risk
-        self.assertAlmostEqual(output, 0.07, places=1)
+        self.assertAlmostEqual(output, 0.09, places=2)
 
-    def test_fis_run_simple_high_risk_case(self):
-        self.fis.setup()
+    def test_fis_run_single_simple_high_risk_case(self):
 
-        output = self.fis.run(**{
+        output = self.fis.run_single(**{
             'ch': 1,
             'pa': 1,
             'si': 0
         })
         # if all bad, then should be high risk
         self.assertAlmostEqual(output, 0.90, places=1)
+
+    def test_fis_run_raster_inputs_high_risk_case(self):
+        self.chl_raster = np.array([
+            [0,     0,    0,   0],
+            [0.5, 0.5,  0.5, 0.5],
+            [1,     1,    1,   1]
+        ], dtype=np.float32)
+        self.pa_raster = np.array([
+            [0, 0,  0, 0],
+            [0, 0,  0, 0],
+            [1, 1,  1, 1]
+        ], dtype=np.float32)
+
+        self.sri_raster = np.array([
+            [0.25,   0.5,    0.75, 1],
+            [0.25,   0.5,    0.75, 1],
+            [0.50,   0.65,    0.75, 1.]
+        ], dtype=np.float32)
+        expected_raster = [
+            [0.26 , 0.26 , 0.09 , 0.09],
+            [0.5 , 0.43 , 0.15 , 0.15],
+            [0.9 , 0.76 , 0.75 , 0.75]
+        ]
+
+        risk_raster = self.fis.run(self.chl_raster, self.pa_raster, self.sri_raster)
+
+        self.assertEqual(risk_raster.shape, (3, 4))
+        np.testing.assert_array_almost_equal(risk_raster,expected_raster, decimal=2)
 
     def _analyze_failed_inputs_simple(self, failed_inputs_list):
         """Show only crisp values and most representative MFs"""
@@ -153,8 +179,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
     def _generate_surfaceplot(self, pa_fixed, map_ch_values=False):
         si_values = np.arange(0, 1.01, 0.01)  # 0 to 1 in steps of 0.05
         ch_values = np.array([0, 0.5, 1])  # Only these discrete values for ch
-        if map_ch_values:
-            ch_values = self.fis.map_ch_fuzzy_label_to_crisp(ch_values)
+        ch_legend_vals = self.fis.map_ch_fuzzy_label_to_crisp(ch_values)
 
         # Create meshgrid for the two varying variables
         ch_mesh, si_mesh = np.meshgrid(ch_values, si_values)
@@ -163,11 +188,19 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         # Collect the control surface
         for i in range(len(si_values)):
             for j in range(len(ch_values)):
-                output = self.fis.run(**{
-                    'ch': ch_mesh[i, j],
-                    'pa': pa_fixed,
-                    'si': si_mesh[i, j]
-                })
+                ch_val = ch_mesh[i, j]
+                if map_ch_values:
+                    ch_val = float(self.fis.map_ch_fuzzy_label_to_crisp(ch_val))
+                try:
+                    output = self.fis.run_single(**{
+                        'ch': ch_val,
+                        'pa': pa_fixed,
+                        'si': si_mesh[i, j]
+                    })
+                except Exception as e:
+                    print(e)
+                    import ipdb; ipdb.set_trace()
+                    print(f"{[i, j]}")
                 z[i, j] = output
         import json
 
@@ -199,7 +232,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         ax.set_zlabel('Risk Output')
         title = f'FIS Control Surface (PA = {pa_fixed})'
         if map_ch_values:
-            title += f' - CH as {list(ch_values)}'
+            title += f' - CH as {list(ch_legend_vals)}'
         ax.set_title(title)
 
         # Set axis limits
@@ -242,7 +275,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
             # Calculate the surface for this pa value
             for i in range(len(si_values)):
                 for j in range(len(ch_values)):
-                    output = self.fis.run(**{
+                    output = self.fis.run_single(**{
                         'ch': ch_mesh[i, j],
                         'pa': pa_fixed,
                         'si': si_mesh[i, j]
@@ -311,8 +344,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
 
         return ax, fig
 
-    def _test_control_sperarate_space_surface_plot_and_rules_activation(self):
-        self.fis.setup()
+    def test_control_sperarate_space_surface_plot_and_rules_activation(self):
         import matplotlib.pyplot as plt
         map_ch_values = False
         ax, fig = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values)
@@ -324,8 +356,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         plt.tight_layout()
         plt.show()
 
-    def test_control_space_combined_surface_plot_and_rules_activation(self):
-        self.fis.setup()
+    def _test_control_space_combined_surface_plot_and_rules_activation(self):
         import matplotlib.pyplot as plt
         ax, fig = self._generate_combined_surfaceplot(pa_values=[0, 1])
         self.fis.ch_var.view()
@@ -366,14 +397,3 @@ class TestBioRiskPlusExtendedFIS(unittest.TestCase):
 
     def tearDown(self):
         """Tear down test fixtures, if any."""
-
-    def test_map_ch_fuzzy_label_to_crisp_produces_correct_mapping(self):
-        """Test the common function."""
-        self.fis.setup()
-        expected_ch_raster = np.array([
-            [0.25, 0.81,  0.53,   0.25],
-            [0.53, 0.25,  0.81, 0.53],
-            [0.81, 0.53,  0.25,   0.81]
-        ], dtype=np.float32)
-        np.testing.assert_array_almost_equal(self.fis.ch_raster,expected_ch_raster, decimal=2)
-

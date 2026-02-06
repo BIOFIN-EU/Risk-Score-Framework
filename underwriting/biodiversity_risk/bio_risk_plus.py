@@ -39,23 +39,23 @@ class BioRiskPlusFIS(object):
 
 
     """
-    def __init__(self, chl_raster, pa_raster, sri_raster):
-        self.chl_raster = chl_raster
-        self.ch_raster = None
-        self.pa_raster = pa_raster
-        self.sri_raster = sri_raster
+    def __init__(self):
         self.default_score_names = ['low', 'medium-low', 'medium', 'medium-high', 'high']
         self.get_rates_uod = lambda: np.arange(0, 1.01, 0.01)
+        self.setup_vars_and_mfs()
+        self.setup_rules()
+        self.fis = ctrl.ControlSystem(self.rules)
+        self.fis_sim = ctrl.ControlSystemSimulation(self.fis, cache=False)
 
     def setup_vars_and_mfs(self):
         self.ch_var = ctrl.Antecedent(self.get_rates_uod(), 'ch')
-        # self.ch_var['unknown'] = fuzz.trapmf(self.ch_var.universe, [0, 0, 0.4, 0.60])
-        # self.ch_var['potential'] = fuzz.trimf(self.ch_var.universe, [0.2, 0.6, 0.8])
-        # self.ch_var['likely'] = fuzz.trapmf(self.ch_var.universe, [0.50, 0.8, 1., 1.])
-
-        self.ch_var['unknown'] = fuzz.trimf(self.ch_var.universe, [0, 0, 0.60])
+        self.ch_var['unknown'] = fuzz.trapmf(self.ch_var.universe, [0, 0, 0.2, 0.6])
         self.ch_var['potential'] = fuzz.trimf(self.ch_var.universe, [0.2, 0.5, 0.8])
-        self.ch_var['likely'] = fuzz.trimf(self.ch_var.universe, [0.60, 1., 1.])
+        self.ch_var['likely'] = fuzz.trapmf(self.ch_var.universe, [0.4, 0.8, 1., 1.])
+
+        # self.ch_var['unknown'] = fuzz.trimf(self.ch_var.universe, [0, 0, 0.60])
+        # self.ch_var['potential'] = fuzz.trimf(self.ch_var.universe, [0.2, 0.5, 0.8])
+        # self.ch_var['likely'] = fuzz.trimf(self.ch_var.universe, [0.60, 1., 1.])
 
         # True/False "singleton"  (will actually behave like it for all intents and purposes: tested)
         self.pa_var = ctrl.Antecedent(np.array([0., 0.01, 0.99, 1.]), 'pa')
@@ -206,25 +206,44 @@ class BioRiskPlusFIS(object):
         self.rules = extreme_cases + mid_cases + one_high_edge_cases + two_bad_cases
 
     def map_ch_fuzzy_label_to_crisp(self, chl_raster):
+        # defz_method =  'som' if label == 'likely' else 'centroid'
         # Create mapping dictionary
         label_map = {
             0: fuzz.defuzz(self.ch_var.universe, self.ch_var['unknown'].mf, 'centroid'), #unknown
             0.5: fuzz.defuzz(self.ch_var.universe, self.ch_var['potential'].mf, 'centroid'), # potential
-            1: fuzz.defuzz(self.ch_var.universe, self.ch_var['likely'].mf, 'centroid'), #likely
+            1: fuzz.defuzz(self.ch_var.universe, self.ch_var['likely'].mf, 'som'), #likely
         }
 
         mapped_raster = np.vectorize(label_map.get)(chl_raster)
         return mapped_raster
 
-    def setup(self):
-        self.setup_vars_and_mfs()
+    def pre_process(self, chl_raster, pa_raster, sri_raster):
+        self.chl_raster = chl_raster
+        self.pa_raster = pa_raster
+        self.sri_raster = sri_raster
         self.ch_raster = self.map_ch_fuzzy_label_to_crisp(self.chl_raster)
-        self.setup_rules()
-        self.fis = ctrl.ControlSystem(self.rules)
-        self.fis_sim = ctrl.ControlSystemSimulation(self.fis, cache=False)
-        self.failed = []
 
-    def run(self, **input_kwargs):
+    def run(self, chl_raster, pa_raster, sri_raster):
+        self.failed = []
+        self.pre_process(chl_raster, pa_raster, sri_raster)
+        # Create empty risk raster with same shape as input (only using one raster, all should be equal)
+        risk_raster = np.zeros_like(self.ch_raster, dtype=np.float64)
+
+        # Get shape for iteration
+        rows, cols = self.ch_raster.shape
+
+        # Iterate through each pixel position
+        for i in range(rows):
+            for j in range(cols):
+                risk_raster[i, j] = self.run_single(
+                    ch=self.ch_raster[i, j],
+                    pa=self.pa_raster[i, j],
+                    si=self.sri_raster[i, j]
+                )
+
+        return risk_raster
+
+    def run_single(self, **input_kwargs):
         for key, value in input_kwargs.items():
             self.fis_sim.input[key] = value
         self.fis_sim.compute()

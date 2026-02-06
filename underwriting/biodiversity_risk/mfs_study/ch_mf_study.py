@@ -10,8 +10,8 @@ ch = ctrl.Antecedent(np.arange(0, 1.1, 0.1), 'ch')
 # Custom membership functions can be built interactively with a familiar,
 # Pythonic API
 ch['unknown'] = fuzz.trapmf(ch.universe, [0, 0, 0.4, 0.60])
-ch['potential'] = fuzz.trimf(ch.universe, [0.2, 0.6, 0.8])
-ch['likely'] = fuzz.trapmf(ch.universe, [0.50, 0.8, 1., 1.])
+ch['potential'] = fuzz.trimf(ch.universe, [0.2, 0.5, 0.8])
+ch['likely'] = fuzz.trapmf(ch.universe, [0.40, 0.8, 1., 1.])
 
 # # You can see how these look with .view()
 ch.view()
@@ -20,7 +20,9 @@ fig = plt.gcf()
 ax = plt.gca()
 
 for color, label in zip(['blue','orange','green'],['unknown', 'potential', 'likely']):
-    centroid_label = fuzz.defuzz(ch.universe, ch[label].mf, 'centroid')
+    defz_method =  'som' if label == 'likely' else 'centroid'
+    centroid_label = fuzz.defuzz(ch.universe, ch[label].mf, defz_method)
+    # centroid_label = fuzz.defuzz(ch.universe, ch[label].mf, 'centroid')
 
     # Add vertical line for centroid
     ax.axvline(x=centroid_label, color=color, linestyle='--', linewidth=2,
