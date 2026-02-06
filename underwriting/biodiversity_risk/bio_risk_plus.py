@@ -3,6 +3,15 @@ import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 
 
+# Define Yager AND operator with p=0.5
+def yager_and_operator(*args, p=0.5):
+    if len(args) == 0:
+        return 0
+    sum_pow = np.sum([(1 - a) ** p for a in args])
+    result = max(0, 1 - (sum_pow ** (1/p)))
+    return result
+
+
 class BioRiskPlusFIS(object):
     """
     Fuzzifying Urbanisation and Climate Change Risks to Biodiversity in Europe
@@ -52,8 +61,11 @@ class BioRiskPlusFIS(object):
         self.si_var = ctrl.Antecedent(self.get_rates_uod(), 'si')
         self.si_var.automf(5, names=self.default_score_names)
 
+        # use auto-tri mf as a base, but replace left/right corners with trapezoidals
         self.risk_var = ctrl.Consequent(self.get_rates_uod(), 'risk')
         self.risk_var.automf(5, names=self.default_score_names)
+        self.risk_var['low'] = fuzz.trapmf(self.risk_var.universe, [0, 0, 0.1, 0.25])
+        self.risk_var['high'] = fuzz.trapmf(self.risk_var.universe, [0.75, 0.9, 1., 1.])
 
 
     def setup_rules(self):
@@ -70,7 +82,9 @@ class BioRiskPlusFIS(object):
 
         # Medium:
         #     IF CH is potential AND PA is Unprotected AND SI is Medium THEN RISK is Medium
+        #
         #mid cases:
+
         mid_cases = []
         mid_cases.append(ctrl.Rule(
             self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['medium'],
@@ -80,13 +94,73 @@ class BioRiskPlusFIS(object):
             self.ch_var['potential'] & self.pa_var['protected'] & self.si_var['medium'],
             self.risk_var['medium']
         ))
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['protected'] & (self.si_var['medium-high'] | self.si_var['high']),
+            self.risk_var['medium-low']
+        ))
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & (self.si_var['medium-high'] | self.si_var['high']),
+            self.risk_var['low']
+        ))
+
+        # Rule : IF ch IS unknown AND pa IS protected AND si IS medium THEN risk IS ???
+        # Rule : IF ch IS unknown AND pa IS protected AND si IS medium-high THEN risk IS ???
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['protected'] & self.si_var['medium'],
+            self.risk_var['medium']
+        ))
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['protected'] & self.si_var['medium-high'],
+            self.risk_var['medium-low']
+        ))
+
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium'],
+            self.risk_var['medium']
+        ))
+
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['medium-low'],
+            self.risk_var['medium']
+        ))
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['low'],
+            self.risk_var['medium-high']
+        ))
+
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['medium-high'],
+            self.risk_var['low']
+        ))
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['medium'],
+            self.risk_var['medium-low']
+        ))
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['medium-low'],
+            self.risk_var['medium-low']
+        ))
+
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium-low'],
+            self.risk_var['medium-high']
+        ))
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium'],
+            self.risk_var['medium']
+        ))
+        mid_cases.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium-high'],
+            self.risk_var['medium-low']
+        ))
+
 
         # Original Edge Cases: <-- probably best to add intermediary medium values for rate MFs
         #     # if Any two are criteria are "good" but one is bad: then Medium-Low, never low.
         #     IF CH is Likely AND PA is Unprotected AND SI is Low THEN RISK is Medium-Low
         #     IF CH is Unknown AND PA is Protected AND SI is Low THEN RISK is Medium
-        low_vars_list = [self.ch_var['unknown'], self.pa_var['unprotected'], self.si_var['low']]
-        high_vars_list = [self.ch_var['likely'], self.pa_var['protected'], self.si_var['high']]
+        low_vars_list = [self.ch_var['unknown'], self.pa_var['unprotected'], self.si_var['high']]
+        high_vars_list = [self.ch_var['likely'], self.pa_var['protected'], self.si_var['low']]
         one_high_edge_cases = []
         for var_i, high_var in enumerate(high_vars_list):
             low_vars = [v for li, v in enumerate(low_vars_list) if var_i != li]
@@ -96,14 +170,38 @@ class BioRiskPlusFIS(object):
             ))
 
 
+        two_bad_cases = []
         # if two criteria are bad, and one is good, risk should be medium-high
         # if the last one is medium or more bad then risk should be high
 
+        # if CH and PA are bad
+        two_bad_cases.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['protected'] & (self.si_var['medium-high'] | self.si_var['high']),
+            self.risk_var['medium-high']
+        ))
+        two_bad_cases.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['protected'] & (self.si_var['medium'] | self.si_var['medium-low']),
+            self.risk_var['high']
+        ))
+        # if PA and SI are bad
+        two_bad_cases.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['protected'] & (self.si_var['low'] | self.si_var['medium-low']),
+            self.risk_var['high']
+        ))
+        two_bad_cases.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['protected'] & (self.si_var['low'] | self.si_var['medium-low']),
+            self.risk_var['medium-high']
+        ))
+        # if CH and SI are bad:
+        extreme_cases.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['low'],
+            self.risk_var['medium-high']
+        ))
 
-        # self.rules = extreme_cases
-        self.rules = extreme_cases + mid_cases + one_high_edge_cases
 
-    def map_ch_fuzzy_label_to_crisp(self):
+        self.rules = extreme_cases + mid_cases + one_high_edge_cases + two_bad_cases
+
+    def map_ch_fuzzy_label_to_crisp(self, chl_raster):
         # Create mapping dictionary
         label_map = {
             0: fuzz.defuzz(self.ch_var.universe, self.ch_var['unknown'].mf, 'centroid'), #unknown
@@ -111,12 +209,12 @@ class BioRiskPlusFIS(object):
             1: fuzz.defuzz(self.ch_var.universe, self.ch_var['likely'].mf, 'centroid'), #likely
         }
 
-        mapped_raster = np.vectorize(label_map.get)(self.chl_raster)
+        mapped_raster = np.vectorize(label_map.get)(chl_raster)
         return mapped_raster
 
     def setup(self):
         self.setup_vars_and_mfs()
-        self.ch_raster = self.map_ch_fuzzy_label_to_crisp()
+        self.ch_raster = self.map_ch_fuzzy_label_to_crisp(self.chl_raster)
         self.setup_rules()
         self.fis = ctrl.ControlSystem(self.rules)
         self.fis_sim = ctrl.ControlSystemSimulation(self.fis, cache=False)

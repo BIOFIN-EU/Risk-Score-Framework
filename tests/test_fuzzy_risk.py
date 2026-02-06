@@ -48,7 +48,18 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         ], dtype=np.float32)
         np.testing.assert_array_almost_equal(self.fis.ch_raster,expected_ch_raster, decimal=2)
 
-    def test_fis_run_simple_case(self):
+    def test_fis_run_simple_low_risk_case(self):
+        self.fis.setup()
+
+        output = self.fis.run(**{
+            'ch': 0,
+            'pa': 0,
+            'si': 1
+        })
+        # if all good, then should be low risk
+        self.assertAlmostEqual(output, 0.07, places=1)
+
+    def test_fis_run_simple_high_risk_case(self):
         self.fis.setup()
 
         output = self.fis.run(**{
@@ -56,9 +67,8 @@ class TestBioRiskPlusFIS(unittest.TestCase):
             'pa': 1,
             'si': 0
         })
-        # if all high, then should be high risk
-        self.assertAlmostEqual(output, 0.91, places=1)
-
+        # if all bad, then should be high risk
+        self.assertAlmostEqual(output, 0.90, places=1)
 
     def _analyze_failed_inputs_simple(self, failed_inputs_list):
         """Show only crisp values and most representative MFs"""
@@ -118,7 +128,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
             # Get MFs
             ch_mf = "unknown" if ch_val == 0 else "potential" if ch_val == 0.5 else "likely"
             pa_mf = "protected" if pa_val == 1 else "unprotected"
-            si_mf = "high" if si_val > 0.8 else "medium-high" if si_val > 0.6 else "medium" if si_val > 0.4 else "medium-low" if si_val > 0.25 else "low"
+            si_mf = "high" if si_val > 0.8 else "medium-high" if si_val > 0.6 else "medium" if si_val > 0.4 else "medium-low" if si_val >= 0.25 else "low"
 
             pattern = f"ch={ch_mf}, pa={pa_mf}, si={si_mf}"
             patterns[pattern] = patterns.get(pattern, 0) + 1
@@ -140,11 +150,11 @@ class TestBioRiskPlusFIS(unittest.TestCase):
             # Suggest a consequent - you need to decide what risk level makes sense
             print(f"Rule {i+1}: IF ch IS {ch_part} AND pa IS {pa_part} AND si IS {si_part} THEN risk IS ???")
 
-    def test_control_space_surface_plot_and_rules_activation(self):
-        self.fis.setup()
-        si_values = np.arange(0, 1.01, 0.05)  # 0 to 1 in steps of 0.05
+    def _generate_surfaceplot(self, pa_fixed, map_ch_values=False):
+        si_values = np.arange(0, 1.01, 0.01)  # 0 to 1 in steps of 0.05
         ch_values = np.array([0, 0.5, 1])  # Only these discrete values for ch
-        pa_fixed = 1  # Fixed value for protected area
+        if map_ch_values:
+            ch_values = self.fis.map_ch_fuzzy_label_to_crisp(ch_values)
 
         # Create meshgrid for the two varying variables
         ch_mesh, si_mesh = np.meshgrid(ch_values, si_values)
@@ -162,15 +172,11 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         import json
 
 
-        self._analyze_failed_inputs_simple(self.fis.failed)
-        print(json.dumps(self.fis.failed, indent=4))
+        # self._analyze_failed_inputs_simple(self.fis.failed)
+        # print(json.dumps(self.fis.failed, indent=4))
         # Plot the result
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
-
-
-        self.fis.si_var.view()
-        plt.show()
 
         fig = plt.figure(figsize=(10, 8))
         ax = fig.add_subplot(111, projection='3d')
@@ -191,7 +197,10 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         ax.set_xlabel('CH (0, 0.5, or 1)')
         ax.set_ylabel('SI (0 to 1)')
         ax.set_zlabel('Risk Output')
-        ax.set_title(f'FIS Control Surface (PA = {pa_fixed})')
+        title = f'FIS Control Surface (PA = {pa_fixed})'
+        if map_ch_values:
+            title += f' - CH as {list(ch_values)}'
+        ax.set_title(title)
 
         # Set axis limits
         ax.set_xlim([-0.1, 1.1])
@@ -201,12 +210,128 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         # Add colorbar
         fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5, label='Risk')
 
-        ax.view_init(30, 200)
+        ax.view_init(30, 125, 0)
+        return ax, fig
+
+    def _generate_combined_surfaceplot(self, pa_values=None):
+        """Generate a combined 3D plot with surfaces for multiple pa values."""
+        if pa_values is None:
+            pa_values = [0, 1]  # Default to pa=0 and pa=1
+
+        si_values = np.arange(0, 1.01, 0.01)  # 0 to 1 in steps of 0.01
+        ch_values = np.array([0, 0.5, 1])  # Only these discrete values for ch
+        # ch_values = self.fis.map_ch_fuzzy_label_to_crisp(ch_values)
+
+        # Create figure and axis
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        import matplotlib.cm as cm
+
+        fig = plt.figure(figsize=(12, 9))
+        ax = fig.add_subplot(111, projection='3d')
+
+        # Store surfaces and their data for later use
+        surfaces = []
+        surface_data = []  # Store (pa_value, surface_object, min_z, max_z)
+
+        for idx, pa_fixed in enumerate(pa_values):
+            # Create meshgrid
+            ch_mesh, si_mesh = np.meshgrid(ch_values, si_values)
+            z = np.zeros_like(ch_mesh, dtype=float)
+
+            # Calculate the surface for this pa value
+            for i in range(len(si_values)):
+                for j in range(len(ch_values)):
+                    output = self.fis.run(**{
+                        'ch': ch_mesh[i, j],
+                        'pa': pa_fixed,
+                        'si': si_mesh[i, j]
+                    })
+                    z[i, j] = output
+
+            # Choose colormap based on pa value
+            if pa_fixed == 0:
+                cmap = cm.YlOrRd
+            else:
+                # For pa=1: blue to yellow
+                # You can use 'viridis', 'plasma', or create custom
+                cmap = cm.coolwarm  # Blue to red
+                # Or for blue to yellow specifically:
+                # cmap = cm.YlGnBu  # Yellow-green-blue
+
+            # Plot the surface
+            surf = ax.plot_surface(
+                ch_mesh,
+                si_mesh,
+                z,
+                cmap=cmap,
+                rstride=1,
+                cstride=1,
+                linewidth=0.5,
+                antialiased=True,
+                alpha=0.7,  # Transparency to see through surfaces
+                label=f'PA = {pa_fixed}'
+            )
+
+            surfaces.append(surf)
+            surface_data.append((pa_fixed, surf, z.min(), z.max()))
+
+        # Set axis labels
+        ax.set_xlabel('CH (0, 0.5, or 1)', fontsize=12)
+        ax.set_ylabel('SI (0 to 1)', fontsize=12)
+        ax.set_zlabel('Risk Output', fontsize=12)
+        ax.set_title(f'FIS Control Surface - Combined PA Values', fontsize=14, fontweight='bold')
+
+        # Set axis limits
+        ax.set_xlim([-0.1, 1.1])
+        ax.set_ylim([-0.05, 1.05])
+
+        # Adjust z-limits based on all data
+        all_z_mins = [data[2] for data in surface_data]
+        all_z_maxs = [data[3] for data in surface_data]
+        z_min = min(all_z_mins) - 0.1 if min(all_z_mins) > 0 else -0.2
+        z_max = max(all_z_maxs) + 0.1
+        ax.set_zlim([z_min, z_max])
+
+        # Create a custom legend
+        from matplotlib.patches import Patch
+
+        # Create color patches for the legend
+        legend_elements = []
+        if 0 in pa_values:
+            legend_elements.append(Patch(facecolor='#FFA500', alpha=0.7, label='PA = 0 (yellow-orange)'))
+
+        if 1 in pa_values:
+            legend_elements.append(Patch(facecolor="#006EFF", alpha=0.7, label='PA = 1 (blue-red)'))
+
+        ax.legend(handles=legend_elements, loc='upper left')
+
+
+        ax.view_init(30, 125, 0)
+
+        return ax, fig
+
+    def _test_control_sperarate_space_surface_plot_and_rules_activation(self):
+        self.fis.setup()
+        import matplotlib.pyplot as plt
+        map_ch_values = False
+        ax, fig = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values)
+        ax2, fig2 = self._generate_surfaceplot(pa_fixed=1, map_ch_values=map_ch_values)
+
+        map_ch_values = True
+        ax, fig_b = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values)
+        ax2, fig2_b = self._generate_surfaceplot(pa_fixed=1, map_ch_values=map_ch_values)
         plt.tight_layout()
         plt.show()
 
-        # import ipdb; ipdb.set_trace()
-        print('a')
+    def test_control_space_combined_surface_plot_and_rules_activation(self):
+        self.fis.setup()
+        import matplotlib.pyplot as plt
+        ax, fig = self._generate_combined_surfaceplot(pa_values=[0, 1])
+        self.fis.ch_var.view()
+        plt.tight_layout()
+        plt.show()
+
 
 
 class TestBioRiskPlusExtendedFIS(unittest.TestCase):
