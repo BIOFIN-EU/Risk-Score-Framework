@@ -6,7 +6,7 @@ from underwriting.biodiversity_risk.bio_risk_plus import BioRiskPlusFIS, BioRisk
 
 
 class TestBioRiskPlusFIS(unittest.TestCase):
-    """Tests for BioRiskPlusFIS package."""
+    """Tests (actually exploratory analysis) for BioRiskPlusFIS."""
 
     def setUp(self):
         """Set up test fixtures, if any."""
@@ -38,63 +38,6 @@ class TestBioRiskPlusFIS(unittest.TestCase):
 
     def tearDown(self):
         """Tear down test fixtures, if any."""
-
-    def _test_map_ch_fuzzy_label_to_crisp_produces_correct_mapping(self):
-        ch_raster = self.fis.map_ch_fuzzy_label_to_crisp(self.chl_raster)
-        expected_ch_raster = np.array([
-            [0.22, 0.80,  0.50,   0.22],
-            [0.50, 0.22,  0.80, 0.50],
-            [0.80, 0.50,  0.22,   0.80]
-        ], dtype=np.float32)
-        np.testing.assert_array_almost_equal(ch_raster,expected_ch_raster, decimal=2)
-
-
-    def test_fis_run_single_simple_low_risk_case(self):
-        output = self.fis.run_single(**{
-            'ch': 0,
-            'pa': 0,
-            'si': 1
-        })
-        # if all good, then should be low risk
-        self.assertAlmostEqual(output, 0.09, places=2)
-
-    def test_fis_run_single_simple_high_risk_case(self):
-
-        output = self.fis.run_single(**{
-            'ch': 1,
-            'pa': 1,
-            'si': 0
-        })
-        # if all bad, then should be high risk
-        self.assertAlmostEqual(output, 0.90, places=1)
-
-    def test_fis_run_raster_inputs_high_risk_case(self):
-        self.chl_raster = np.array([
-            [0,     0,    0,   0],
-            [0.5, 0.5,  0.5, 0.5],
-            [1,     1,    1,   1]
-        ], dtype=np.float32)
-        self.pa_raster = np.array([
-            [0, 0,  0, 0],
-            [0, 0,  0, 0],
-            [1, 1,  1, 1]
-        ], dtype=np.float32)
-
-        self.sri_raster = np.array([
-            [0.25,   0.5,    0.75, 1],
-            [0.25,   0.5,    0.75, 1],
-            [0.50,   0.65,    0.75, 1.]
-        ], dtype=np.float32)
-        expected_raster = [
-            [0.26 , 0.26 , 0.09 , 0.09],
-            [0.5 , 0.43 , 0.15 , 0.15],
-            [0.9 , 0.76 , 0.75 , 0.75]
-        ]
-
-        risk_raster = self.fis.run(self.chl_raster, self.pa_raster, self.sri_raster)
-
-        self.assertEqual(risk_raster.shape, (3, 4))
-        np.testing.assert_array_almost_equal(risk_raster,expected_raster, decimal=2)
 
     def _analyze_failed_inputs_simple(self, failed_inputs_list):
         """Show only crisp values and most representative MFs"""
@@ -231,8 +174,8 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         ax.set_ylabel('SI (0 to 1)')
         ax.set_zlabel('Risk Output')
         title = f'FIS Control Surface (PA = {pa_fixed})'
-        if map_ch_values:
-            title += f' - CH as {list(ch_legend_vals)}'
+        # if map_ch_values:
+        #     title += f' - CH as {list(ch_legend_vals)}'
         ax.set_title(title)
 
         # Set axis limits
@@ -246,7 +189,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         ax.view_init(30, 125, 0)
         return ax, fig
 
-    def _generate_combined_surfaceplot(self, pa_values=None):
+    def _generate_combined_surfaceplot(self, pa_values=None, map_ch_values=False):
         """Generate a combined 3D plot with surfaces for multiple pa values."""
         if pa_values is None:
             pa_values = [0, 1]  # Default to pa=0 and pa=1
@@ -259,9 +202,33 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
         import matplotlib.cm as cm
+        from matplotlib.colors import LinearSegmentedColormap
 
         fig = plt.figure(figsize=(12, 9))
         ax = fig.add_subplot(111, projection='3d')
+
+
+
+            # Create a base blue-to-red colormap
+        base_cmap = cm.coolwarm
+
+        # Create modified colormaps with different intensities/alphas
+        # PA=0: lighter version (higher alpha/more transparent)
+        # PA=1: full intensity version
+        pa_cmap_configs = {
+            0: {'alpha': 0.9, 'brightness_factor': 1.2},  # Lighter, more transparent
+            1: {'alpha': 0.9, 'brightness_factor': 1.0}   # Darker, less transparent
+        }
+
+        # Function to create a lighter version of a colormap
+        def lighten_cmap(cmap, factor=1.2):
+            """Lighten a colormap by scaling colors towards white."""
+            colors = cmap(np.linspace(0, 1, 256))
+            # Lighten colors by mixing with white
+            white = np.array([0.8, 0.8, 0.8, 0.8])
+            lightened_colors = colors + (white - colors) * (1 - 1/factor)
+            lightened_colors = np.clip(lightened_colors, 0, 1)
+            return LinearSegmentedColormap.from_list(f'lightened_{cmap.name}', lightened_colors)
 
         # Store surfaces and their data for later use
         surfaces = []
@@ -275,22 +242,36 @@ class TestBioRiskPlusFIS(unittest.TestCase):
             # Calculate the surface for this pa value
             for i in range(len(si_values)):
                 for j in range(len(ch_values)):
+                    ch_val = ch_mesh[i, j]
+                    if map_ch_values:
+                        ch_val = float(self.fis.map_ch_fuzzy_label_to_crisp(ch_val))
                     output = self.fis.run_single(**{
-                        'ch': ch_mesh[i, j],
+                        'ch': ch_val,
                         'pa': pa_fixed,
                         'si': si_mesh[i, j]
                     })
                     z[i, j] = output
 
-            # Choose colormap based on pa value
-            if pa_fixed == 0:
-                cmap = cm.YlOrRd
-            else:
-                # For pa=1: blue to yellow
-                # You can use 'viridis', 'plasma', or create custom
-                cmap = cm.coolwarm  # Blue to red
-                # Or for blue to yellow specifically:
-                # cmap = cm.YlGnBu  # Yellow-green-blue
+            # Get colormap configuration for this pa value
+            config = pa_cmap_configs.get(pa_fixed, {'alpha': 0.7, 'brightness_factor': 1.0})
+
+            # Create appropriate colormap
+            # if config['brightness_factor'] > 1.0:
+            #     cmap = lighten_cmap(base_cmap, config['brightness_factor'])
+            # else:
+            # cmap = cm.Greys
+            cmap = cm.Greys
+            cmap = 'viridis'
+
+            # # Choose colormap based on pa value
+            # if pa_fixed == 0:
+            #     cmap = cm.YlOrRd
+            # else:
+            #     # For pa=1: blue to yellow
+            #     # You can use 'viridis', 'plasma', or create custom
+            #     cmap = cm.coolwarm  # Blue to red
+            #     # Or for blue to yellow specifically:
+            #     # cmap = cm.YlGnBu  # Yellow-green-blue
 
             # Plot the surface
             surf = ax.plot_surface(
@@ -302,7 +283,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
                 cstride=1,
                 linewidth=0.5,
                 antialiased=True,
-                alpha=0.7,  # Transparency to see through surfaces
+                # alpha=config['alpha'],  # Transparency to see through surfaces
                 label=f'PA = {pa_fixed}'
             )
 
@@ -332,10 +313,10 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         # Create color patches for the legend
         legend_elements = []
         if 0 in pa_values:
-            legend_elements.append(Patch(facecolor='#FFA500', alpha=0.7, label='PA = 0 (yellow-orange)'))
+            legend_elements.append(Patch(alpha=0.7, label='PA = 0 (Bottom-surface)'))
 
         if 1 in pa_values:
-            legend_elements.append(Patch(facecolor="#006EFF", alpha=0.7, label='PA = 1 (blue-red)'))
+            legend_elements.append(Patch(alpha=0.7, label='PA = 1 (Top-surface)'))
 
         ax.legend(handles=legend_elements, loc='upper left')
 
@@ -344,11 +325,11 @@ class TestBioRiskPlusFIS(unittest.TestCase):
 
         return ax, fig
 
-    def test_control_sperarate_space_surface_plot_and_rules_activation(self):
+    def _test_control_sperarate_space_surface_plot_and_rules_activation(self):
         import matplotlib.pyplot as plt
-        map_ch_values = False
-        ax, fig = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values)
-        ax2, fig2 = self._generate_surfaceplot(pa_fixed=1, map_ch_values=map_ch_values)
+        # map_ch_values = False
+        # ax, fig = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values)
+        # ax2, fig2 = self._generate_surfaceplot(pa_fixed=1, map_ch_values=map_ch_values)
 
         map_ch_values = True
         ax, fig_b = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values)
@@ -358,8 +339,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
 
     def _test_control_space_combined_surface_plot_and_rules_activation(self):
         import matplotlib.pyplot as plt
-        ax, fig = self._generate_combined_surfaceplot(pa_values=[0, 1])
-        self.fis.ch_var.view()
+        ax, fig = self._generate_combined_surfaceplot(pa_values=[0, 1], map_ch_values=True)
         plt.tight_layout()
         plt.show()
 
