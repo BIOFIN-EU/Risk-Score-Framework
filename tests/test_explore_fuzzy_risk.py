@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from underwriting.biodiversity_risk.bio_risk_plus import BioRiskPlusFIS, BioRiskPlusExtendedFIS
+from underwriting.biodiversity_risk.bio_risk_plus import BioRiskPlusFIS
 
 
 class TestBioRiskPlusFIS(unittest.TestCase):
@@ -342,38 +342,3 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         ax, fig = self._generate_combined_surfaceplot(pa_values=[0, 1], map_ch_values=True)
         plt.tight_layout()
         plt.show()
-
-
-
-class TestBioRiskPlusExtendedFIS(unittest.TestCase):
-    """Tests for BioRiskPlusExtendedFIS package."""
-
-    def setUp(self):
-        """Set up test fixtures, if any."""
-        self.chl_raster = np.array([
-            [0, 1,  0.5,   0],
-            [0.5, 0,  1, 0.5],
-            [1, 0.5,  0,   1]
-        ], dtype=np.float32)
-        self.pa_raster = np.array([
-            [0, 1,  0, 0],
-            [0, 0,  1, 0],
-            [1, 0,  0, 1]
-        ], dtype=np.float32)
-
-        self.sri_raster = np.array([
-            [0.1,   1,  0.5,   0],
-            [0.5,   0,    1, 0.5],
-            [1,   0.5,    0, 0.1]
-        ], dtype=np.float32)
-        self.hfi_raster = np.array([
-            [0,   4,  0,   10],
-            [4,   0,    7, 30],
-            [20,   40,    0, 50]
-        ], dtype=np.int16)
-
-
-        self.fis = BioRiskPlusExtendedFIS(self.chl_raster, self.pa_raster, self.sri_raster, self.hfi_raster)
-
-    def tearDown(self):
-        """Tear down test fixtures, if any."""

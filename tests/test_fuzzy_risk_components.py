@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from underwriting.biodiversity_risk.bio_risk_plus import BioRiskPlusFIS, BioRiskPlusExtendedFIS
+from underwriting.biodiversity_risk.bio_risk_plus import BioRiskPlusFIS
 
 
 class TestBioRiskPlusFISComponents(unittest.TestCase):
@@ -57,6 +57,25 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
         })
         # if all good, then should be low risk
         self.assertAlmostEqual(output, 0.09, places=2)
+
+
+    # def test_show_state(self):
+
+    #     self.fis.fis_sim.input['ch'] = 0.5
+    #     self.fis.fis_sim.input['pa'] = 0
+    #     self.fis.fis_sim.input['si'] = 0.5
+    #     import ipdb; ipdb.set_trace()
+    #     self.fis.fis_sim.compute()
+
+        # print(self.fis.fis_sim.output)
+        # import json
+        # print(json.dumps(self.fis.fis_sim.explainable_data, indent=4))
+
+        # import matplotlib.pyplot as plt
+        # self.fis.risk_var.view(self.fis.fis_sim)
+        # plt.show()
+        # print(self.fis.fis_sim.print_state())
+        # if all good, then should be low risk
 
     def test_fis_run_single_simple_high_risk_case(self):
 
