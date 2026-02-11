@@ -205,137 +205,159 @@ class BioRiskPlusFIS(object):
         return new_rules
 
     def setup_rules(self):
-        #Extreme cases:
-        extreme_cases = []
-        extreme_cases.append(ctrl.Rule(
-            self.ch_var['likely'] & self.pa_var['protected'] & self.si_var['low'],
-            self.risk_var['high']
-        ))
-        extreme_cases.append(ctrl.Rule(
+        new_rules = []
+
+        new_rules.append(ctrl.Rule(
             self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['high'],
             self.risk_var['low']
         ))
 
-        # Medium:
-        #     IF CH is potential AND PA is Unprotected AND SI is Medium THEN RISK is Medium
-        #
-        #mid cases:
-
-        mid_cases = []
-        mid_cases.append(ctrl.Rule(
-            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['medium'],
-            self.risk_var['medium']
-        ))
-        mid_cases.append(ctrl.Rule(
-            self.ch_var['potential'] & self.pa_var['protected'] & self.si_var['medium'],
-            self.risk_var['medium']
-        ))
-        mid_cases.append(ctrl.Rule(
-            self.ch_var['potential'] & self.pa_var['protected'] & (self.si_var['medium-high'] | self.si_var['high']),
-            self.risk_var['medium-low']
-        ))
-        mid_cases.append(ctrl.Rule(
-            self.ch_var['potential'] & self.pa_var['unprotected'] & (self.si_var['medium-high'] | self.si_var['high']),
-            self.risk_var['low']
-        ))
-
-        # Rule : IF ch IS unknown AND pa IS protected AND si IS medium THEN risk IS ???
-        # Rule : IF ch IS unknown AND pa IS protected AND si IS medium-high THEN risk IS ???
-        mid_cases.append(ctrl.Rule(
-            self.ch_var['unknown'] & self.pa_var['protected'] & self.si_var['medium'],
-            self.risk_var['medium']
-        ))
-        mid_cases.append(ctrl.Rule(
-            self.ch_var['unknown'] & self.pa_var['protected'] & self.si_var['medium-high'],
-            self.risk_var['medium-low']
-        ))
-
-        mid_cases.append(ctrl.Rule(
-            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium'],
-            self.risk_var['medium']
-        ))
-
-        mid_cases.append(ctrl.Rule(
-            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['medium-low'],
-            self.risk_var['medium']
-        ))
-        mid_cases.append(ctrl.Rule(
-            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['low'],
-            self.risk_var['medium-high']
-        ))
-
-        mid_cases.append(ctrl.Rule(
+        new_rules.append(ctrl.Rule(
             self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['medium-high'],
             self.risk_var['low']
         ))
-        mid_cases.append(ctrl.Rule(
+
+        new_rules.append(ctrl.Rule(
             self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['medium'],
             self.risk_var['medium-low']
         ))
-        mid_cases.append(ctrl.Rule(
+
+        new_rules.append(ctrl.Rule(
             self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['medium-low'],
             self.risk_var['medium-low']
         ))
 
-        mid_cases.append(ctrl.Rule(
-            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium-low'],
-            self.risk_var['medium-high']
-        ))
-        mid_cases.append(ctrl.Rule(
-            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium'],
+        new_rules.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['low'],
             self.risk_var['medium']
         ))
-        mid_cases.append(ctrl.Rule(
-            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium-high'],
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['protected'] & self.si_var['high'],
+            self.risk_var['medium']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['protected'] & self.si_var['medium-high'],
+            self.risk_var['medium']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['protected'] & self.si_var['medium'],
+            self.risk_var['medium-high']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['protected'] & self.si_var['medium-low'],
+            self.risk_var['high']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['protected'] & self.si_var['low'],
+            self.risk_var['high']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['high'],
+            self.risk_var['low']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['medium-high'],
             self.risk_var['medium-low']
         ))
 
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['medium'],
+            self.risk_var['medium']
+        ))
 
-        # Original Edge Cases: <-- probably best to add intermediary medium values for rate MFs
-        #     # if Any two are criteria are "good" but one is bad: then Medium-Low, never low.
-        #     IF CH is Likely AND PA is Unprotected AND SI is Low THEN RISK is Medium-Low
-        #     IF CH is Unknown AND PA is Protected AND SI is Low THEN RISK is Medium
-        low_vars_list = [self.ch_var['unknown'], self.pa_var['unprotected'], self.si_var['high']]
-        high_vars_list = [self.ch_var['likely'], self.pa_var['protected'], self.si_var['low']]
-        one_high_edge_cases = []
-        for var_i, high_var in enumerate(high_vars_list):
-            low_vars = [v for li, v in enumerate(low_vars_list) if var_i != li]
-            one_high_edge_cases.append(ctrl.Rule(
-                low_vars[0] & low_vars[1] & high_var,
-                self.risk_var['medium-low']
-            ))
-
-
-        two_bad_cases = []
-        # if two criteria are bad, and one is good, risk should be medium-high
-        # if the last one is medium or more bad then risk should be high
-
-        # if CH and PA are bad
-        two_bad_cases.append(ctrl.Rule(
-            self.ch_var['likely'] & self.pa_var['protected'] & (self.si_var['medium-high'] | self.si_var['high']),
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['medium-low'],
             self.risk_var['medium-high']
         ))
-        two_bad_cases.append(ctrl.Rule(
-            self.ch_var['likely'] & self.pa_var['protected'] & (self.si_var['medium'] | self.si_var['medium-low']),
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['low'],
             self.risk_var['high']
         ))
-        # if PA and SI are bad
-        two_bad_cases.append(ctrl.Rule(
-            self.ch_var['potential'] & self.pa_var['protected'] & (self.si_var['low'] | self.si_var['medium-low']),
-            self.risk_var['high']
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['protected'] & self.si_var['high'],
+            self.risk_var['medium']
         ))
-        two_bad_cases.append(ctrl.Rule(
-            self.ch_var['unknown'] & self.pa_var['protected'] & (self.si_var['low'] | self.si_var['medium-low']),
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['protected'] & self.si_var['medium-high'],
             self.risk_var['medium-high']
         ))
-        # if CH and SI are bad:
-        extreme_cases.append(ctrl.Rule(
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['protected'] & self.si_var['medium'],
+            self.risk_var['high']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['protected'] & self.si_var['medium-low'],
+            self.risk_var['high']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['protected'] & self.si_var['low'],
+            self.risk_var['high']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['high'],
+            self.risk_var['medium-low']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium-high'],
+            self.risk_var['medium']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium'],
+            self.risk_var['medium-high']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium-low'],
+            self.risk_var['high']
+        ))
+
+        new_rules.append(ctrl.Rule(
             self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['low'],
+            self.risk_var['high']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['protected'] & self.si_var['high'],
             self.risk_var['medium-high']
         ))
 
+        new_rules.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['protected'] & self.si_var['medium-high'],
+            self.risk_var['medium-high']
+        ))
 
-        self.rules = extreme_cases + mid_cases + one_high_edge_cases + two_bad_cases
+        new_rules.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['protected'] & self.si_var['medium'],
+            self.risk_var['high']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['protected'] & self.si_var['medium-low'],
+            self.risk_var['high']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['protected'] & self.si_var['low'],
+            self.risk_var['high']
+        ))
+
+        self.rules = new_rules
 
     def map_ch_fuzzy_label_to_crisp(self, chl_raster):
         # defz_method =  'som' if label == 'likely' else 'centroid'
