@@ -214,7 +214,7 @@ class BioRiskPlusFIS(object):
 
         new_rules.append(ctrl.Rule(
             self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['medium-high'],
-            self.risk_var['low']
+            self.risk_var['medium-low']
         ))
 
         new_rules.append(ctrl.Rule(
@@ -229,7 +229,57 @@ class BioRiskPlusFIS(object):
 
         new_rules.append(ctrl.Rule(
             self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['low'],
+            self.risk_var['medium-low']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['high'],
+            self.risk_var['medium-low']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['medium-high'],
+            self.risk_var['medium-low']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['medium'],
             self.risk_var['medium']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['medium-low'],
+            self.risk_var['medium-high']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['low'],
+            self.risk_var['medium-high']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['high'],
+            self.risk_var['medium']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium-high'],
+            self.risk_var['medium']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium'],
+            self.risk_var['medium-high']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium-low'],
+            self.risk_var['high']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['low'],
+            self.risk_var['high']
         ))
 
         new_rules.append(ctrl.Rule(
@@ -258,33 +308,8 @@ class BioRiskPlusFIS(object):
         ))
 
         new_rules.append(ctrl.Rule(
-            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['high'],
-            self.risk_var['low']
-        ))
-
-        new_rules.append(ctrl.Rule(
-            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['medium-high'],
-            self.risk_var['medium-low']
-        ))
-
-        new_rules.append(ctrl.Rule(
-            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['medium'],
-            self.risk_var['medium']
-        ))
-
-        new_rules.append(ctrl.Rule(
-            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['medium-low'],
-            self.risk_var['medium-high']
-        ))
-
-        new_rules.append(ctrl.Rule(
-            self.ch_var['potential'] & self.pa_var['unprotected'] & self.si_var['low'],
-            self.risk_var['high']
-        ))
-
-        new_rules.append(ctrl.Rule(
             self.ch_var['potential'] & self.pa_var['protected'] & self.si_var['high'],
-            self.risk_var['medium']
+            self.risk_var['medium-high']
         ))
 
         new_rules.append(ctrl.Rule(
@@ -304,31 +329,6 @@ class BioRiskPlusFIS(object):
 
         new_rules.append(ctrl.Rule(
             self.ch_var['potential'] & self.pa_var['protected'] & self.si_var['low'],
-            self.risk_var['high']
-        ))
-
-        new_rules.append(ctrl.Rule(
-            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['high'],
-            self.risk_var['medium-low']
-        ))
-
-        new_rules.append(ctrl.Rule(
-            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium-high'],
-            self.risk_var['medium']
-        ))
-
-        new_rules.append(ctrl.Rule(
-            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium'],
-            self.risk_var['medium-high']
-        ))
-
-        new_rules.append(ctrl.Rule(
-            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['medium-low'],
-            self.risk_var['high']
-        ))
-
-        new_rules.append(ctrl.Rule(
-            self.ch_var['likely'] & self.pa_var['unprotected'] & self.si_var['low'],
             self.risk_var['high']
         ))
 
