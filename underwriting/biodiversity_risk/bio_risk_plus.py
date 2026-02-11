@@ -214,7 +214,7 @@ class BioRiskPlusFIS(object):
 
         new_rules.append(ctrl.Rule(
             self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['medium-high'],
-            self.risk_var['medium-low']
+            self.risk_var['low']
         ))
 
         new_rules.append(ctrl.Rule(

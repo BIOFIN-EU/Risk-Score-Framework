@@ -333,7 +333,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
 
         map_ch_values = True
         ax, fig_b = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values)
-        ax2, fig2_b = self._generate_surfaceplot(pa_fixed=1, map_ch_values=map_ch_values)
+        # ax2, fig2_b = self._generate_surfaceplot(pa_fixed=1, map_ch_values=map_ch_values)
         plt.tight_layout()
         plt.show()
 
