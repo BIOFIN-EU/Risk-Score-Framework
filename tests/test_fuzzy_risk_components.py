@@ -59,23 +59,13 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
         self.assertAlmostEqual(output, 0.09, places=2)
 
 
-    # def test_show_state(self):
-
-    #     self.fis.fis_sim.input['ch'] = 0.5
-    #     self.fis.fis_sim.input['pa'] = 0
-    #     self.fis.fis_sim.input['si'] = 0.5
-    #     import ipdb; ipdb.set_trace()
-    #     self.fis.fis_sim.compute()
-
-        # print(self.fis.fis_sim.output)
-        # import json
-        # print(json.dumps(self.fis.fis_sim.explainable_data, indent=4))
-
-        # import matplotlib.pyplot as plt
-        # self.fis.risk_var.view(self.fis.fis_sim)
-        # plt.show()
-        # print(self.fis.fis_sim.print_state())
-        # if all good, then should be low risk
+    def test_retain_explainability_data(self):
+        output = self.fis.run_single(**{
+            'ch': 1,
+            'pa': 1,
+            'si': 0
+        })
+        self.assertIn('activated_rules', self.fis.fis_sim.explainable_data)
 
     def test_fis_run_single_simple_high_risk_case(self):
 
@@ -87,7 +77,7 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
         # if all bad, then should be high risk
         self.assertAlmostEqual(output, 0.90, places=1)
 
-    def test_fis_run_raster_inputs_high_risk_case(self):
+    def test_fis_run_raster_inputs_multiple_cases(self):
         self.chl_raster = np.array([
             [0,     0,    0,   0],
             [0.5, 0.5,  0.5, 0.5],
@@ -114,4 +104,27 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
 
         self.assertEqual(risk_raster.shape, (3, 4))
         np.testing.assert_array_almost_equal(risk_raster,expected_raster, decimal=2)
+
+
+    def test_edge_use_cases_compared_to_original_paper(self):
+        original_paper_risk = (1 + 0 + 0) / 3 # only one component as bad
+
+        ch_bad = self.fis.run_single(**{
+            'ch': 1,
+            'pa': 0,
+            'si': 1
+        })
+        pa_bad = self.fis.run_single(**{
+            'ch': 0,
+            'pa': 1,
+            'si': 1
+        })
+        si_bad = self.fis.run_single(**{
+            'ch': 0,
+            'pa': 0,
+            'si': 0
+        })
+        self.assertGreater(ch_bad, original_paper_risk)
+        self.assertGreater(pa_bad, original_paper_risk)
+        self.assertGreater(si_bad, original_paper_risk)
 

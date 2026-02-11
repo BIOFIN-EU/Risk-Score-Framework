@@ -75,6 +75,39 @@ class BioRiskPlusFIS(object):
         self.risk_var['low'] = fuzz.trapmf(self.risk_var.universe, [0, 0, 0.1, 0.25])
         self.risk_var['high'] = fuzz.trapmf(self.risk_var.universe, [0.75, 0.9, 1., 1.])
 
+    def _get_low_risk_rules(self):
+        new_rules = []
+        new_rules.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['high'],
+            self.risk_var['low']
+        ))
+        new_rules.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['medium-high'],
+            self.risk_var['low']
+        ))
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & (self.si_var['medium-high'] | self.si_var['high']),
+            self.risk_var['low']
+        ))
+
+        return new_rules
+
+    def _get_medium_low_risk_rules(self):
+        new_rules = []
+        new_rules.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['high'],
+            self.risk_var['low']
+        ))
+        new_rules.append(ctrl.Rule(
+            self.ch_var['potential'] & self.pa_var['unprotected'] & (self.si_var['medium-high'] | self.si_var['high']),
+            self.risk_var['low']
+        ))
+
+        new_rules.append(ctrl.Rule(
+            self.ch_var['unknown'] & self.pa_var['unprotected'] & self.si_var['medium-high'],
+            self.risk_var['low']
+        ))
+        return new_rules
 
     def setup_rules(self):
         #Extreme cases:
