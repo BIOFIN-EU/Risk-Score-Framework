@@ -133,7 +133,6 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
             'pa': 0,
             'si': 0
         })
-        import ipdb; ipdb.set_trace()
         self.assertGreaterEqual(original_paper_risk, si_bad)
         self.assertGreater(pa_bad, original_paper_risk)
         self.assertGreaterEqual(original_paper_risk, ch_bad)
