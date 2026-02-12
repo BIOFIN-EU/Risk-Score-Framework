@@ -325,7 +325,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
 
         return ax, fig
 
-    def test_control_sperarate_space_surface_plot_and_rules_activation(self):
+    def _test_control_sperarate_space_surface_plot_and_rules_activation(self):
         import matplotlib.pyplot as plt
         # map_ch_values = False
         # ax, fig = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values)

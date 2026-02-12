@@ -116,7 +116,7 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
 
 
     def test_edge_use_cases_compared_to_original_paper(self):
-        original_paper_risk = (1 + 0 + 0) / 3 # only one component as bad
+        original_paper_risk = (0 + 1 + 0) / 3 # only one component as bad
 
         ch_bad = self.fis.run_single(**{
             'ch': 1,
