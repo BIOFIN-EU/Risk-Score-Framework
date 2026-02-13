@@ -64,7 +64,7 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
             'pa': 1,
             'si': 0
         })
-        # if all good, then should be low risk
+        # if all bad, then should be high risk
         self.assertAlmostEqual(output, 1., places=2)
 
 
@@ -75,16 +75,6 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
             'si': 0
         })
         self.assertIn('activated_rules', self.fis.fis_sim.explainable_data)
-
-    def test_fis_run_single_simple_high_risk_case(self):
-
-        output = self.fis.run_single(**{
-            'ch': 1,
-            'pa': 1,
-            'si': 0
-        })
-        # if all bad, then should be high risk
-        self.assertAlmostEqual(output, 0.90, places=1)
 
     def _test_fis_run_raster_inputs_multiple_cases(self):
         self.chl_raster = np.array([

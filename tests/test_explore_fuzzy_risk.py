@@ -120,62 +120,87 @@ class TestBioRiskPlusFIS(unittest.TestCase):
             print(f"Rule {i+1}: IF ch IS {ch_part} AND pa IS {pa_part} AND si IS {si_part} THEN risk IS ???")
 
     def _generate_surfaceplot(self, pa_fixed, map_ch_values=False):
-        si_values = np.arange(0, 1.01, 0.01)  # 0 to 1 in steps of 0.05
-        ch_values = np.array([0, 0.5, 1])  # Only these discrete values for ch
-        ch_legend_vals = self.fis.map_ch_fuzzy_label_to_crisp(ch_values)
+        si_values = np.arange(0, 1.01, 0.01)  # 0 to 1 in steps of 0.01
+        ch_discrete = np.array([0, 0.5, 1])  # Only these discrete values for calculation
 
-        # Create meshgrid for the two varying variables
-        ch_mesh, si_mesh = np.meshgrid(ch_values, si_values)
-        z = np.zeros_like(ch_mesh, dtype=float)
+        # Create meshgrid for calculation (using discrete CH values)
+        ch_calc_mesh, si_calc_mesh = np.meshgrid(ch_discrete, si_values)
+        z_calc = np.zeros_like(ch_calc_mesh, dtype=float)
 
-        # Collect the control surface
+        # Collect the control surface for discrete CH points
         for i in range(len(si_values)):
-            for j in range(len(ch_values)):
-                ch_val = ch_mesh[i, j]
+            for j in range(len(ch_discrete)):
+                ch_val = ch_calc_mesh[i, j]
                 if map_ch_values:
                     ch_val = float(self.fis.map_ch_fuzzy_label_to_crisp(ch_val))
                 try:
                     output = self.fis.run_single(**{
                         'ch': ch_val,
                         'pa': pa_fixed,
-                        'si': si_mesh[i, j]
+                        'si': si_calc_mesh[i, j]
                     })
                 except Exception as e:
                     print(e)
                     import ipdb; ipdb.set_trace()
                     print(f"{[i, j]}")
-                z[i, j] = output
-        import json
+                z_calc[i, j] = output
 
+        # Create fine mesh for plotting (more CH points for smooth surface)
+        si_fine = si_values  # Keep same resolution for SI
+        ch_fine = np.linspace(0, 1, 50)  # 50 points for smooth CH dimension
 
-        # self._analyze_failed_inputs_simple(self.fis.failed)
-        # print(json.dumps(self.fis.failed, indent=4))
+        # Interpolate to get Z values for the fine mesh
+        from scipy.interpolate import interp2d
+
+        # Create interpolation function based on calculated points
+        # Note: ch_discrete has only 3 points, so we'll use linear interpolation
+        z_fine = np.zeros((len(si_fine), len(ch_fine)))
+
+        # Interpolate for each SI value independently (more stable than 2D interpolation with so few CH points)
+        for i, si in enumerate(si_fine):
+            # Linear interpolation of Z across CH dimension for this SI
+            z_fine[i, :] = np.interp(ch_fine, ch_discrete, z_calc[i, :])
+
+        # Create fine meshgrid for plotting
+        ch_plot_mesh, si_plot_mesh = np.meshgrid(ch_fine, si_fine)
+
         # Plot the result
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
 
-        fig = plt.figure(figsize=(10, 8))
+        fig = plt.figure(figsize=(12, 9))
         ax = fig.add_subplot(111, projection='3d')
 
-        # Plot surface - note that ch only has 3 discrete values
-        surf = ax.plot_surface(ch_mesh, si_mesh, z, rstride=1, cstride=1,
-                            cmap='viridis', linewidth=0.4, antialiased=True)
+        # Plot smooth surface using interpolated data
+        surf = ax.plot_surface(ch_plot_mesh, si_plot_mesh, z_fine,
+                            rstride=1, cstride=1, cmap='viridis',
+                            linewidth=0, antialiased=True, alpha=0.8)
 
-        # Add contour projections
-        cset = ax.contourf(ch_mesh, si_mesh, z, zdir='z', offset=-0.2,
+        # Add contour projections with interpolated data
+        cset = ax.contourf(ch_plot_mesh, si_plot_mesh, z_fine, zdir='z', offset=-0.2,
                         cmap='viridis', alpha=0.5)
-        cset = ax.contourf(ch_mesh, si_mesh, z, zdir='x', offset=-0.5,
+        cset = ax.contourf(ch_plot_mesh, si_plot_mesh, z_fine, zdir='x', offset=-0.5,
                         cmap='viridis', alpha=0.5)
-        cset = ax.contourf(ch_mesh, si_mesh, z, zdir='y', offset=1.2,
+        cset = ax.contourf(ch_plot_mesh, si_plot_mesh, z_fine, zdir='y', offset=1.2,
                         cmap='viridis', alpha=0.5)
+
+        # Mark the original discrete CH points on the surface
+        ch_marker_mesh, si_marker_mesh = np.meshgrid(ch_discrete, si_values[::10])  # Mark every 10th SI point
+        z_marker = np.zeros_like(ch_marker_mesh)
+
+        for i in range(len(si_values[::10])):
+            for j in range(len(ch_discrete)):
+                si_idx = i * 10  # Index in original data
+                z_marker[i, j] = z_calc[si_idx, j]
+
+        ax.scatter(ch_marker_mesh, si_marker_mesh, z_marker,
+                color='red', s=30, label='Calculated points')
 
         # Set axis labels
-        ax.set_xlabel('CH (0, 0.5, or 1)')
+        ax.set_xlabel('CH (interpolated)')
         ax.set_ylabel('SI (0 to 1)')
         ax.set_zlabel('Risk Output')
-        title = f'FIS Control Surface (PA = {pa_fixed})'
-        # if map_ch_values:
-        #     title += f' - CH as {list(ch_legend_vals)}'
+        title = f'FIS Control Surface (PA = {pa_fixed}) - Smoothed Interpolation'
         ax.set_title(title)
 
         # Set axis limits
@@ -186,8 +211,82 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         # Add colorbar
         fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5, label='Risk')
 
+        # Add legend
+        ax.legend(loc='upper right')
+
         ax.view_init(30, 125, 0)
         return ax, fig
+
+
+    # def _generate_surfaceplot(self, pa_fixed, map_ch_values=False):
+    #     si_values = np.arange(0, 1.01, 0.01)  # 0 to 1 in steps of 0.05
+    #     ch_values = np.array([0, 0.5, 1])  # Only these discrete values for ch
+    #     ch_legend_vals = self.fis.map_ch_fuzzy_label_to_crisp(ch_values)
+
+    #     # Create meshgrid for the two varying variables
+    #     ch_mesh, si_mesh = np.meshgrid(ch_values, si_values)
+    #     z = np.zeros_like(ch_mesh, dtype=float)
+
+    #     # Collect the control surface
+    #     for i in range(len(si_values)):
+    #         for j in range(len(ch_values)):
+    #             ch_val = ch_mesh[i, j]
+    #             if map_ch_values:
+    #                 ch_val = float(self.fis.map_ch_fuzzy_label_to_crisp(ch_val))
+    #             try:
+    #                 output = self.fis.run_single(**{
+    #                     'ch': ch_val,
+    #                     'pa': pa_fixed,
+    #                     'si': si_mesh[i, j]
+    #                 })
+    #             except Exception as e:
+    #                 print(e)
+    #                 import ipdb; ipdb.set_trace()
+    #                 print(f"{[i, j]}")
+    #             z[i, j] = output
+    #     import json
+
+
+    #     # self._analyze_failed_inputs_simple(self.fis.failed)
+    #     # print(json.dumps(self.fis.failed, indent=4))
+    #     # Plot the result
+    #     import matplotlib.pyplot as plt
+    #     from mpl_toolkits.mplot3d import Axes3D
+
+    #     fig = plt.figure(figsize=(10, 8))
+    #     ax = fig.add_subplot(111, projection='3d')
+
+    #     # Plot surface - note that ch only has 3 discrete values
+    #     surf = ax.plot_surface(ch_mesh, si_mesh, z, rstride=1, cstride=1,
+    #                         cmap='viridis', linewidth=0.4, antialiased=True)
+
+    #     # Add contour projections
+    #     cset = ax.contourf(ch_mesh, si_mesh, z, zdir='z', offset=-0.2,
+    #                     cmap='viridis', alpha=0.5)
+    #     cset = ax.contourf(ch_mesh, si_mesh, z, zdir='x', offset=-0.5,
+    #                     cmap='viridis', alpha=0.5)
+    #     cset = ax.contourf(ch_mesh, si_mesh, z, zdir='y', offset=1.2,
+    #                     cmap='viridis', alpha=0.5)
+
+    #     # Set axis labels
+    #     ax.set_xlabel('CH (0, 0.5, or 1)')
+    #     ax.set_ylabel('SI (0 to 1)')
+    #     ax.set_zlabel('Risk Output')
+    #     title = f'FIS Control Surface (PA = {pa_fixed})'
+    #     # if map_ch_values:
+    #     #     title += f' - CH as {list(ch_legend_vals)}'
+    #     ax.set_title(title)
+
+    #     # Set axis limits
+    #     ax.set_xlim([-0.1, 1.1])
+    #     ax.set_ylim([-0.05, 1.05])
+    #     ax.set_zlim([-0.2, 1.1])
+
+    #     # Add colorbar
+    #     fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5, label='Risk')
+
+    #     ax.view_init(30, 125, 0)
+    #     return ax, fig
 
     def _generate_combined_surfaceplot(self, pa_values=None, map_ch_values=False):
         """Generate a combined 3D plot with surfaces for multiple pa values."""
@@ -325,7 +424,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
 
         return ax, fig
 
-    def _test_control_sperarate_space_surface_plot_and_rules_activation(self):
+    def test_control_sperarate_space_surface_plot_and_rules_activation(self):
         import matplotlib.pyplot as plt
         # map_ch_values = False
         # ax, fig = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values)
