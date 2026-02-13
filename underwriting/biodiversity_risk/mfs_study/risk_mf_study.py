@@ -12,6 +12,7 @@ risk_var.automf(5, names=default_score_names)
 risk_var['low'] = fuzz.trapmf(risk_var.universe, [0, 0, 0.1, 0.25])
 # risk_var['high'] = fuzz.trapmf(risk_var.universe, [0.8, 0.95, 1., 1.])
 risk_var['high'] = fuzz.trapmf(risk_var.universe, [0.85, 0.95, 1., 1.])
+# risk_var['high'] = fuzz.trapmf(risk_var.universe, [0.75, 0.9, 1., 1.])
 # risk_var['high'] = fuzz.trimf(risk_var.universe, [0.75, 1., 1.])
 # risk_var['high'] = fuzz.trimf(risk_var.universe, [0.8, 1., 1.])
 
@@ -21,7 +22,7 @@ risk_var.view()
 fig = plt.gcf()
 ax = plt.gca()
 
-for color, label in zip(['blue','orange','green', 'yellow', 'red'], default_score_names):
+for color, label in zip(['blue','orange','green', 'red', 'purple'], default_score_names):
     # defz_method = 'centroid'
     # defz_method = 'bisector'
     # defz_method = 'mom'
