@@ -1,3 +1,5 @@
+from collections import Counter
+
 import numpy as np
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
@@ -50,6 +52,8 @@ class BioRiskPlusFIS(object):
         self.fis = ctrl.ControlSystem(self.rules)
         # self.fis_sim = ctrl.ControlSystemSimulation(self.fis, cache=False)
         self.fis_sim = ExplainableControlSystemSimulation(self.fis, cache=False)
+        self.explainable_data = None
+        self.explainable_data_rule_raster = None
 
     def setup_vars_and_mfs(self):
         self.ch_var = ctrl.Antecedent(self.get_rates_uod(), 'ch')
@@ -379,12 +383,22 @@ class BioRiskPlusFIS(object):
         self.sri_raster = sri_raster
         self.ch_raster = self.map_ch_fuzzy_label_to_crisp(self.chl_raster)
 
+    def post_processing(self):
+        valid_rules = self.explainable_data_rule_raster[
+            self.explainable_data_rule_raster != -1
+        ].flatten().tolist()
+        rule_counter = Counter(valid_rules)
+
+        # Get top 5
+        top_5_rules_activated = rule_counter.most_common(5)
+        self.explainable_data = self.fis_sim.get_rules_string_by_id_list(top_5_rules_activated)
+
     def run(self, chl_raster, pa_raster, sri_raster):
         self.failed = []
         self.pre_process(chl_raster, pa_raster, sri_raster)
         # Create empty risk raster with same shape as input (only using one raster, all should be equal)
         risk_raster = np.zeros_like(self.ch_raster, dtype=np.float64)
-
+        self.explainable_data_rule_raster = np.full_like(self.ch_raster, -1, dtype=np.int16)
         # Get shape for iteration
         rows, cols = self.ch_raster.shape
 
@@ -396,17 +410,23 @@ class BioRiskPlusFIS(object):
                     pa=self.pa_raster[i, j],
                     si=self.sri_raster[i, j]
                 )
-
+                if self.last_explainable_data:
+                    self.explainable_data_rule_raster[i, j] = next(self.last_explainable_data['activated_rules'].values())
+        self.post_processing()
         return risk_raster
 
     def run_single(self, **input_kwargs):
         for key, value in input_kwargs.items():
             self.fis_sim.input[key] = value
         self.fis_sim.compute()
+        output = 0
+        self.last_explainable_data = None
         if 'risk' not in self.fis_sim.output:
             self.failed.append((input_kwargs, ))
-            return 0
-        return self.fis_sim.output['risk']
+        else:
+            output = self.fis_sim.output['risk']
+            self.last_explainable_data = self.fis_sim.explainable_data
+        return output
 
 # class BioRiskPlusExtendedFIS(object):
 #     """

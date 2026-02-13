@@ -8,6 +8,15 @@ class ExplainableControlSystemSimulation(ctrl.ControlSystemSimulation):
         super().__init__(control_system, clip_to_bounds, cache, flush_after_run, lenient)
         self.explainable_data = {}  # Dictionary to store rule activations
 
+
+    def get_rules_string_by_id_list(self, rule_ids):
+        rules_str_list = []
+        for rule_idx, rule in enumerate(self.ctrl.rules):
+            if rule_idx in rule_ids:
+                rule_str = f'IF {rule.antecedent} THEN {",".join([str(c) for c in rule.consequent])}'
+                rules_str_list.append(rule_str)
+        return rules_str_list
+
     def get_computation_explainability_data(self):
         """
         Returns:
@@ -16,6 +25,7 @@ class ExplainableControlSystemSimulation(ctrl.ControlSystemSimulation):
         if next(self.ctrl.consequents).output[self] is None:
             raise ValueError("Call compute method first.")
 
+        # for term in fuzzy_var.terms.values():
         activations = {}
         no_activations = {}
 
@@ -30,8 +40,13 @@ class ExplainableControlSystemSimulation(ctrl.ControlSystemSimulation):
                 'rule': f'IF {rule.antecedent} THEN {",".join([str(c) for c in rule.consequent])}',
                 'activation': rule.aggregate_firing[self]
             }
+        sorted_activations = dict(
+            sorted(activations.items(),
+                key=lambda item: item[1]['activation'],
+                reverse=True)
+        )
         xpl_data = {
-            'activated_rules': activations
+            'activated_rules': sorted_activations
         }
         return xpl_data
     def _reset_simulation(self):
