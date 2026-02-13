@@ -119,7 +119,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
             # Suggest a consequent - you need to decide what risk level makes sense
             print(f"Rule {i+1}: IF ch IS {ch_part} AND pa IS {pa_part} AND si IS {si_part} THEN risk IS ???")
 
-    def _generate_surfaceplot(self, pa_fixed, map_ch_values=False):
+    def _generate_surfaceplot(self, pa_fixed, map_ch_values=False, baseline_risk_funct=False):
         si_values = np.arange(0, 1.01, 0.01)  # 0 to 1 in steps of 0.01
         ch_discrete = np.array([0, 0.5, 1])  # Only these discrete values for calculation
 
@@ -133,16 +133,14 @@ class TestBioRiskPlusFIS(unittest.TestCase):
                 ch_val = ch_calc_mesh[i, j]
                 if map_ch_values:
                     ch_val = float(self.fis.map_ch_fuzzy_label_to_crisp(ch_val))
-                try:
+                if baseline_risk_funct:
+                    output = (pa_fixed + ch_val + (1 - si_calc_mesh[i, j])) / 3
+                else:
                     output = self.fis.run_single(**{
                         'ch': ch_val,
                         'pa': pa_fixed,
                         'si': si_calc_mesh[i, j]
                     })
-                except Exception as e:
-                    print(e)
-                    import ipdb; ipdb.set_trace()
-                    print(f"{[i, j]}")
                 z_calc[i, j] = output
 
         # Create fine mesh for plotting (more CH points for smooth surface)
@@ -197,10 +195,11 @@ class TestBioRiskPlusFIS(unittest.TestCase):
                 color='red', s=30, label='Calculated points')
 
         # Set axis labels
-        ax.set_xlabel('CH (interpolated)')
+        ax.set_xlabel('CH (0, 0.5, 1)')
         ax.set_ylabel('SI (0 to 1)')
         ax.set_zlabel('Risk Output')
-        title = f'FIS Control Surface (PA = {pa_fixed}) - Smoothed Interpolation'
+        model = '(mean) Baseline' if baseline_risk_funct else 'FIS'
+        title = f'{model} Control Surface (PA = {pa_fixed}) - Mapped CH: {map_ch_values}'
         ax.set_title(title)
 
         # Set axis limits
@@ -432,6 +431,8 @@ class TestBioRiskPlusFIS(unittest.TestCase):
 
         map_ch_values = True
         ax, fig_b = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values)
+        ax_baseline, fig_baseline = self._generate_surfaceplot(pa_fixed=0, map_ch_values=False, baseline_risk_funct=True)
+        ax_baseline_map, fig_baseline_map = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values, baseline_risk_funct=True)
         # ax2, fig2_b = self._generate_surfaceplot(pa_fixed=1, map_ch_values=map_ch_values)
         plt.tight_layout()
         plt.show()

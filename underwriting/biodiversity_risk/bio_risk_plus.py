@@ -366,7 +366,7 @@ class BioRiskPlusFIS(object):
             0: fuzz.defuzz(self.ch_var.universe, self.ch_var['unknown'].mf, 'centroid'), #unknown
             # 0.5: fuzz.defuzz(self.ch_var.universe, self.ch_var['potential'].mf, 'centroid'), # potential
             0.5: 0.5, # avoid rounding errors, the centroid is 0.5 in any case
-            1: fuzz.defuzz(self.ch_var.universe, self.ch_var['likely'].mf, 'som'), #likely
+            1: fuzz.defuzz(self.ch_var.universe, self.ch_var['likely'].mf, 'lom'), #likely
         }
 
         mapped_raster = np.vectorize(label_map.get)(chl_raster)

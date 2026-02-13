@@ -20,7 +20,7 @@ fig = plt.gcf()
 ax = plt.gca()
 
 for color, label in zip(['blue','orange','green'],['unknown', 'potential', 'likely']):
-    defz_method =  'som' if label == 'likely' else 'centroid'
+    defz_method =  'lom' if label == 'likely' else 'centroid'
     centroid_label = fuzz.defuzz(ch.universe, ch[label].mf, defz_method)
     # centroid_label = fuzz.defuzz(ch.universe, ch[label].mf, 'centroid')
 
