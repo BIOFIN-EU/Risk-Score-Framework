@@ -73,7 +73,8 @@ class BioRiskPlusFIS(object):
         self.risk_var = ctrl.Consequent(self.get_rates_uod(), 'risk')
         self.risk_var.automf(5, names=self.default_score_names)
         self.risk_var['low'] = fuzz.trapmf(self.risk_var.universe, [0, 0, 0.1, 0.25])
-        self.risk_var['high'] = fuzz.trapmf(self.risk_var.universe, [0.75, 0.9, 1., 1.])
+        self.risk_var['high'] = fuzz.trapmf(self.risk_var.universe, [0.85, 0.95, 1., 1.])
+        # self.risk_var['high'] = fuzz.trapmf(self.risk_var.universe, [0.75, 0.9, 1., 1.])
 
     def _get_low_risk_rules(self):
         new_rules = []

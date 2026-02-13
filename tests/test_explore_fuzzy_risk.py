@@ -2,6 +2,11 @@ import unittest
 
 import numpy as np
 
+from skfuzzy import control as ctrl
+
+
+from underwriting.biodiversity_risk.skfis_extended import ExplainableControlSystemSimulation
+
 from underwriting.biodiversity_risk.bio_risk_plus import BioRiskPlusFIS
 
 
@@ -119,7 +124,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
             # Suggest a consequent - you need to decide what risk level makes sense
             print(f"Rule {i+1}: IF ch IS {ch_part} AND pa IS {pa_part} AND si IS {si_part} THEN risk IS ???")
 
-    def _generate_surfaceplot(self, pa_fixed, map_ch_values=False, baseline_risk_funct=False):
+    def _generate_surfaceplot(self, pa_fixed, map_ch_values=False, baseline_risk_funct=False, extra_title=''):
         si_values = np.arange(0, 1.01, 0.01)  # 0 to 1 in steps of 0.01
         ch_discrete = np.array([0, 0.5, 1])  # Only these discrete values for calculation
 
@@ -199,7 +204,7 @@ class TestBioRiskPlusFIS(unittest.TestCase):
         ax.set_ylabel('SI (0 to 1)')
         ax.set_zlabel('Risk Output')
         model = '(mean) Baseline' if baseline_risk_funct else 'FIS'
-        title = f'{model} Control Surface (PA = {pa_fixed}) - Mapped CH: {map_ch_values}'
+        title = f'{model} Control Surface (PA = {pa_fixed}) - Mapped CH: {map_ch_values}' + extra_title
         ax.set_title(title)
 
         # Set axis limits
@@ -423,7 +428,13 @@ class TestBioRiskPlusFIS(unittest.TestCase):
 
         return ax, fig
 
-    def test_control_sperarate_space_surface_plot_and_rules_activation(self):
+    def _test_control_space_combined_surface_plot_and_rules_activation(self):
+        import matplotlib.pyplot as plt
+        ax, fig = self._generate_combined_surfaceplot(pa_values=[0, 1], map_ch_values=True)
+        plt.tight_layout()
+        plt.show()
+
+    def _test_control_sperarate_space_surface_plot_and_rules_activation(self):
         import matplotlib.pyplot as plt
         # map_ch_values = False
         # ax, fig = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values)
@@ -431,14 +442,26 @@ class TestBioRiskPlusFIS(unittest.TestCase):
 
         map_ch_values = True
         ax, fig_b = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values)
-        ax_baseline, fig_baseline = self._generate_surfaceplot(pa_fixed=0, map_ch_values=False, baseline_risk_funct=True)
-        ax_baseline_map, fig_baseline_map = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values, baseline_risk_funct=True)
-        # ax2, fig2_b = self._generate_surfaceplot(pa_fixed=1, map_ch_values=map_ch_values)
+        # ax_baseline, fig_baseline = self._generate_surfaceplot(pa_fixed=0, map_ch_values=False, baseline_risk_funct=True)
+        # ax_baseline_map, fig_baseline_map = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values, baseline_risk_funct=True)
+        ax2, fig2_b = self._generate_surfaceplot(pa_fixed=1, map_ch_values=map_ch_values)
         plt.tight_layout()
         plt.show()
 
-    def _test_control_space_combined_surface_plot_and_rules_activation(self):
+
+    def _test_surface_plot_for_risk_deffuz_methods(self):
         import matplotlib.pyplot as plt
-        ax, fig = self._generate_combined_surfaceplot(pa_values=[0, 1], map_ch_values=True)
+
+        map_ch_values = True
+        ax, fig = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values)
+        ax, fig2 = self._generate_surfaceplot(pa_fixed=1, map_ch_values=map_ch_values)
+
+        self.fis.risk_var.defuzzify_method = 'lom'
+        self.fis.fis = ctrl.ControlSystem(self.fis.rules)
+        # self.fis_sim = ctrl.ControlSystemSimulation(self.fis, cache=False)
+        self.fis.fis_sim = ExplainableControlSystemSimulation(self.fis.fis, cache=False)
+        ax, figb = self._generate_surfaceplot(pa_fixed=0, map_ch_values=map_ch_values, extra_title=' (lom)')
+        ax, figb2 = self._generate_surfaceplot(pa_fixed=1, map_ch_values=map_ch_values, extra_title=' (lom)')
         plt.tight_layout()
         plt.show()
+

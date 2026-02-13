@@ -65,7 +65,7 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
             'si': 0
         })
         # if all bad, then should be high risk
-        self.assertAlmostEqual(output, 1., places=2)
+        self.assertAlmostEqual(output, 0.94, places=2)
 
 
     def test_retain_explainability_data(self):
