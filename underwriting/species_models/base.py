@@ -30,27 +30,29 @@ from underwriting.conf import (
 )
 
 from underwriting.species_models.utils import (
-    load_gbif_data,
-    remove_duplicates,
-    prepare_predictors,
-    filter_variables_by_vif,
-    generate_presence_absence_data,
-    export_aoi_csv_files,
-    verify_files_exist,
-    find_aoi_shapefile,
-    load_aoi_or_fallback,
-    export_and_interpolate_predictors,
-    interpolate_files_or_skip,
-    return_and_save_bands_list,
-    build_stack_if_existing_current_interp,
-    train_current_rf_model,
-    train_multi_models,
-    process_future_maps,
-    clipand_interpolate_future_raster_for_all,
-    predict_and_export_future_maps_for_all,
-    predict_future_species_suitability,
+    SpeciesSuitabilityUtils
+    # load_gbif_data,
+    # remove_duplicates,
+    # prepare_predictors,
+    # filter_variables_by_vif,
+    # generate_presence_absence_data,
+    # export_aoi_csv_files,
+    # verify_files_exist,
+    # find_aoi_shapefile,
+    # load_aoi_or_fallback,
+    # export_and_interpolate_predictors,
+    # interpolate_files_or_skip,
+    # return_and_save_bands_list,
+    # build_stack_if_existing_current_interp,
+    # train_current_rf_model,
+    # train_multi_models,
+    # process_future_maps,
+    # clipand_interpolate_future_raster_for_all,
+    # predict_and_export_future_maps_for_all,
+    # predict_future_species_suitability,
 )
 
+ssi_utils = SpeciesSuitabilityUtils({})
 
 
 
@@ -64,7 +66,7 @@ def build_training_data_if_missing():
         return
 
     # Load and process GBIF data
-    ee_points = load_gbif_data(
+    ee_points = ssi_utils.load_gbif_data(
         SPECIES_SCIENTIFIC_NAME, COUNTRY_CODE,
         exclude_year=1995,           # Exclude records from 1995
         exclude_months=(8, 9)        # Exclude August (8) to September (9)
@@ -73,19 +75,19 @@ def build_training_data_if_missing():
         return
 
     # Remove duplicates and create AOI
-    data_fc = remove_duplicates(ee_points, GRAIN_SIZE)
+    data_fc = ssi_utils.remove_duplicates(ee_points, GRAIN_SIZE)
     aoi_ee = data_fc.geometry().bounds().buffer(distance=50000, maxError=1000)
 
     # Prepare predictors and filter variables
-    predictors, pvals_df = prepare_predictors(aoi_ee, GRAIN_SIZE)
-    filtered_pvals_df, bands = filter_variables_by_vif(pvals_df)
+    predictors, pvals_df = ssi_utils.prepare_predictors(aoi_ee, GRAIN_SIZE)
+    filtered_pvals_df, bands = ssi_utils.filter_variables_by_vif(pvals_df)
 
     # Generate presence/absence data
-    samples_table = generate_presence_absence_data(data_fc, predictors, bands, GRAIN_SIZE)
+    samples_table = ssi_utils.generate_presence_absence_data(data_fc, predictors, bands, GRAIN_SIZE)
 
 
     # Export to local
-    file_paths = export_aoi_csv_files(
+    file_paths = ssi_utils.export_aoi_csv_files(
         aoi_ee,
         samples_table,
         SPECIES_SAFE,
@@ -117,14 +119,15 @@ def print_final_outputs(data_dir, csv_prefix, aoi_prefix, species_safe, current_
 
 
 def first_step_for_each_model():
+    print("First step")
     build_training_data_if_missing()
-    verify_files_exist(AOI_PREFIX, CSV_PREFIX, dst_dir=DATA_DIR)
-    aoi, aoi_gdf_wgs84, aoi_bbox = load_aoi_or_fallback(DATA_DIR, SPECIES_SAFE)
-    export_and_interpolate_predictors(aoi_bbox, aoi)
-    interpolate_files_or_skip()
-    bands = return_and_save_bands_list()
-    build_stack_if_existing_current_interp(bands)
-    train_current_rf_model(
+    ssi_utils.verify_files_exist(AOI_PREFIX, CSV_PREFIX, dst_dir=DATA_DIR)
+    aoi, aoi_gdf_wgs84, aoi_bbox = ssi_utils.load_aoi_or_fallback(DATA_DIR, SPECIES_SAFE)
+    ssi_utils.export_and_interpolate_predictors(aoi_bbox, aoi)
+    ssi_utils.interpolate_files_or_skip()
+    bands = ssi_utils.return_and_save_bands_list()
+    ssi_utils.build_stack_if_existing_current_interp(bands)
+    ssi_utils.train_current_rf_model(
         train_csv_path=TRAIN_CSV,
         current_stack_path=CURRENT_STACK,
         model_bundle_path=MODEL_BUNDLE_RF,
@@ -136,7 +139,7 @@ def first_step_for_each_model():
         nodata_val=NODATA_VAL
     )
 
-    models, best_xgb, best_lgb, best_cb, ev, train_bands_final = train_multi_models(
+    models, best_xgb, best_lgb, best_cb, ev, train_bands_final = ssi_utils.train_multi_models(
         train_csv_path=TRAIN_CSV,
         current_stack_path=CURRENT_STACK,
         data_dir=DATA_DIR,
@@ -150,7 +153,7 @@ def first_step_for_each_model():
     print("Evaluation metrics:", ev)
     print("Final training bands:", train_bands_final)
 
-    process_future_maps(
+    ssi_utils.process_future_maps(
         scenarios=SCENARIOS,
         periods=PERIODS,
         scenario_model=SCENARIO_MODEL,
@@ -182,7 +185,9 @@ def first_step_for_each_model():
     )
 
 def second_step_for_each_model():
-    clipand_interpolate_future_raster_for_all(
+    print("second_step_for_each_model")
+
+    ssi_utils.clipand_interpolate_future_raster_for_all(
         data_dir=DATA_DIR,
         input_dir=INPUT_DIR,
         scenarios=SCENARIOS,
@@ -193,7 +198,9 @@ def second_step_for_each_model():
     )
 
 def third_step_for_each_model():
-    predict_and_export_future_maps_for_all(
+    print("third_step_for_each_model")
+
+    ssi_utils.predict_and_export_future_maps_for_all(
         data_dir=DATA_DIR,
         input_dir=INPUT_DIR,
         species_dir=SPECIES_DIR,
@@ -207,8 +214,10 @@ def third_step_for_each_model():
 
 
 def simplified_predict_future_species_suitability():
-    import json
-    ret_json = predict_future_species_suitability(
+    print("simplified_predict_future_species_suitability")
+
+    # import json
+    ret_json = ssi_utils.predict_future_species_suitability(
         data_dir=DATA_DIR,
         input_dir=INPUT_DIR,
         scenarios=SCENARIOS,
@@ -216,13 +225,13 @@ def simplified_predict_future_species_suitability():
         species_safe=SPECIES_SAFE,
         summary_only=False
     )
-    import ipdb; ipdb.set_trace()
-    print(json.dumps(ret_json, indent=4))
+    # import ipdb; ipdb.set_trace()
+    # print(json.dumps(ret_json, indent=4))
 
 def main():
-    # first_step_for_each_model()
-    # second_step_for_each_model()
-    # third_step_for_each_model()
+    first_step_for_each_model()
+    second_step_for_each_model()
+    third_step_for_each_model()
     simplified_predict_future_species_suitability()
 
 
