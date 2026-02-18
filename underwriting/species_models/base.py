@@ -1,68 +1,21 @@
 import os
 
-import ee
 
 from underwriting.conf import (
-    PROJECT_ROOT
+    SpeciesSuitabilityConfig
 )
 
 from underwriting.species_models.utils import (
     SpeciesSuitabilityUtils
 )
 
-class SpeciesSuitabilityConfig():
-    def __init__(self, **kwargs):
-        self.MYDRIVE = os.path.join(PROJECT_ROOT, kwargs.get('MYDRIVE', 'data'))
-        self.SPECIES_SCIENTIFIC_NAME = kwargs.get('SPECIES_SCIENTIFIC_NAME', "Lullula arborea")
-        self.COUNTRY_CODE = kwargs.get('COUNTRY_CODE', "LU")
-        self.SCENARIO_MODEL = kwargs.get('SCENARIO_MODEL', "EC-Earth3-Veg")
-        self.MIDDLE_SCENARIO = kwargs.get('MIDDLE_SCENARIO', "ssp245")
-        self.UPPER_SCENARIO = kwargs.get('UPPER_SCENARIO', "ssp585")
-        self.SCENARIOS = kwargs.get('SCENARIOS', [self.MIDDLE_SCENARIO, self.UPPER_SCENARIO])
-        self.PERIODS = kwargs.get('PERIODS', ["2021-2040", "2041-2060"])
-        self.EE_EXPORT_FOLDER_NAME = kwargs.get('EE_EXPORT_FOLDER_NAME', "All_Sp")
-        self.GRAIN_SIZE = kwargs.get('GRAIN_SIZE', 1000)
-        self.NODATA_VAL = kwargs.get('NODATA_VAL', -9999.0)
-        self.AOI_BBOX = kwargs.get('AOI_BBOX', (5.737, 49.447, 6.527, 50.181))
-        self.GBIF_API_BASE = kwargs.get('GBIF_API_BASE', "https://api.gbif.org/v1/occurrence/search")
-        self.DEFAULT_BIN_THR = kwargs.get('DEFAULT_BIN_THR', 0.50)
-
-        # Derived attributes
-        self.SPECIES_SAFE = self.SPECIES_SCIENTIFIC_NAME.replace(" ", "_")
-        self.ALL_SPECIES_ROOT = os.path.join(self.MYDRIVE, self.EE_EXPORT_FOLDER_NAME)
-        self.SPECIES_DIR = os.path.join(self.ALL_SPECIES_ROOT, self.SPECIES_SAFE)
-        self.DATA_DIR_NAME = f"data_{self.SPECIES_SAFE}"
-        self.DATA_DIR = os.path.join(self.SPECIES_DIR, self.DATA_DIR_NAME)
-
-        # INPUT_DIR with the logic from your script
-        self.INPUT_DIR = os.path.join(self.MYDRIVE, "Input_data")
-
-        # Future TIFs
-        self.FUTURE_TIF_ROOTS = kwargs.get('FUTURE_TIF_ROOTS', [self.MYDRIVE])
-        self.FUTURE_TIF_REL_TEMPLATE = kwargs.get('FUTURE_TIF_REL_TEMPLATE',
-                                                  "wc2.1_30s_bioc_{model}_{ssp}_{period}.tif")
-
-        # Current predictors paths
-        self.WC_CURRENT_DRIVE = os.path.join(self.INPUT_DIR, "worldclim_bio_current.tif")
-        self.ENV_1KM_DRIVE = os.path.join(self.INPUT_DIR, "elev_hs_slope_tcc_1km.tif")
-        self.WC_CURRENT_INTERP = os.path.join(self.INPUT_DIR, "worldclim_bio_current_Interpolated.tif")
-        self.ENV_1KM_INTERP = os.path.join(self.INPUT_DIR, "elev_hs_slope_tcc_1km_Interpolated.tif")
-        self.CURRENT_STACK = os.path.join(self.INPUT_DIR, "ActualPredictorsSubset_1km_Interpolated.tif")
-
-        # Current outputs
-        self.CURRENT_PROB = os.path.join(self.DATA_DIR, "suitability_current.tif")
-        self.CURRENT_BIN = os.path.join(self.DATA_DIR, "suitability_current_binary.tif")
-        self.MODEL_BUNDLE_RF = os.path.join(self.DATA_DIR, "model_current.joblib")
-
-        # Training CSV & AOI
-        self.CSV_PREFIX = f"KMeans_{self.SPECIES_SAFE}"
-        self.AOI_PREFIX = f"AOI_buffer_50km_{self.SPECIES_SAFE}"
-        self.TRAIN_CSV = os.path.join(self.DATA_DIR, f"{self.CSV_PREFIX}.csv")
-
 
 class SpeciesSuitabilityModel():
-    def __init__(self, default_configs):
-        self.config = SpeciesSuitabilityConfig(**default_configs)
+    def __init__(self, new_configs):
+        self.setup_configs(new_configs)
+
+    def setup_configs(self, new_configs):
+        self.config = SpeciesSuitabilityConfig(**new_configs)
         self.ssi_utils = SpeciesSuitabilityUtils(self.config)
 
 
@@ -238,10 +191,14 @@ class SpeciesSuitabilityModel():
         # import ipdb; ipdb.set_trace()
         # print(json.dumps(ret_json, indent=4))
 
-    def run(self):
-        self.first_step_for_each_model()
-        self.second_step_for_each_model()
-        self.third_step_for_each_model()
+    def run(self, new_configs=None):
+
+        if new_configs is not None:
+            self.setup_configs(new_configs)
+        if not self.ssi_utils._has_models_ready(self.config.DATA_DIR, self.config.SPECIES_SAFE):
+            self.first_step_for_each_model()
+            self.second_step_for_each_model()
+            self.third_step_for_each_model()
         self.simplified_predict_future_species_suitability()
 
 
@@ -250,4 +207,5 @@ if __name__ == '__main__':
     ssi_model = SpeciesSuitabilityModel({
 
     })
+    # ssi_model.run({'SPECIES_SCIENTIFIC_NAME': 'Streptopelia turtur'})
     ssi_model.run()

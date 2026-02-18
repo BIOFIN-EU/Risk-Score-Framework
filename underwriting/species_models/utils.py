@@ -1033,6 +1033,21 @@ class SpeciesSuitabilityUtils():
 
                 self.interpolate_raster_nearest_fast(fut_clipped, fut_interp)
 
+    def _has_models_ready(self, data_dir, species_safe):
+        "used to avoid retraining if all models are already there ready to use"
+        model_files = {
+            "RandomForest": os.path.join(data_dir, f"model_RF_{species_safe}.joblib"),
+            "SVM":          os.path.join(data_dir, f"model_SVM_{species_safe}.joblib"),
+            "XGBoost":      os.path.join(data_dir, f"model_XGB_{species_safe}.joblib"),
+            "LightGBM":     os.path.join(data_dir, f"model_LGBM_{species_safe}.joblib"),
+            "CatBoost":     os.path.join(data_dir, f"model_CatBoost_{species_safe}.joblib"),
+            "Ensemble":     os.path.join(data_dir, f"model_Ensemble_{species_safe}.joblib"),
+        }
+
+        for name, path in model_files.items():
+            if not os.path.exists(path):
+                return False
+        return True
 
     def load_models(self, data_dir, species_safe):
         """Load all trained models from joblib files."""
