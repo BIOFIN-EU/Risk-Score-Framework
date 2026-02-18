@@ -207,5 +207,8 @@ if __name__ == '__main__':
     ssi_model = SpeciesSuitabilityModel({
 
     })
-    # ssi_model.run({'SPECIES_SCIENTIFIC_NAME': 'Streptopelia turtur'})
+    ssi_model.run({
+        'SPECIES_SCIENTIFIC_NAME': 'Streptopelia turtur',
+        'COUNTRY_CODE': 'NL'
+    })
     ssi_model.run()
