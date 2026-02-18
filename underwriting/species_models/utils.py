@@ -34,29 +34,6 @@ import requests
 
 
 from underwriting.conf import (
-    MYDRIVE,
-    EE_EXPORT_FOLDER_NAME,
-    ALL_SPECIES_ROOT,
-    GBIF_API_BASE,
-    DATA_DIR,
-    TRAIN_CSV,
-    SPECIES_SCIENTIFIC_NAME,
-    COUNTRY_CODE,
-    AOI_PREFIX,
-    CSV_PREFIX,
-    GRAIN_SIZE,
-    SPECIES_SAFE,
-    MIDDLE_SCENARIO,
-    UPPER_SCENARIO,
-    AOI_BBOX,
-    INPUT_DIR,
-    WC_CURRENT_DRIVE,
-    WC_CURRENT_INTERP,
-    ENV_1KM_DRIVE,
-    ENV_1KM_INTERP,
-    NODATA_VAL,
-    CURRENT_STACK,
-    FUTURE_TIF_REL_TEMPLATE,
     _silence_out,
     _silence_err,
 )
@@ -73,7 +50,7 @@ class SpeciesSuitabilityUtils():
         params = {"scientificName":species_name,"country":country_code,
                 "hasCoordinate":"true","basisOfRecord":"HUMAN_OBSERVATION","limit":10000}
         try:
-            r = requests.get(GBIF_API_BASE, params=params); r.raise_for_status()
+            r = requests.get(self.config.GBIF_API_BASE, params=params); r.raise_for_status()
             data = r.json().get("results", [])
             return pd.json_normalize(data) if data else pd.DataFrame()
         except requests.RequestException as e:
@@ -260,7 +237,7 @@ class SpeciesSuitabilityUtils():
         if export_to_google_drive:
             return self.export_to_drive(
                 aoi_ee, samples_table, species_safe,
-                EE_EXPORT_FOLDER_NAME, aoi_prefix, csv_prefix
+                self.config.EE_EXPORT_FOLDER_NAME, aoi_prefix, csv_prefix
             )
         else:
             # Local export
@@ -325,13 +302,13 @@ class SpeciesSuitabilityUtils():
                 aoi = None
             print(f"🔷 Using AOI from shapefile: {aoi_shp}")
         else:
-            minx, miny, maxx, maxy = AOI_BBOX
+            minx, miny, maxx, maxy = self.config.AOI_BBOX
             aoi = ee.Geometry.BBox(minx, miny, maxx, maxy)
-            aoi_geom = box(*AOI_BBOX)
+            aoi_geom = box(*self.config.AOI_BBOX)
             aoi_gdf_wgs84 = gpd.GeoDataFrame({'geometry':[aoi_geom]}, crs="EPSG:4326")
             print("⚠️ AOI shapefile not found; using bbox fallback.")
 
-        return aoi, aoi_gdf_wgs84, AOI_BBOX
+        return aoi, aoi_gdf_wgs84, self.config.AOI_BBOX
 
 
     def export_and_interpolate_predictors(self, aoi_bbox, aoi=None):
@@ -341,12 +318,12 @@ class SpeciesSuitabilityUtils():
         # ============================================================
         try:
             band_names = [f"bio{str(i).zfill(2)}" for i in range(1, 20)]
-            bio = ee.Image('WORLDCLIM/V1/BIO').select(band_names).toFloat().reproject(crs='EPSG:4326', scale=GRAIN_SIZE)
+            bio = ee.Image('WORLDCLIM/V1/BIO').select(band_names).toFloat().reproject(crs='EPSG:4326', scale=self.config.GRAIN_SIZE)
 
-            filename = os.path.join(INPUT_DIR, "worldclim_bio_current.tif")
+            filename = os.path.join(self.config.INPUT_DIR, "worldclim_bio_current.tif")
 
             bio_clipped = bio.clip(aoi if aoi is not None else ee.Geometry.Rectangle(aoi_bbox))
-            geemap.ee_export_image(bio_clipped, filename=filename, scale=GRAIN_SIZE, region=aoi if aoi is not None else ee.Geometry.Rectangle(aoi_bbox))
+            geemap.ee_export_image(bio_clipped, filename=filename, scale=self.config.GRAIN_SIZE, region=aoi if aoi is not None else ee.Geometry.Rectangle(aoi_bbox))
 
             print("✅ Local export: worldclim_bio_current.tif")
         except Exception as e:
@@ -355,19 +332,19 @@ class SpeciesSuitabilityUtils():
 
         try:
             srtm = ee.Image('USGS/SRTMGL1_003').select('elevation')
-            elevation = srtm.reproject(crs='EPSG:4326', scale=GRAIN_SIZE).toFloat().rename('elevation')
-            hillshade = ee.Terrain.hillshade(srtm).reproject(crs='EPSG:4326', scale=GRAIN_SIZE).toFloat().rename('hillshade')
-            slope     = ee.Terrain.slope(srtm).reproject(crs='EPSG:4326', scale=GRAIN_SIZE).toFloat().rename('slope')
+            elevation = srtm.reproject(crs='EPSG:4326', scale=self.config.GRAIN_SIZE).toFloat().rename('elevation')
+            hillshade = ee.Terrain.hillshade(srtm).reproject(crs='EPSG:4326', scale=self.config.GRAIN_SIZE).toFloat().rename('hillshade')
+            slope     = ee.Terrain.slope(srtm).reproject(crs='EPSG:4326', scale=self.config.GRAIN_SIZE).toFloat().rename('slope')
             tcc = (ee.ImageCollection('NASA/MEASURES/GFCC/TC/v3')
                     .filterDate('2000-01-01', '2015-12-31')
                     .select('tree_canopy_cover').median()
-                    .reproject(crs='EPSG:4326', scale=GRAIN_SIZE).toFloat().rename('TCC'))
+                    .reproject(crs='EPSG:4326', scale=self.config.GRAIN_SIZE).toFloat().rename('TCC'))
             env = elevation.addBands([hillshade, slope, tcc])
 
-            filename = os.path.join(INPUT_DIR, "elev_hs_slope_tcc_1km.tif")
+            filename = os.path.join(self.config.INPUT_DIR, "elev_hs_slope_tcc_1km.tif")
             # Convert EE image to local GeoTIFF
             env_clipped = env.clip(aoi if aoi is not None else ee.Geometry.Rectangle(aoi_bbox))
-            geemap.ee_export_image(env_clipped, filename=filename, scale=GRAIN_SIZE, region=aoi if aoi is not None else ee.Geometry.Rectangle(aoi_bbox))
+            geemap.ee_export_image(env_clipped, filename=filename, scale=self.config.GRAIN_SIZE, region=aoi if aoi is not None else ee.Geometry.Rectangle(aoi_bbox))
 
             print("✅ Local export: elev_hs_slope_tcc_1km.tif")
         except Exception as e:
@@ -415,25 +392,25 @@ class SpeciesSuitabilityUtils():
 
     def interpolate_files_or_skip(self):
         # Interpolate when files appear (skip if already there)
-        if os.path.exists(WC_CURRENT_DRIVE) and not os.path.exists(WC_CURRENT_INTERP):
-            self.interpolate_raster_nearest(WC_CURRENT_DRIVE, WC_CURRENT_INTERP)
-            print("✅ Interpolated:", WC_CURRENT_INTERP)
-        elif os.path.exists(WC_CURRENT_INTERP):
-            print("ℹ️ Using existing:", WC_CURRENT_INTERP)
+        if os.path.exists(self.config.WC_CURRENT_DRIVE) and not os.path.exists(self.config.WC_CURRENT_INTERP):
+            self.interpolate_raster_nearest(self.config.WC_CURRENT_DRIVE, self.config.WC_CURRENT_INTERP)
+            print("✅ Interpolated:", self.config.WC_CURRENT_INTERP)
+        elif os.path.exists(self.config.WC_CURRENT_INTERP):
+            print("ℹ️ Using existing:", self.config.WC_CURRENT_INTERP)
 
-        if os.path.exists(ENV_1KM_DRIVE) and not os.path.exists(ENV_1KM_INTERP):
-            self.interpolate_raster_nearest(ENV_1KM_DRIVE, ENV_1KM_INTERP)
-            print("✅ Interpolated:", ENV_1KM_INTERP)
-        elif os.path.exists(ENV_1KM_INTERP):
-            print("ℹ️ Using existing:", ENV_1KM_INTERP)
+        if os.path.exists(self.config.ENV_1KM_DRIVE) and not os.path.exists(self.config.ENV_1KM_INTERP):
+            self.interpolate_raster_nearest(self.config.ENV_1KM_DRIVE, self.config.ENV_1KM_INTERP)
+            print("✅ Interpolated:", self.config.ENV_1KM_INTERP)
+        elif os.path.exists(self.config.ENV_1KM_INTERP):
+            print("ℹ️ Using existing:", self.config.ENV_1KM_INTERP)
 
         # Mirror interpolated CURRENT rasters into data_<species>
-        for _src in [WC_CURRENT_INTERP, ENV_1KM_INTERP]:
+        for _src in [self.config.WC_CURRENT_INTERP, self.config.ENV_1KM_INTERP]:
             if _src and os.path.exists(_src):
-                _dst = os.path.join(DATA_DIR, os.path.basename(_src))
+                _dst = os.path.join(self.config.DATA_DIR, os.path.basename(_src))
                 if os.path.abspath(_src) != os.path.abspath(_dst):
                     shutil.copy2(_src, _dst)
-                    print("📥 Copied to data_{}: {}".format(SPECIES_SAFE, _dst))
+                    print("📥 Copied to data_{}: {}".format(self.config.SPECIES_SAFE, _dst))
 
 
 
@@ -455,7 +432,7 @@ class SpeciesSuitabilityUtils():
 
 
     def return_and_save_bands_list(self):
-        bands = self.detect_bands_from_csv(TRAIN_CSV)
+        bands = self.detect_bands_from_csv(self.config.TRAIN_CSV)
         if not bands:
             bands = ['TCC', 'aspect', 'bio08', 'bio11', 'elevation', 'slope']
             print("⚠️ CSV not found or no numeric columns; using fallback BANDS:", bands)
@@ -463,7 +440,7 @@ class SpeciesSuitabilityUtils():
             print("🔎 Auto-selected BANDS from CSV:", bands)
 
         # Save BANDS list into data_<species>
-        bands_csv_path = os.path.join(DATA_DIR, f"bands_selected_{SPECIES_SAFE}.csv")
+        bands_csv_path = os.path.join(self.config.DATA_DIR, f"bands_selected_{self.config.SPECIES_SAFE}.csv")
         pd.DataFrame({"band": bands}).to_csv(bands_csv_path, index=False)
         print("📝 Saved BANDS list:", bands_csv_path)
         return bands
@@ -476,7 +453,9 @@ class SpeciesSuitabilityUtils():
         dz_dy, dz_dx = np.gradient(elevation, dy, dx)
         return np.mod(90.0 - np.degrees(np.arctan2(dz_dy, -dz_dx)), 360.0).astype('float32')
 
-    def soft_fill(self, arr, nodata=NODATA_VAL):
+    def soft_fill(self, arr, nodata=None):
+        if nodata is None:
+            nodata = self.config.NODATA_VAL
         if np.any(arr == nodata):
             arr = arr.copy()
             arr[arr == nodata] = np.nan
@@ -487,13 +466,13 @@ class SpeciesSuitabilityUtils():
         name_l = name.lower()
         idx = {'elevation':1,'hillshade':2,'slope':3,'tcc':4}.get(name_l, None)
         if idx is None: return None
-        return src_env.read(idx, out_shape=(H, W), resampling=Resampling.bilinear, masked=True).filled(NODATA_VAL).astype('float32')
+        return src_env.read(idx, out_shape=(H, W), resampling=Resampling.bilinear, masked=True).filled(self.config.NODATA_VAL).astype('float32')
 
     def read_clim_band(self, src_clim, name):
         m = re.match(r'(?i)^bio(\d{2})$', name)
         if not m: return None
         idx = int(m.group(1))
-        return src_clim.read(idx, masked=True).filled(NODATA_VAL).astype('float32')
+        return src_clim.read(idx, masked=True).filled(self.config.NODATA_VAL).astype('float32')
 
     def build_stack_dynamic(self, band_list, out_path, clim_path, env_path):
         if not (os.path.exists(clim_path) and os.path.exists(env_path)):
@@ -539,7 +518,7 @@ class SpeciesSuitabilityUtils():
 
         stacked = np.stack(arrays, axis=0)
         out_meta = clim_meta.copy()
-        out_meta.update({'count': len(names), 'dtype': 'float32', 'nodata': NODATA_VAL})
+        out_meta.update({'count': len(names), 'dtype': 'float32', 'nodata': self.config.NODATA_VAL})
         with rio.open(out_path, 'w', **out_meta) as dst:
             for i, nm in enumerate(names, 1):
                 dst.write(stacked[i-1], i)
@@ -548,8 +527,8 @@ class SpeciesSuitabilityUtils():
         return True
 
     def build_stack_if_existing_current_interp(self, bands):
-        if os.path.exists(WC_CURRENT_INTERP) and os.path.exists(ENV_1KM_INTERP):
-            _ok = self.build_stack_dynamic(bands, CURRENT_STACK, WC_CURRENT_INTERP, ENV_1KM_INTERP)
+        if os.path.exists(self.config.WC_CURRENT_INTERP) and os.path.exists(self.config.ENV_1KM_INTERP):
+            _ok = self.build_stack_dynamic(bands, self.config.CURRENT_STACK, self.config.WC_CURRENT_INTERP, self.config.ENV_1KM_INTERP)
         else:
             print("⏭️ Skipped building CURRENT stack (inputs missing).")
 
@@ -816,7 +795,7 @@ class SpeciesSuitabilityUtils():
 
     def find_future_tif(self, model, ssp, period, roots):
         """Find future TIFF file in multiple directory roots."""
-        rel = FUTURE_TIF_REL_TEMPLATE.format(model=model, ssp=ssp, period=period)
+        rel = self.config.FUTURE_TIF_REL_TEMPLATE.format(model=model, ssp=ssp, period=period)
 
         for r in roots:
             cand = os.path.join(r, rel)
@@ -1219,7 +1198,7 @@ class SpeciesSuitabilityUtils():
                     future_stack_path=fut_stack,
                     fut_prob_dir=fut_prob_dir,
                     fut_bin_dir=fut_bin_dir,
-                    nodata_val=NODATA_VAL,
+                    nodata_val=self.config.NODATA_VAL,
                     default_bin_thr=default_bin_thr
                 )
 
@@ -1243,7 +1222,7 @@ class SpeciesSuitabilityUtils():
                 fut_stack = os.path.join(input_dir, f"FuturePredictorsSubset_1km_Interpolated_{ssp}_{period}.tif")
                 # Prepare future stack data
                 meta, H, W, flat_df, valid_mask = self.prepare_future_stack_data(
-                    fut_stack, train_bands_final, NODATA_VAL
+                    fut_stack, train_bands_final, self.config.NODATA_VAL
                 )
 
                 prob_json_output = self.run_model_prob_prediction(

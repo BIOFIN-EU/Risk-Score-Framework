@@ -3,14 +3,12 @@ import os
 import ee
 
 from underwriting.conf import (
-    PROJECT_ROOT,
-    SOURCE_DIR
+    PROJECT_ROOT
 )
 
 from underwriting.species_models.utils import (
     SpeciesSuitabilityUtils
 )
-
 
 class SpeciesSuitabilityConfig():
     def __init__(self, **kwargs):
@@ -64,8 +62,8 @@ class SpeciesSuitabilityConfig():
 
 class SpeciesSuitabilityModel():
     def __init__(self, default_configs):
-        self.config = SpeciesSuitabilityConfig()
-        self.ssi_utils = SpeciesSuitabilityUtils(default_configs)
+        self.config = SpeciesSuitabilityConfig(**default_configs)
+        self.ssi_utils = SpeciesSuitabilityUtils(self.config)
 
 
     def build_training_data_if_missing(self):
