@@ -651,7 +651,10 @@ class SpeciesSuitabilityUtils():
         y = df['PresAbs'].astype(int).values
 
         print('Training RFC and SVM')
-        sm = SMOTE(random_state=42)
+        minority_size = min(pd.Series(y).value_counts())
+        # 6 is the default, so try to use when possible
+        n_neighbors = 6 if minority_size >= 6 else (minority_size - 1 if minority_size > 1 else 1)
+        sm = SMOTE(random_state=42, k_neighbors=n_neighbors)
         X_res, y_res = sm.fit_resample(X, y)
         X_train, X_test, y_train, y_test = train_test_split(X_res, y_res, test_size=0.30, random_state=42, stratify=y_res)
 
