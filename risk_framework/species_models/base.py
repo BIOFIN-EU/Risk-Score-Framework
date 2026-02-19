@@ -1,11 +1,11 @@
 import os
 
 
-from underwriting.conf import (
+from risk_framework.conf import (
     SpeciesSuitabilityConfig
 )
 
-from underwriting.species_models.utils import (
+from risk_framework.species_models.utils import (
     SpeciesSuitabilityUtils
 )
 

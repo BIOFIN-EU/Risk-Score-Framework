@@ -33,11 +33,11 @@ from joblib import dump, load
 import requests
 
 
-from underwriting.conf import (
+from risk_framework.conf import (
     _silence_out,
     _silence_err,
 )
-from underwriting.conf import ee
+from risk_framework.conf import ee
 
 
 
