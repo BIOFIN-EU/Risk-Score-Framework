@@ -1,3 +1,4 @@
+import math
 import os,  glob, time, shutil, zipfile, re, json
 from datetime import datetime, timezone
 
@@ -1102,10 +1103,23 @@ class SpeciesSuitabilityUtils():
     def export_meta_and_raster_to_json_dict(self, raster_data, meta):
         meta_copy = meta.copy()
         meta_copy['crs'] = meta.get('crs').wkt
+        raster_list = raster_data.tolist(),
+        # Recursively replace nan with None in the nested list
+        def replace_nan(obj):
+            if isinstance(obj, list):
+                return [replace_nan(item) for item in obj]
+            elif isinstance(obj, float) and (math.isnan(obj) or np.isnan(obj)):
+                return None
+            else:
+                return obj
+        for key in meta_copy.keys():
+            meta_copy[key] = replace_nan(meta_copy[key])
+
+        cleaned_raster = replace_nan(raster_list)
         # Create JSON data structure
         json_data = {
             'meta':  meta_copy,
-            'raster': raster_data.tolist(),
+            'raster': cleaned_raster,
             'summary_stats': {
                 'mean_habitat_suitability': float(np.mean(raster_data)),
                 'std_habitat_suitability': float(np.std(raster_data))

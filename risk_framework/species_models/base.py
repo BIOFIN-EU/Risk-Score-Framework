@@ -190,6 +190,7 @@ class SpeciesSuitabilityModel():
         )
         # import ipdb; ipdb.set_trace()
         # print(json.dumps(ret_json, indent=4))
+        return ret_json
 
     def run(self, new_configs=None):
 
@@ -199,7 +200,7 @@ class SpeciesSuitabilityModel():
             self.first_step_for_each_model()
             self.second_step_for_each_model()
             self.third_step_for_each_model()
-        self.simplified_predict_future_species_suitability()
+        return self.simplified_predict_future_species_suitability()
 
 
 
