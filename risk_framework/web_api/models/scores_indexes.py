@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 import uuid
 from risk_framework.conf import DeclarativeBaseModel
 
+
 class SpeciesRichnessIndex(DeclarativeBaseModel):
     __tablename__ = "species_suitability_index"
 

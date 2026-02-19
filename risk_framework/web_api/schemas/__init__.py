@@ -1,2 +1,2 @@
 from .rasters import RasterData
-from .scores_indexes import SpeciesRichnessSuitabilityIndexRequest, SpeciesRichnessSuitabilityIndex
+from .scores_indexes import *

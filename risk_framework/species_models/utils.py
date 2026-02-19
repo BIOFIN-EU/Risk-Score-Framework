@@ -1103,7 +1103,7 @@ class SpeciesSuitabilityUtils():
     def export_meta_and_raster_to_json_dict(self, raster_data, meta):
         meta_copy = meta.copy()
         meta_copy['crs'] = meta.get('crs').wkt
-        raster_list = raster_data.tolist(),
+        raster_list = raster_data.tolist()
         # Recursively replace nan with None in the nested list
         def replace_nan(obj):
             if isinstance(obj, list):
@@ -1243,6 +1243,7 @@ class SpeciesSuitabilityUtils():
         ensamble_model = models.get(model_name)
         ret_dict = {
             'species': species_safe,
+            'country': self.config.COUNTRY_CODE,
             'scenarios': {},
             'meta': {},
             # 'region' wkt?

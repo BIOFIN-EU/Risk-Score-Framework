@@ -3,6 +3,8 @@ from fastapi import FastAPI, HTTPException
 from risk_framework.web_api.schemas import (
     SpeciesRichnessSuitabilityIndexRequest,
     SpeciesRichnessSuitabilityIndex,
+    RasterDataResponse,
+    RasterSummaryStats,
 )
 from risk_framework.species_models.base import SpeciesSuitabilityModel
 
@@ -23,7 +25,7 @@ async def hello_world():
     return {"message": "Hello World"}
 
 
-@app.post("/species-richness-index/")
+@app.post("/species-richness-index/", response_model=SpeciesRichnessSuitabilityIndex)
 async def calculate_species_richness_index(request: SpeciesRichnessSuitabilityIndexRequest):
     """
     Calculate species richness index based on species name, country code,
@@ -48,24 +50,26 @@ async def calculate_species_richness_index(request: SpeciesRichnessSuitabilityIn
             run_extra_confs['WKT_POLIGON'] = request.wkt_poligon
 
         result = ssi_model.run(run_extra_confs)
-        # # Convert your result to match SpeciesSuitabilityIndex schema
-        # return SpeciesRichnessSuitabilityIndex(
-        #     id=result.get('id', ''),
-        #     geo_id=result.get('geo_id'),
-        #     value_raster_id=result.get('value_raster_id', ''),
-        #     explainability_raster_id=result.get('explainability_raster_id', ''),
-        #     species=request.species_name,
-        #     country_code=request.country_code,
-        #     climate_scenario=result.get('climate_scenario', ''),
-        #     climate_model=result.get('climate_model', ''),
-        #     period=result.get('period', ''),
-        #     has_humam_footprint=result.get('has_human_footprint', False),
-        #     mean_value=result.get('mean_value', 0),
-        #     mean_std=result.get('mean_std', 0),
-        #     mean_explainability=result.get('mean_explainability', {})
-        # )
+        first_scenario = next(iter(result['scenarios']))
+        first_period = next(iter(result['scenarios'][first_scenario]['periods']))
 
-        # return {'a'}  # FastAPI will auto-convert dict to JSON
-        return result
+        period_data = result['scenarios'][first_scenario]['periods'][first_period]
+        import ipdb; ipdb.set_trace()
+
+        return SpeciesRichnessSuitabilityIndex(
+            species=result['species'],
+            country=result['country'],
+            scenario=first_scenario,
+            period=first_period,
+            raster_data=RasterDataResponse(
+                raster=period_data['raster'],
+                summary_stats=RasterSummaryStats(
+                    mean_habitat_suitability=period_data['summary_stats']['mean_habitat_suitability'],
+                    std_habitat_suitability=period_data['summary_stats']['std_habitat_suitability']
+                )
+            ),
+            meta=result['meta']
+        )
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
