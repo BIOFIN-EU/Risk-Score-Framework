@@ -2,7 +2,7 @@ import requests
 import json
 
 # API endpoint
-url = "http://localhost:8000/species-richness-index/"
+url = "http://localhost:8000/api/v1/species-richness-index/"
 
 # Prepare the data
 data = {
