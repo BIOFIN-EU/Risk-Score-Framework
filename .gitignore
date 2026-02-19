@@ -177,3 +177,4 @@ data/*
 catboost_info/*
 notebooks/*
 docs/*
+.env

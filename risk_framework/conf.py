@@ -1,20 +1,14 @@
 import os, warnings, contextlib, io
 from decouple import config
 
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+
 import ee
 ee.Authenticate()
 ee.Initialize(project='coral-subject-477515-k6')
-
-
-# -----------------------------
-# Warnings: keep output clean
-# -----------------------------
-warnings.filterwarnings("ignore", message=".*does not have valid feature names.*")
-warnings.filterwarnings("ignore", message=".*use_label_encoder.*")
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-_null = io.StringIO()
-_silence_out = contextlib.redirect_stdout(_null)
-_silence_err = contextlib.redirect_stderr(_null)
 
 # -----------------------------
 # Folders
@@ -23,6 +17,24 @@ _silence_err = contextlib.redirect_stderr(_null)
 SOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SOURCE_DIR)
 BASE_DATA_DIR = os.path.join(PROJECT_ROOT, "data")
+
+DATABASE_HOST = config('DATABASE_HOST')
+DATABASE_PORT = config('DATABASE_PORT')
+DATABASE_NAME = config('DATABASE_NAME')
+DATABASE_USER = config('DATABASE_USER')
+DATABASE_PASS = config('DATABASE_PASS')
+DATABASE_URL = config(
+    'DATABASE_URL',
+    default=f'postgresql://{DATABASE_USER}:{DATABASE_PASS}@{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE_NAME}'
+)
+WEB_PORT = config('WEB_PORT', '8000', cast=int)
+WEB_HOST = config('WEB_HOST', '0.0.0.0')
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+DeclarativeBaseModel = declarative_base()
+
 
 
 class SpeciesSuitabilityConfig():
@@ -85,3 +97,14 @@ class SpeciesSuitabilityConfig():
         os.makedirs(self.DATA_DIR, exist_ok=True)
 
         os.makedirs(self.INPUT_DIR, exist_ok=True)
+
+
+# -----------------------------
+# Warnings: keep output clean
+# -----------------------------
+warnings.filterwarnings("ignore", message=".*does not have valid feature names.*")
+warnings.filterwarnings("ignore", message=".*use_label_encoder.*")
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+_null = io.StringIO()
+_silence_out = contextlib.redirect_stdout(_null)
+_silence_err = contextlib.redirect_stderr(_null)
