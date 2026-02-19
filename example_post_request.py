@@ -14,7 +14,6 @@ data = {
 # Make the POST request
 try:
     response = requests.post(url, json=data)
-    import ipdb; ipdb.set_trace()
     # Check if request was successful
     response.raise_for_status()
 

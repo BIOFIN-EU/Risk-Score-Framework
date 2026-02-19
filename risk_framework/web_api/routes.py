@@ -1,4 +1,4 @@
-import hashlib
+import pickle
 import json
 import uuid
 from typing import Optional
@@ -51,15 +51,6 @@ def generate_geo_uuid(species_name: str, country_code: str, wkt_polygon: Optiona
 
 router = APIRouter()
 
-# @app.get("/")
-# async def hello_world():
-#     """
-#     Hello World endpoint.
-
-#     Returns a simple greeting message.
-#     """
-#     return {"message": "Hello World"}
-
 
 
 def run_and_create_new_ssri_record(geo_id, species_name, country_code, wkt_poligon, db):
@@ -87,7 +78,7 @@ def run_and_create_new_ssri_record(geo_id, species_name, country_code, wkt_polig
     new_raster_data = RasterData(
         id=str(uuid.uuid4()),
         geo_id=geo_id,
-        raster_bin=json.dumps(raster_values).encode('utf-8'),
+        raster_bin=pickle.dumps(raster_values),
         raster_meta=result['meta']
     )
 
@@ -129,7 +120,6 @@ async def calculate_species_richness_index(request: SpeciesRichnessSuitabilityIn
     - JSON dictionary containing the species richness index results
     """
     try:
-        import ipdb; ipdb.set_trace()
         geo_id = generate_geo_uuid(
             request.species_name,
             request.country_code,
@@ -154,7 +144,8 @@ async def calculate_species_richness_index(request: SpeciesRichnessSuitabilityIn
             existing_srsi, existing_raster = run_and_create_new_ssri_record(
                 geo_id, request.species_name, request.country_code.upper(), request.wkt_poligon, db)
 
-        existing_raster_value = json.loads(existing_raster.raster_bin.decode('utf-8'))
+        existing_raster_value = pickle.loads(existing_raster.raster_bin)
+
         return SpeciesRichnessSuitabilityIndexResponse(
             id=existing_srsi.id,
             species=existing_srsi.species,
@@ -174,4 +165,3 @@ async def calculate_species_richness_index(request: SpeciesRichnessSuitabilityIn
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-# app.include_router(router, prefix="/api/v1")  # All router endpoints will be under /api/v1
