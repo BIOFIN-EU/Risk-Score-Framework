@@ -204,11 +204,16 @@ class SpeciesSuitabilityModel():
 
 
 if __name__ == '__main__':
+    import time, datetime
+    now = datetime.datetime.now()
     ssi_model = SpeciesSuitabilityModel({
 
     })
     ssi_model.run({
-        'SPECIES_SCIENTIFIC_NAME': 'Streptopelia turtur',
-        'COUNTRY_CODE': 'NL'
+        # 'SPECIES_SCIENTIFIC_NAME': 'Streptopelia turtur',
+        # 'COUNTRY_CODE': 'NL'
     })
-    ssi_model.run()
+    # ssi_model.run()
+    end = datetime.datetime.now()
+    total = end - now
+    print(f'Total time: {total}')

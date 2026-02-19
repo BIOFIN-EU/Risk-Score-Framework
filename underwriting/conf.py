@@ -45,24 +45,26 @@ class SpeciesSuitabilityConfig():
 
         # Derived attributes
         self.SPECIES_SAFE = self.SPECIES_SCIENTIFIC_NAME.replace(" ", "_")
-        self.ALL_SPECIES_ROOT = os.path.join(self.MYDRIVE, self.EE_EXPORT_FOLDER_NAME)
-        self.SPECIES_DIR = os.path.join(self.ALL_SPECIES_ROOT, self.SPECIES_SAFE)
+        self.REAL_ALL_SPECIES_ROOT = os.path.join(self.MYDRIVE, 'species')
+
+        self.SPECIES_DIR = os.path.join(self.REAL_ALL_SPECIES_ROOT, self.SPECIES_SAFE)
         self.DATA_DIR_NAME = f"data_{self.SPECIES_SAFE}"
         self.DATA_DIR = os.path.join(self.SPECIES_DIR, self.DATA_DIR_NAME)
 
         # INPUT_DIR with the logic from your script
-        self.INPUT_DIR = os.path.join(self.MYDRIVE, "Input_data")
+        self.INPUT_DIR = os.path.join(self.SPECIES_DIR, "Input_data")
 
         # Future TIFs
         self.FUTURE_TIF_ROOTS = kwargs.get('FUTURE_TIF_ROOTS', [self.BASE_DATA_DIR])
         self.FUTURE_TIF_REL_TEMPLATE = kwargs.get('FUTURE_TIF_REL_TEMPLATE',
                                                   "wc2.1_30s_bioc_{model}_{ssp}_{period}.tif")
 
-        # Current predictors paths
+
+        self.ENV_1KM_DRIVE = os.path.join(self.MYDRIVE, "elev_hs_slope_tcc_1km.tif")
+        self.ENV_1KM_INTERP = os.path.join(self.MYDRIVE, "elev_hs_slope_tcc_1km_Interpolated.tif")
+
         self.WC_CURRENT_DRIVE = os.path.join(self.INPUT_DIR, "worldclim_bio_current.tif")
-        self.ENV_1KM_DRIVE = os.path.join(self.INPUT_DIR, "elev_hs_slope_tcc_1km.tif")
         self.WC_CURRENT_INTERP = os.path.join(self.INPUT_DIR, "worldclim_bio_current_Interpolated.tif")
-        self.ENV_1KM_INTERP = os.path.join(self.INPUT_DIR, "elev_hs_slope_tcc_1km_Interpolated.tif")
         self.CURRENT_STACK = os.path.join(self.INPUT_DIR, "ActualPredictorsSubset_1km_Interpolated.tif")
 
         # Current outputs
@@ -78,7 +80,7 @@ class SpeciesSuitabilityConfig():
         self._ensure_dirs_exist()
 
     def _ensure_dirs_exist(self):
-        os.makedirs(self.ALL_SPECIES_ROOT, exist_ok=True)
+        os.makedirs(self.REAL_ALL_SPECIES_ROOT, exist_ok=True)
         os.makedirs(self.SPECIES_DIR, exist_ok=True)
         os.makedirs(self.DATA_DIR, exist_ok=True)
 

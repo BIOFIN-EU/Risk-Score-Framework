@@ -341,7 +341,9 @@ class SpeciesSuitabilityUtils():
                     .reproject(crs='EPSG:4326', scale=self.config.GRAIN_SIZE).toFloat().rename('TCC'))
             env = elevation.addBands([hillshade, slope, tcc])
 
-            filename = os.path.join(self.config.INPUT_DIR, "elev_hs_slope_tcc_1km.tif")
+            # filename = os.path.join(self.config.INPUT_DIR, "elev_hs_slope_tcc_1km.tif")
+            filename = self.config.ENV_1KM_DRIVE
+
             # Convert EE image to local GeoTIFF
             env_clipped = env.clip(aoi if aoi is not None else ee.Geometry.Rectangle(aoi_bbox))
             geemap.ee_export_image(env_clipped, filename=filename, scale=self.config.GRAIN_SIZE, region=aoi if aoi is not None else ee.Geometry.Rectangle(aoi_bbox))
