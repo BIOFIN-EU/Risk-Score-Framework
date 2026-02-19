@@ -176,3 +176,4 @@ data/*
 .continue/*
 catboost_info/*
 notebooks/*
+docs/*
