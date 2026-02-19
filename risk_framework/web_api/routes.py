@@ -5,6 +5,8 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 from fastapi import FastAPI, HTTPException, APIRouter, Depends
+
+# from risk_framework.web_api.core import app
 from risk_framework.web_api.models import (
     SpeciesRichnessSuitabilityIndexDB,
     RasterData,
@@ -18,12 +20,6 @@ from risk_framework.web_api.schemas import (
 from risk_framework.species_models.base import SpeciesSuitabilityModel
 from risk_framework.conf import SessionLocal
 
-# Create FastAPI instance
-app = FastAPI(
-    title="Risk Framework API",
-    description="API for biodiversity risk assessment",
-    version="0.1.0",
-)
 
 
 def get_db():
@@ -55,18 +51,18 @@ def generate_geo_uuid(species_name: str, country_code: str, wkt_polygon: Optiona
 
 router = APIRouter()
 
-@app.get("/")
-async def hello_world():
-    """
-    Hello World endpoint.
+# @app.get("/")
+# async def hello_world():
+#     """
+#     Hello World endpoint.
 
-    Returns a simple greeting message.
-    """
-    return {"message": "Hello World"}
+#     Returns a simple greeting message.
+#     """
+#     return {"message": "Hello World"}
 
 
 
-async def run_and_creat_new_ssri_record(geo_id, species_name, country_code, wkt_poligon, db):
+def run_and_create_new_ssri_record(geo_id, species_name, country_code, wkt_poligon, db):
     # If no record exists, run the model
     ssi_model = SpeciesSuitabilityModel({
         'SPECIES_SCIENTIFIC_NAME': species_name,
@@ -90,7 +86,7 @@ async def run_and_creat_new_ssri_record(geo_id, species_name, country_code, wkt_
     # Create RasterData record
     new_raster_data = RasterData(
         id=str(uuid.uuid4()),
-        geo_id=uuid.uuid4(),
+        geo_id=geo_id,
         raster_bin=json.dumps(raster_values).encode('utf-8'),
         raster_meta=result['meta']
     )
@@ -115,7 +111,7 @@ async def run_and_creat_new_ssri_record(geo_id, species_name, country_code, wkt_
     )
 
     db.add(new_record)
-    db.flush()
+    db.commit()
     return new_record, new_raster_data
 
 @router.post("/species-richness-index/", response_model=SpeciesRichnessSuitabilityIndexResponse)
@@ -133,6 +129,7 @@ async def calculate_species_richness_index(request: SpeciesRichnessSuitabilityIn
     - JSON dictionary containing the species richness index results
     """
     try:
+        import ipdb; ipdb.set_trace()
         geo_id = generate_geo_uuid(
             request.species_name,
             request.country_code,
@@ -150,25 +147,25 @@ async def calculate_species_richness_index(request: SpeciesRichnessSuitabilityIn
             ).first()
 
             if not existing_raster:
-                raise HTTPException(status_code=500, detail="Cached raster data not found")
+                raise HTTPException(status_code=500, detail="Value raster data not found")
 
             # Parse the raster binary back to list of lists
         else:
-            existing_record, existing_raster = run_and_creat_new_ssri_record(
+            existing_srsi, existing_raster = run_and_create_new_ssri_record(
                 geo_id, request.species_name, request.country_code.upper(), request.wkt_poligon, db)
 
         existing_raster_value = json.loads(existing_raster.raster_bin.decode('utf-8'))
         return SpeciesRichnessSuitabilityIndexResponse(
-            id=existing_record.id,
-            species=existing_record.species,
-            country=existing_record.country_code,
-            scenario=existing_record.climate_scenario,
-            period=existing_record.period,
+            id=existing_srsi.id,
+            species=existing_srsi.species,
+            country=existing_srsi.country_code,
+            scenario=existing_srsi.climate_scenario,
+            period=existing_srsi.period,
             raster_data=RasterDataResponse(
                 raster=existing_raster_value,
                 summary_stats=RasterSummaryStats(
-                    mean_habitat_suitability=float(existing_record.mean_value),
-                    std_habitat_suitability=float(existing_record.mean_std)
+                    mean_habitat_suitability=float(existing_srsi.mean_value),
+                    std_habitat_suitability=float(existing_srsi.mean_std)
                 )
             ),
             meta=existing_raster.raster_meta
@@ -177,4 +174,4 @@ async def calculate_species_richness_index(request: SpeciesRichnessSuitabilityIn
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-app.include_router(router, prefix="/api/v1")  # All router endpoints will be under /api/v1
+# app.include_router(router, prefix="/api/v1")  # All router endpoints will be under /api/v1

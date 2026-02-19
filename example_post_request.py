@@ -14,7 +14,7 @@ data = {
 # Make the POST request
 try:
     response = requests.post(url, json=data)
-
+    import ipdb; ipdb.set_trace()
     # Check if request was successful
     response.raise_for_status()
 
@@ -24,5 +24,7 @@ try:
 
 except requests.exceptions.RequestException as e:
     print(f"Error making request: {e}")
+    result = response.json()
+    print(json.dumps(result, indent=2))
 except json.JSONDecodeError as e:
     print(f"Error parsing response JSON: {e}")
