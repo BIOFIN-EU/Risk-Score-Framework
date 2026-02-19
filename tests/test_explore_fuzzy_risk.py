@@ -5,9 +5,9 @@ import numpy as np
 from skfuzzy import control as ctrl
 
 
-from underwriting.biodiversity_risk.skfis_extended import ExplainableControlSystemSimulation
+from risk_framework.biodiversity_risk.skfis_extended import ExplainableControlSystemSimulation
 
-from underwriting.biodiversity_risk.bio_risk_plus import BioRiskPlusFIS
+from risk_framework.biodiversity_risk.bio_risk_plus import BioRiskPlusFIS
 
 
 class TestBioRiskPlusFIS(unittest.TestCase):

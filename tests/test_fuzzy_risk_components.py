@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from underwriting.biodiversity_risk.bio_risk_plus import BioRiskPlusFIS
+from risk_framework.biodiversity_risk.bio_risk_plus import BioRiskPlusFIS
 
 
 class TestBioRiskPlusFISComponents(unittest.TestCase):

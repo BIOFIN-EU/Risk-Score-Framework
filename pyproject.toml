@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "underwriting"
+name = "risk_framework"
 version = "1.0.0"
-description = "BIOFIN Underwriting core framework"
+description = "BIOFIN Risk Score framework web api "
 authors = [
     { name = "Felipe Arruda", email = "felipe.arrudapontes@maastrichtuniversity.nl" }
 ]
@@ -37,4 +37,4 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["underwriting"]
+packages = ["risk_framework"]
