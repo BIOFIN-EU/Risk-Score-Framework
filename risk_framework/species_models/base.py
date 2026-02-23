@@ -175,9 +175,19 @@ class SpeciesSuitabilityModel():
         )
 
 
+    def calculate_current_species_suitability(self):
+        print("calculate_current_species_suitability")
+        # import json
+        ret_json, meta = self.ssi_utils.calculate_current_species_suitability(
+            data_dir=self.config.DATA_DIR,
+            species_safe=self.config.SPECIES_SAFE
+        )
+        # import ipdb; ipdb.set_trace()
+        # print(json.dumps(ret_json, indent=4))
+        return ret_json
 
-    def simplified_predict_future_species_suitability(self):
-        print("simplified_predict_future_species_suitability")
+    def predict_future_species_suitability(self):
+        print("predict_future_species_suitability")
 
         # import json
         ret_json = self.ssi_utils.predict_future_species_suitability(
@@ -185,12 +195,12 @@ class SpeciesSuitabilityModel():
             input_dir=self.config.INPUT_DIR,
             scenarios=self.config.SCENARIOS,
             periods=self.config.PERIODS,
-            species_safe=self.config.SPECIES_SAFE,
-            summary_only=False
+            species_safe=self.config.SPECIES_SAFE
         )
         # import ipdb; ipdb.set_trace()
         # print(json.dumps(ret_json, indent=4))
         return ret_json
+
 
     def run(self, new_configs=None):
 
@@ -200,7 +210,14 @@ class SpeciesSuitabilityModel():
             self.first_step_for_each_model()
             self.second_step_for_each_model()
             self.third_step_for_each_model()
-        return self.simplified_predict_future_species_suitability()
+        current_result = self.calculate_current_species_suitability()
+        all_results = self.predict_future_species_suitability()
+        all_results['scenarios']['current'] = {
+            'periods': {
+                'current': current_result
+            }
+        }
+        return all_results
 
 
 
@@ -210,11 +227,14 @@ if __name__ == '__main__':
     ssi_model = SpeciesSuitabilityModel({
 
     })
-    ssi_model.run({
+    res = ssi_model.run({
         # 'SPECIES_SCIENTIFIC_NAME': 'Streptopelia turtur',
-        'COUNTRY_CODE': 'NL'
+        # 'COUNTRY_CODE': 'NL'
     })
     # ssi_model.run()
     end = datetime.datetime.now()
     total = end - now
     print(f'Total time: {total}')
+    import json
+    with open('out.json', 'w') as f:
+        json.dump(res, f, indent=4)

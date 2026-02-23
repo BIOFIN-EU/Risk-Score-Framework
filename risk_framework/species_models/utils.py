@@ -1237,7 +1237,7 @@ class SpeciesSuitabilityUtils():
                 )
 
 
-    def predict_future_species_suitability(self, data_dir, input_dir, scenarios, periods, species_safe, summary_only=False):
+    def predict_future_species_suitability(self, data_dir, input_dir, scenarios, periods, species_safe):
         models, train_bands_final = self.load_models(data_dir, species_safe)
         model_name = 'Ensemble'
         ensamble_model = models.get(model_name)
@@ -1270,10 +1270,29 @@ class SpeciesSuitabilityUtils():
                     meta=meta
                 )
                 prob_meta = prob_json_output.pop('meta', {})
-                if summary_only:
-                    prob_json_output = {
-                        'summary_stats': prob_json_output['summary_stats']
-                    }
                 ret_dict['scenarios'][ssp]['periods'][period] = prob_json_output
                 ret_dict['meta'] = prob_meta
         return ret_dict
+
+    def calculate_current_species_suitability(self, data_dir, species_safe):
+        models, train_bands_final = self.load_models(data_dir, species_safe)
+        model_name = 'Ensemble'
+        ensamble_model = models.get(model_name)
+
+        stack_path = self.config.CURRENT_STACK
+        # Prepare future stack data
+        meta, H, W, flat_df, valid_mask = self.prepare_future_stack_data(
+            stack_path, train_bands_final, self.config.NODATA_VAL
+        )
+
+        prob_json_output = self.run_model_prob_prediction(
+            model_name=model_name,
+            model=ensamble_model,
+            flat_df=flat_df,
+            valid_mask=valid_mask,
+            H=H,
+            W=W,
+            meta=meta
+        )
+        prob_meta = prob_json_output.pop('meta', {})
+        return prob_json_output, prob_meta
