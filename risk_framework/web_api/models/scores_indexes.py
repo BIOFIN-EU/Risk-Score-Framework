@@ -11,6 +11,9 @@ class SpeciesRichnessSuitabilityIndexDB(DeclarativeBaseModel):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     geo_id = Column(UUID(as_uuid=True), default=uuid.uuid4, nullable=False)
 
+    # 'Geometry (WKT EPSG:4326)'?
+    geometry = Column(String, nullable=True)
+
     # Foreign keys to RasterData
     value_raster_id = Column(String, ForeignKey('raster_data.id'), nullable=False)
     # explainability_raster_id = Column(String, ForeignKey('raster_data.id'), nullable=False)
@@ -21,7 +24,7 @@ class SpeciesRichnessSuitabilityIndexDB(DeclarativeBaseModel):
     climate_scenario = Column(String, nullable=False)
     climate_model = Column(String, nullable=False)
     period = Column(String, nullable=False)
-    has_humam_footprint = Column(Boolean, nullable=False)
+    # has_humam_footprint = Column(Boolean, nullable=False) # only add this to the new one that also include HFI
 
     # Statistical fields
     mean_value = Column(Numeric, nullable=False)

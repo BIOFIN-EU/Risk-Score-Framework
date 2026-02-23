@@ -2,12 +2,20 @@ import requests
 import json
 
 # API endpoint
-url = "http://localhost:8000/api/v1/species-richness-index/"
+url = "http://localhost:8000/api/v1/predict-future-species-richness-index/"
+# url = "http://localhost:8000/api/v1/calculate-current-species-richness-index/"
+
 
 # Prepare the data
 data = {
     "species_name": "Lullula arborea",
-    "country_code": "Lu",  # Kenya
+    "country_code": "LU",
+    "climate_scenario": "ssp245",
+    # "climate_scenario": "ssp585",
+    "climate_model": "EC-Earth3-Veg",
+    "period": "2021-2040",
+    # "period": "2041-2060",
+
     # "wkt_poligon": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))"  # Optional
 }
 

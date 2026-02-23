@@ -1246,6 +1246,7 @@ class SpeciesSuitabilityUtils():
             'country': self.config.COUNTRY_CODE,
             'scenarios': {},
             'meta': {},
+            'climate_models': [self.config.SCENARIO_MODEL,]
             # 'region' wkt?
         }
         for ssp in scenarios:
