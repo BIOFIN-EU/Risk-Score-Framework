@@ -203,8 +203,7 @@ class SpeciesSuitabilityModel():
 
 
     def run(self, new_configs=None):
-
-        if new_configs is not None:
+        if len(new_configs) != 0:
             self.setup_configs(new_configs)
         if not self.ssi_utils._has_models_ready(self.config.DATA_DIR, self.config.SPECIES_SAFE):
             self.first_step_for_each_model()
@@ -228,7 +227,8 @@ if __name__ == '__main__':
 
     })
     res = ssi_model.run({
-        # 'SPECIES_SCIENTIFIC_NAME': 'Streptopelia turtur',
+        'SPECIES_SCIENTIFIC_NAME': 'Streptopelia turtur',
+        'COUNTRY_CODE': 'LU'
         # 'COUNTRY_CODE': 'NL'
     })
     # ssi_model.run()

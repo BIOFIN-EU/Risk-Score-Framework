@@ -69,14 +69,13 @@ def create_srsi_and_raster_records(geo_id, all_results, scenario, period, wkt_po
 
 
 def run_and_create_new_srsi_records(geo_id, species_name, country_code, wkt_poligon, db):
-    ssi_model = SpeciesSuitabilityModel({
+    run_extra_confs = {
         'SPECIES_SCIENTIFIC_NAME': species_name,
         'COUNTRY_CODE': country_code.upper()
-    })
-
-    run_extra_confs = {}
+    }
     if wkt_poligon:
         run_extra_confs['WKT_POLIGON'] = wkt_poligon
+    ssi_model = SpeciesSuitabilityModel(run_extra_confs)
 
     all_results = ssi_model.run(run_extra_confs)
 
