@@ -5,8 +5,8 @@ import uuid
 from risk_framework.conf import DeclarativeBaseModel
 
 
-class SpeciesRichnessSuitabilityIndexDB(DeclarativeBaseModel):
-    __tablename__ = "species_richness_suitability_index"
+class SpeciesHabitatSuitabilityIndexDB(DeclarativeBaseModel):
+    __tablename__ = "species_habitat_suitability_index"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     geo_id = Column(UUID(as_uuid=True), default=uuid.uuid4, nullable=False)

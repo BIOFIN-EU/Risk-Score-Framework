@@ -2,8 +2,8 @@ import requests
 import json
 
 # API endpoint
-# url = "http://localhost:8000/api/v1/predict-future-species-richness-index/"
-url = "http://localhost:8000/api/v1/calculate-current-species-richness-index/"
+# url = "http://localhost:8000/api/v1/predict-future-habitat-suitability/"
+url = "http://localhost:8000/api/v1/calculate-current-habitat-suitability/"
 
 
 # Prepare the data

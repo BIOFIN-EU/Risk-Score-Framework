@@ -2,21 +2,21 @@ import os
 
 
 from risk_framework.conf import (
-    SpeciesSuitabilityConfig
+    SpeciesHabitatSuitabilityConfig
 )
 
 from risk_framework.species_models.utils import (
-    SpeciesSuitabilityUtils
+    SpeciesHabitatSuitabilityUtils
 )
 
 
-class SpeciesSuitabilityModel():
+class SpeciesHabitatSuitabilityModel():
     def __init__(self, new_configs):
         self.setup_configs(new_configs)
 
     def setup_configs(self, new_configs):
-        self.config = SpeciesSuitabilityConfig(**new_configs)
-        self.ssi_utils = SpeciesSuitabilityUtils(self.config)
+        self.config = SpeciesHabitatSuitabilityConfig(**new_configs)
+        self.ssi_utils = SpeciesHabitatSuitabilityUtils(self.config)
 
 
     def build_training_data_if_missing(self):
@@ -223,7 +223,7 @@ class SpeciesSuitabilityModel():
 if __name__ == '__main__':
     import time, datetime
     now = datetime.datetime.now()
-    ssi_model = SpeciesSuitabilityModel({
+    ssi_model = SpeciesHabitatSuitabilityModel({
 
     })
     res = ssi_model.run({

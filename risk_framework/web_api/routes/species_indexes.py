@@ -8,13 +8,13 @@ from fastapi import FastAPI, HTTPException, APIRouter, Depends
 
 # from risk_framework.web_api.core import app
 from risk_framework.web_api.models import (
-    SpeciesRichnessSuitabilityIndexDB,
+    SpeciesHabitatSuitabilityIndexDB,
     RasterData,
 )
 from risk_framework.web_api.schemas import (
-    FutureSpeciesRichnessSuitabilityIndexRequest,
-    CurrentRichnessSuitabilityIndexRequest,
-    SpeciesRichnessSuitabilityIndexResponse,
+    FutureSpeciesHabitatSuitabilityIndexRequest,
+    CurrentSpeciesHabitatSuitabilityIndexRequest,
+    SpeciesHabitatSuitabilityIndexResponse,
     RasterDataResponse,
     RasterSummaryStats,
 )
@@ -22,15 +22,15 @@ from risk_framework.web_api.utils import (
     get_db,
     generate_geo_uuid
 )
-from risk_framework.species_models.base import SpeciesSuitabilityModel
+from risk_framework.species_models.base import SpeciesHabitatSuitabilityModel
 
 
 
-srsi_router = APIRouter()
+hsi_router = APIRouter()
 
 
 
-def create_srsi_and_raster_records(geo_id, all_results, scenario, period, wkt_poligon, raster_values, raster_summary, raster_meta, db):
+def create_hsi_and_raster_records(geo_id, all_results, scenario, period, wkt_poligon, raster_values, raster_summary, raster_meta, db):
     species_name = all_results['species']
     country_code = all_results['country']
     climate_models = all_results['climate_models']
@@ -48,7 +48,7 @@ def create_srsi_and_raster_records(geo_id, all_results, scenario, period, wkt_po
     db.add(new_raster_data)
     db.flush()
 
-    new_record = SpeciesRichnessSuitabilityIndexDB(
+    new_record = SpeciesHabitatSuitabilityIndexDB(
         id=str(uuid.uuid4()),
         geo_id=geo_id,  # Deterministic geo_id for lookup
         value_raster_id=new_raster_data.id,
@@ -68,16 +68,16 @@ def create_srsi_and_raster_records(geo_id, all_results, scenario, period, wkt_po
     return new_record
 
 
-def run_and_create_new_srsi_records(geo_id, species_name, country_code, wkt_poligon, db):
+def run_and_create_new_hsi_records(geo_id, species_name, country_code, wkt_poligon, db):
     run_extra_confs = {
         'SPECIES_SCIENTIFIC_NAME': species_name,
         'COUNTRY_CODE': country_code.upper()
     }
     if wkt_poligon:
         run_extra_confs['WKT_POLIGON'] = wkt_poligon
-    ssi_model = SpeciesSuitabilityModel(run_extra_confs)
+    hsi_model = SpeciesHabitatSuitabilityModel(run_extra_confs)
 
-    all_results = ssi_model.run(run_extra_confs)
+    all_results = hsi_model.run(run_extra_confs)
 
     # Extract first scenario and period
     scenarios_records = {}
@@ -89,42 +89,42 @@ def run_and_create_new_srsi_records(geo_id, species_name, country_code, wkt_poli
             raster_values = result['raster']
             raster_summary = result['summary_stats']
             raster_summary = result['summary_stats']
-            scenario_record = create_srsi_and_raster_records(
+            scenario_record = create_hsi_and_raster_records(
                 geo_id, all_results, scenario, period, wkt_poligon, raster_values, raster_summary, all_results['meta'], db)
             scenarios_records[scenario]['periods'][period] = scenario_record
     return {'scenarios': scenarios_records}
 
 
-def retrieve_or_calculate_srsi(request, geo_id, climate_scenario, period, existing_srsis_record, db):
+def retrieve_or_calculate_hsi(request, geo_id, climate_scenario, period, existing_hsi_record, db):
     # If record exists, retrieve it and return cached result
-    if not existing_srsis_record:
-        existing_srsis_dict = run_and_create_new_srsi_records(
+    if not existing_hsi_record:
+        existing_hsi_dict = run_and_create_new_hsi_records(
             geo_id, request.species_name, request.country_code.upper(), request.wkt_poligon, db)
-        existing_srsis_record = existing_srsis_dict['scenarios'][climate_scenario]['periods'][period]
+        existing_hsi_record = existing_hsi_dict['scenarios'][climate_scenario]['periods'][period]
 
-    existing_raster_value = pickle.loads(existing_srsis_record.value_raster.raster_bin)
+    existing_raster_value = pickle.loads(existing_hsi_record.value_raster.raster_bin)
 
-    return SpeciesRichnessSuitabilityIndexResponse(
-        id=existing_srsis_record.id,
-        species=existing_srsis_record.species,
-        country=existing_srsis_record.country_code,
-        scenario=existing_srsis_record.climate_scenario,
-        period=existing_srsis_record.period,
+    return SpeciesHabitatSuitabilityIndexResponse(
+        id=existing_hsi_record.id,
+        species=existing_hsi_record.species,
+        country=existing_hsi_record.country_code,
+        scenario=existing_hsi_record.climate_scenario,
+        period=existing_hsi_record.period,
         raster_data=RasterDataResponse(
             raster=existing_raster_value,
             summary_stats=RasterSummaryStats(
-                mean_habitat_suitability=float(existing_srsis_record.mean_value),
-                std_habitat_suitability=float(existing_srsis_record.mean_std)
+                mean_habitat_suitability=float(existing_hsi_record.mean_value),
+                std_habitat_suitability=float(existing_hsi_record.mean_std)
             )
         ),
-        meta=existing_srsis_record.value_raster.raster_meta
+        meta=existing_hsi_record.value_raster.raster_meta
     )
 
 
-@srsi_router.post("/predict-future-species-richness-index/", response_model=SpeciesRichnessSuitabilityIndexResponse)
-async def predict_future_species_richness_index(request: FutureSpeciesRichnessSuitabilityIndexRequest, db: Session = Depends(get_db)):
+@hsi_router.post("/predict-future-habitat-suitability/", response_model=SpeciesHabitatSuitabilityIndexResponse)
+async def predict_future_species_habitat_suitability_index(request: FutureSpeciesHabitatSuitabilityIndexRequest, db: Session = Depends(get_db)):
     """
-    Predict future species richness index based on species name, country code, climate scenario, model and period
+    Predict future species habitat suitability index based on species name, country code, climate scenario, model and period
     and optional WKT polygon.
 
     Parameters:
@@ -135,7 +135,7 @@ async def predict_future_species_richness_index(request: FutureSpeciesRichnessSu
     - **climate_model**: climate model string
     - **period**: period (eg: 2021-2040) string
     Returns:
-    - JSON dictionary containing the species richness index results
+    - JSON dictionary containing the species habitat suitability index results
     """
     try:
         geo_id = generate_geo_uuid(
@@ -143,27 +143,27 @@ async def predict_future_species_richness_index(request: FutureSpeciesRichnessSu
             request.country_code,
             request.wkt_poligon
         )
-        query = db.query(SpeciesRichnessSuitabilityIndexDB).options(
-            joinedload(SpeciesRichnessSuitabilityIndexDB.value_raster)
+        query = db.query(SpeciesHabitatSuitabilityIndexDB).options(
+            joinedload(SpeciesHabitatSuitabilityIndexDB.value_raster)
         )
         query = query.filter(
-            SpeciesRichnessSuitabilityIndexDB.geo_id == geo_id,
-            SpeciesRichnessSuitabilityIndexDB.climate_scenario == request.climate_scenario,
-            SpeciesRichnessSuitabilityIndexDB.climate_model == str([request.climate_model]),
-            SpeciesRichnessSuitabilityIndexDB.period == request.period,
+            SpeciesHabitatSuitabilityIndexDB.geo_id == geo_id,
+            SpeciesHabitatSuitabilityIndexDB.climate_scenario == request.climate_scenario,
+            SpeciesHabitatSuitabilityIndexDB.climate_model == str([request.climate_model]),
+            SpeciesHabitatSuitabilityIndexDB.period == request.period,
         )
 
-        existing_srsis_record = query.first()
-        return retrieve_or_calculate_srsi(request, geo_id, request.climate_scenario, request.period, existing_srsis_record, db)
+        existing_hsi_record = query.first()
+        return retrieve_or_calculate_hsi(request, geo_id, request.climate_scenario, request.period, existing_hsi_record, db)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
-@srsi_router.post("/calculate-current-species-richness-index/", response_model=SpeciesRichnessSuitabilityIndexResponse)
-async def calculate_current_species_richness_index(request: CurrentRichnessSuitabilityIndexRequest, db: Session = Depends(get_db)):
+@hsi_router.post("/calculate-current-habitat-suitability/", response_model=SpeciesHabitatSuitabilityIndexResponse)
+async def calculate_current_species_habitat_suitability_index(request: CurrentSpeciesHabitatSuitabilityIndexRequest, db: Session = Depends(get_db)):
     """
-    Calculate current species richness index based on species name, country code,
+    Calculate current species habitat suitability index based on species name, country code,
     and optional WKT polygon.
 
     Parameters:
@@ -171,7 +171,7 @@ async def calculate_current_species_richness_index(request: CurrentRichnessSuita
     - **country_code**: ISO country code
     - **wkt_poligon**: Optional WKT (Well-Known Text) polygon string
     Returns:
-    - JSON dictionary containing the species richness index results
+    - JSON dictionary containing the species habitat suitability index results
     """
     climate_scenario = 'current'
     period = climate_scenario
@@ -181,16 +181,16 @@ async def calculate_current_species_richness_index(request: CurrentRichnessSuita
         request.country_code,
         request.wkt_poligon
     )
-    query = db.query(SpeciesRichnessSuitabilityIndexDB).options(
-        joinedload(SpeciesRichnessSuitabilityIndexDB.value_raster)
+    query = db.query(SpeciesHabitatSuitabilityIndexDB).options(
+        joinedload(SpeciesHabitatSuitabilityIndexDB.value_raster)
     )
     query = query.filter(
-        SpeciesRichnessSuitabilityIndexDB.geo_id == geo_id,
-        SpeciesRichnessSuitabilityIndexDB.climate_scenario == climate_scenario,
+        SpeciesHabitatSuitabilityIndexDB.geo_id == geo_id,
+        SpeciesHabitatSuitabilityIndexDB.climate_scenario == climate_scenario,
     )
 
-    existing_srsis_record = query.first()
-    return retrieve_or_calculate_srsi(request, geo_id, climate_scenario, period, existing_srsis_record, db)
+    existing_hsi_record = query.first()
+    return retrieve_or_calculate_hsi(request, geo_id, climate_scenario, period, existing_hsi_record, db)
     # except Exception as e:
     #     raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 

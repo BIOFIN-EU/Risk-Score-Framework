@@ -1,1 +1,1 @@
-from .species_indexes import srsi_router
+from .species_indexes import *

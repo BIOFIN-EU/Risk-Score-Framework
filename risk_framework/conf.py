@@ -37,7 +37,7 @@ DeclarativeBaseModel = declarative_base()
 
 
 
-class SpeciesSuitabilityConfig():
+class SpeciesHabitatSuitabilityConfig():
     def __init__(self, **kwargs):
         self.BASE_DATA_DIR = kwargs.get('BASE_DATA_DIR', BASE_DATA_DIR)
         self.COUNTRY_CODE = kwargs.get('COUNTRY_CODE', "LU")

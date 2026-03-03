@@ -7,7 +7,8 @@ from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-class FutureSpeciesRichnessSuitabilityIndexRequest(BaseModel):
+
+class FutureSpeciesHabitatSuitabilityIndexRequest(BaseModel):
     species_name: str
     country_code: str
     climate_scenario: str
@@ -26,7 +27,7 @@ class FutureSpeciesRichnessSuitabilityIndexRequest(BaseModel):
             }
         }
 
-class CurrentRichnessSuitabilityIndexRequest(BaseModel):
+class CurrentSpeciesHabitatSuitabilityIndexRequest(BaseModel):
     species_name: str
     country_code: str
     wkt_poligon: Optional[str] = None  # Optional
@@ -76,8 +77,9 @@ class ScenarioData(BaseModel):
     """Data for a specific scenario"""
     periods: Dict[str, PeriodData]
 
-class SpeciesRichnessSuitabilityIndexResponse(BaseModel):
-    """Main response schema for species richness index"""
+class SpeciesHabitatSuitabilityIndexResponse(BaseModel):
+    """Main response schema for SpeciesHabitatSuitabilityIndex:
+"""
     species: str
     country: str
     scenario: str = Field(..., description="The climate scenario (e.g., ssp245)")

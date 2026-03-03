@@ -43,7 +43,7 @@ from risk_framework.conf import ee
 
 
 
-class SpeciesSuitabilityUtils():
+class SpeciesHabitatSuitabilityUtils():
     def __init__(self, base_configs):
         self.config = base_configs
 
