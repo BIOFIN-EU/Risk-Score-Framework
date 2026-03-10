@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>2x2 Raster (Real OL RasterSource)</title>
+
+<link rel="stylesheet"
+ href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css">
+
+<style>
+  #map {
+    width: 100%;
+    height: 500px;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+
+<script>
+
+/* =====================================================
+   1. HARD-CODED 2x2 RASTER VALUES
+===================================================== */
+
+const rasterGrid = [
+  [1, 2],
+  [3, 4]
+];
+
+/* =====================================================
+   2. CREATE SOURCE IMAGE (INPUT RASTER)
+   (this is ONLY raw data input)
+===================================================== */
+
+const canvas = document.createElement('canvas');
+canvas.width = 2;
+canvas.height = 2;
+
+const ctx = canvas.getContext('2d');
+const imgRaster = ctx.createImageData(2, 2);
+
+
+
+// Manually set each pixel in the 2x2 grid
+// Pixel (0,0) - top-left - value 1
+imgRaster.data[0] = 1;   // red
+imgRaster.data[1] = 0;   // green
+imgRaster.data[2] = 0;   // blue
+imgRaster.data[3] = 255; // alpha
+
+// Pixel (1,0) - top-right - value 2
+imgRaster.data[4] = 2;
+imgRaster.data[5] = 0;
+imgRaster.data[6] = 0;
+imgRaster.data[7] = 255;
+
+// Pixel (0,1) - bottom-left - value 3
+imgRaster.data[8] = 3;
+imgRaster.data[9] = 0;
+imgRaster.data[10] = 0;
+imgRaster.data[11] = 255;
+
+// // Pixel (1,1) - bottom-right - value 4
+// imgRaster.data[12] = 4;
+// imgRaster.data[13] = 0;
+// imgRaster.data[14] = 0;
+
+imgRaster.data[12] = 4;
+imgRaster.data[13] = 0;
+imgRaster.data[14] = 0;
+imgRaster.data[15] = 255;
+ctx.putImageData(imgRaster, 0, 0);
+
+/* =====================================================
+   3. BASE IMAGE SOURCE
+===================================================== */
+
+
+// Get Maastricht center coordinates in projected coordinates
+const center = ol.proj.fromLonLat([5.69, 50.85]);
+const [centerX, centerY] = center;
+
+const width = 20000;
+const height = 10000;
+
+// Calculate extent centered on Maastricht
+// Format: [left, bottom, right, top]
+const extent = [
+  centerX - (width / 2),  // left
+  centerY - (height / 2),  // bottom
+  centerX + (width / 2),  // right
+  centerY + (height / 2)   // top
+];
+
+const rasterImage = new ol.source.ImageStatic({
+  url: canvas.toDataURL(),
+  imageExtent: extent, // 2km x 2km
+});
+
+/* =====================================================
+   4. TRUE RASTER SOURCE (THE IMPORTANT PART)
+===================================================== */
+
+const raster = new ol.source.Raster({
+  sources: [inputImage],
+
+  operation: function(pixels) {
+
+    const pixel = pixels[0];
+
+    // value stored in red channel
+    const v = pixel[0];
+
+    // recolor pixel
+    // return [255,0,0,255];
+    const singe_color = [255,0,0,100];
+    // if (v === 1) return [255,0,0,255];
+    // if (v === 2) return [0,255,0,255];
+    // if (v === 3) return [0,0,255,255];
+    // if (v === 4) return [255,255,0,255];
+    if (v === 1) return singe_color;
+    if (v === 2) return singe_color;
+    if (v === 3) return singe_color;
+    if (v === 4) return singe_color;
+
+    return [0,0,0,0];
+  }
+});
+
+/* =====================================================
+   5. MAP
+===================================================== */
+
+// center near Maastricht
+
+const map = new ol.Map({
+  target: 'map',
+  layers: [
+
+    new ol.layer.Tile({
+      source: new ol.source.OSM()
+    }),
+
+    new ol.layer.Image({
+      source: raster
+    })
+
+  ],
+  view: new ol.View({
+    constrainResolution: true,
+    center: center,
+    zoom: 14
+  })
+});
+
+</script>
+
+</body>
+</html>
