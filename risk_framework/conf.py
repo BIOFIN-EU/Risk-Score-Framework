@@ -41,6 +41,7 @@ class SpeciesHabitatSuitabilityConfig():
     def __init__(self, **kwargs):
         self.BASE_DATA_DIR = kwargs.get('BASE_DATA_DIR', BASE_DATA_DIR)
         self.COUNTRY_CODE = kwargs.get('COUNTRY_CODE', "LU")
+        self.WKT_POLYGON = kwargs.get('WKT_POLYGON', "")
         self.MYDRIVE = os.path.join(self.BASE_DATA_DIR, f'country_{self.COUNTRY_CODE}')
         self.SPECIES_SCIENTIFIC_NAME = kwargs.get('SPECIES_SCIENTIFIC_NAME', "Lullula arborea")
         self.SCENARIO_MODEL = kwargs.get('SCENARIO_MODEL', "EC-Earth3-Veg")

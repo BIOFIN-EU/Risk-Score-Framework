@@ -22,142 +22,244 @@
 <script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
 
 <script>
+var rasterGrid =null;
+// Fetch the JSON file
+fetch('your_raster.json')
+  .then(response => response.json())
+  .then(jsonData => {
 
-/* =====================================================
-   1. HARD-CODED 2x2 RASTER VALUES
-===================================================== */
+    /* =====================================================
+       2. EXTRACT METADATA AND RASTER VALUES
+    ===================================================== */
 
-const rasterGrid = [
-  [1, 2],
-  [3, 4]
-];
+    const meta = jsonData.meta;
+    rasterGrid = jsonData.raster_data.raster;  // This should be a 2D array
 
-/* =====================================================
-   2. CREATE SOURCE IMAGE (INPUT RASTER)
-   (this is ONLY raw data input)
-===================================================== */
+    const width = meta.width;
+    const height = meta.height;
+    const transform = meta.transform;  // [x_res, rotation, top_left_x, rotation, y_res, top_left_y, 0, 0, 1]
 
-const canvas = document.createElement('canvas');
-canvas.width = 2;
-canvas.height = 2;
+    /* =====================================================
+       3. CREATE SOURCE IMAGE FROM RASTER DATA
+    ===================================================== */
 
-const ctx = canvas.getContext('2d');
-const imgRaster = ctx.createImageData(2, 2);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    const imgRaster = ctx.createImageData(width, height);
+
+    // Fill the ImageData with raster values
+    // Note: We assume rasterGrid is a 2D array with dimensions [height][width]
+    // and we need to handle the orientation correctly
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const pixelIndex = (y * width + x) * 4;
+
+        // Get the raster value - adjust based on your actual data structure
+        // If rasterGrid is a flat array: const value = rasterGrid[y * width + x];
+        // If rasterGrid is a 2D array: const value = rasterGrid[y][x];
+        const value = rasterGrid[y][x];  // Assuming 2D array
+
+        // Store value in red channel
+        imgRaster.data[pixelIndex] = value;      // red
+        imgRaster.data[pixelIndex + 1] = 0;       // green
+        imgRaster.data[pixelIndex + 2] = 0;       // blue
+        imgRaster.data[pixelIndex + 3] = 255;     // alpha
+      }
+    }
+
+    ctx.putImageData(imgRaster, 0, 0);
+    //   /* =====================================================
+    //     1. HARD-CODED 2x2 RASTER VALUES
+    //   ===================================================== */
+
+    //   const rasterGrid = [
+    //     [1, 2],
+    //     [3, 4]
+    //   ];
+
+    //   /* =====================================================
+    //     2. CREATE SOURCE IMAGE (INPUT RASTER)
+    //     (this is ONLY raw data input)
+    //   ===================================================== */
+
+    //   const canvas = document.createElement('canvas');
+    //   canvas.width = 2;
+    //   canvas.height = 2;
+
+    //   const ctx = canvas.getContext('2d');
+    //   const imgRaster = ctx.createImageData(2, 2);
 
 
 
-// Manually set each pixel in the 2x2 grid
-// Pixel (0,0) - top-left - value 1
-imgRaster.data[0] = 1;   // red
-imgRaster.data[1] = 0;   // green
-imgRaster.data[2] = 0;   // blue
-imgRaster.data[3] = 255; // alpha
+    //   // Manually set each pixel in the 2x2 grid
+    //   // Pixel (0,0) - top-left - value 1
+    //   imgRaster.data[0] = 1;   // red
+    //   imgRaster.data[1] = 0;   // green
+    //   imgRaster.data[2] = 0;   // blue
+    //   imgRaster.data[3] = 255; // alpha
 
-// Pixel (1,0) - top-right - value 2
-imgRaster.data[4] = 2;
-imgRaster.data[5] = 0;
-imgRaster.data[6] = 0;
-imgRaster.data[7] = 255;
+    //   // Pixel (1,0) - top-right - value 2
+    //   imgRaster.data[4] = 2;
+    //   imgRaster.data[5] = 0;
+    //   imgRaster.data[6] = 0;
+    //   imgRaster.data[7] = 255;
 
-// Pixel (0,1) - bottom-left - value 3
-imgRaster.data[8] = 3;
-imgRaster.data[9] = 0;
-imgRaster.data[10] = 0;
-imgRaster.data[11] = 255;
+    //   // Pixel (0,1) - bottom-left - value 3
+    //   imgRaster.data[8] = 3;
+    //   imgRaster.data[9] = 0;
+    //   imgRaster.data[10] = 0;
+    //   imgRaster.data[11] = 255;
 
-// // Pixel (1,1) - bottom-right - value 4
-// imgRaster.data[12] = 4;
-// imgRaster.data[13] = 0;
-// imgRaster.data[14] = 0;
+    //   // // Pixel (1,1) - bottom-right - value 4
+    //   // imgRaster.data[12] = 4;
+    //   // imgRaster.data[13] = 0;
+    //   // imgRaster.data[14] = 0;
 
-imgRaster.data[12] = 4;
-imgRaster.data[13] = 0;
-imgRaster.data[14] = 0;
-imgRaster.data[15] = 255;
-ctx.putImageData(imgRaster, 0, 0);
+    //   imgRaster.data[12] = 4;
+    //   imgRaster.data[13] = 0;
+    //   imgRaster.data[14] = 0;
+    //   imgRaster.data[15] = 255;
+    //   ctx.putImageData(imgRaster, 0, 0);
 
-/* =====================================================
-   3. BASE IMAGE SOURCE
-===================================================== */
+    //   /* =====================================================
+    //     3. BASE IMAGE SOURCE
+    //   ===================================================== */
 
 
-// Get Maastricht center coordinates in projected coordinates
-const center = ol.proj.fromLonLat([5.69, 50.85]);
-const [centerX, centerY] = center;
+    //   const transform = [
+    //     0.008333333333333338,  // pixel width
+    //     0.0,
+    //     5.150000000000119,      // top-left x (longitude)
+    //     0.0,
+    //     -0.008333333333333338,  // pixel height (negative)
+    //     50.38333333333331,      // top-left y (latitude)
+    //     0.0,
+    //     0.0,
+    //     1.0
+    //   ];
 
-const width = 20000;
-const height = 10000;
+    //   const width = 233;
+    //   const height = 170;
 
-// Calculate extent centered on Maastricht
-// Format: [left, bottom, right, top]
-const extent = [
-  centerX - (width / 2),  // left
-  centerY - (height / 2),  // bottom
-  centerX + (width / 2),  // right
-  centerY + (height / 2)   // top
-];
+      // Calculate the center in geographic coordinates (longitude, latitude)
+      // const centerLon = transform[2] + (width * transform[0]) / 2;
+      // const centerLat = transform[5] + (height * transform[4]) / 2;  // transform[4] is negative, so this subtracts
 
-const rasterImage = new ol.source.ImageStatic({
-  url: canvas.toDataURL(),
-  imageExtent: extent, // 2km x 2km
-});
+      const centerLon = transform[2] + (width * transform[0]) / 2;
+      const centerLat = transform[5] + (height * transform[4]) / 2;
 
-/* =====================================================
-   4. TRUE RASTER SOURCE (THE IMPORTANT PART)
-===================================================== */
+      const centerProjected = ol.proj.fromLonLat([centerLon, centerLat]);
+      // Alternative calculation (more explicit):
+      // const centerLon = transform[2] + (width / 2) * transform[0];
+      // const centerLat = transform[5] + (height / 2) * transform[4];  // since transform[4] is negative, center is lower than top-left
 
-const raster = new ol.source.Raster({
-  sources: [inputImage],
+      // Convert to projected coordinates for OpenLayers
+      const center = ol.proj.fromLonLat([centerLon, centerLat]);
 
-  operation: function(pixels) {
+      // Calculate the full extent in geographic coordinates
+      const extentGeo = [
+        transform[2],                          // left (min x)
+        transform[5] + height * transform[4],   // bottom (min y) - since transform[4] is negative
+        transform[2] + width * transform[0],    // right (max x)
+        transform[5]                             // top (max y)
+      ];
 
-    const pixel = pixels[0];
+      // If you need the extent in projected coordinates (for ImageStatic source)
+      const extentProjected = ol.proj.transformExtent(extentGeo, 'EPSG:4326', 'EPSG:3857');
 
-    // value stored in red channel
-    const v = pixel[0];
+      const pixelWidthDeg = transform[0];  // 0.00833 degrees
+      const pixelHeightDeg = Math.abs(transform[4]);  // 0.00833 degrees
 
-    // recolor pixel
-    // return [255,0,0,255];
-    const singe_color = [255,0,0,100];
-    // if (v === 1) return [255,0,0,255];
-    // if (v === 2) return [0,255,0,255];
-    // if (v === 3) return [0,0,255,255];
-    // if (v === 4) return [255,255,0,255];
-    if (v === 1) return singe_color;
-    if (v === 2) return singe_color;
-    if (v === 3) return singe_color;
-    if (v === 4) return singe_color;
+      // Convert degrees to kilometers
+      // 1 degree latitude ≈ 111 km (constant)
+      // 1 degree longitude ≈ 111 km * cos(latitude) at the center
 
-    return [0,0,0,0];
-  }
-});
+      const centerLatRad = centerLat * Math.PI / 180;
+      const kmPerDegreeLat = 111.32;  // Approximately constant
+      const kmPerDegreeLon = 111.32 * Math.cos(centerLatRad);
+      const pixelWidthKm = pixelWidthDeg * kmPerDegreeLon;
+      const pixelHeightKm = pixelHeightDeg * kmPerDegreeLat;
 
-/* =====================================================
-   5. MAP
-===================================================== */
+      // Now you can use these values:
+      console.log('Center (lon,lat):', [centerLon, centerLat]);
+      console.log('Center (projected):', center);
+      console.log('Extent (geo):', extentGeo);
+      console.log('Pixel width in km:', pixelWidthKm);
+      console.log('Pixel height in km:', pixelHeightKm);
+      console.log('Extent (projected):', extentProjected);
 
-// center near Maastricht
 
-const map = new ol.Map({
-  target: 'map',
-  layers: [
+      const rasterImage = new ol.source.ImageStatic({
+        url: canvas.toDataURL(),
+        imageExtent: extentProjected, // 2km x 2km
+      });
 
-    new ol.layer.Tile({
-      source: new ol.source.OSM()
-    }),
+      /* =====================================================
+        4. TRUE RASTER SOURCE (THE IMPORTANT PART)
+      ===================================================== */
 
-    new ol.layer.Image({
-      source: raster
-    })
+      const raster = new ol.source.Raster({
+        sources: [rasterImage],
 
-  ],
-  view: new ol.View({
-    constrainResolution: true,
-    center: center,
-    zoom: 14
-  })
-});
+        operation: function(pixels) {
 
+            const pixel = pixels[0];
+
+            // value stored in red channel
+            const v = pixel[0];
+
+            // Define color thresholds (you can adjust these later)
+            if (v >= 0.95) {
+              return [255, 0, 0, 200];        // High - Red
+            } else if (v >= 0.8) {
+              return [255, 69, 0, 200];       // Medium-High - Red-Orange
+            } else if (v >= 0.6) {
+              return [255, 165, 0, 200];      // Medium - Orange
+            } else if (v >= 0.4) {
+              return [255, 255, 0, 200];      // Medium-Low - Yellow
+            } else if (v >= 0.2) {
+              return [173, 255, 47, 200];     // Low - Yellow-Green
+            } else if (v > 0) {
+              return [0, 255, 0, 200];        // Very Low - Green
+            }
+            return [0, 0, 0, 0];            // No data / zero - transparent
+        }
+      });
+
+      /* =====================================================
+        5. MAP
+      ===================================================== */
+
+      // center near Maastricht
+
+      const map = new ol.Map({
+        target: 'map',
+        layers: [
+
+          new ol.layer.Tile({
+            source: new ol.source.OSM()
+          }),
+
+          new ol.layer.Image({
+            source: raster
+          })
+
+        ],
+        view: new ol.View({
+          constrainResolution: true,
+          center: center,
+          zoom: 14
+        })
+      });
+
+  }).catch(error => {
+    console.error('Error loading raster JSON:', error);
+    // Display error message on the page
+    document.body.innerHTML += '<div style="color: red; padding: 20px;">Error loading raster.json. Make sure the file exists in the same directory as index.html</div>';
+  });
 </script>
 
 </body>

@@ -6,10 +6,13 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 import rasterio as rio
+from rasterio.transform import from_origin
+from rasterio.io import MemoryFile
 from rasterio.enums import Resampling
 from rasterio.mask import mask
 from scipy.interpolate import griddata
 from scipy import ndimage
+from shapely import wkt
 
 from sklearn.model_selection import StratifiedKFold, RandomizedSearchCV, train_test_split
 from sklearn.metrics import roc_auc_score, roc_curve, accuracy_score
@@ -1187,7 +1190,10 @@ class SpeciesHabitatSuitabilityUtils():
         prob_raster = probs_all.reshape(H, W)
 
         prob_meta = meta.copy()
-        prob_meta.update(count=1, dtype="float32", nodata=np.nan, compress="DEFLATE", predictor=3)
+        prob_meta.update(count=1, dtype="float32", nodata=-1, compress="DEFLATE", predictor=3)
+        if self.config.WKT_POLYGON != "":
+            prob_raster = self.apply_geometry_mask_to_raster(prob_raster, prob_meta)
+            prob_meta['nodata'] = -1
         prob_json_output = self.export_meta_and_raster_to_json_dict(prob_raster, prob_meta)
         return prob_json_output
 
@@ -1297,3 +1303,52 @@ class SpeciesHabitatSuitabilityUtils():
         )
         prob_meta = prob_json_output.pop('meta', {})
         return prob_json_output, prob_meta
+
+
+    def load_poligon_gdf(self, wkt_polygon):
+        geometry = wkt.loads(wkt_polygon)
+        polygon_gdf = gpd.GeoDataFrame({'geometry': [geometry]}, crs='EPSG:4326')
+        return polygon_gdf
+
+    def apply_geometry_mask_to_raster(self, raster_array, raster_meta):
+        polygon_gdf = self.load_poligon_gdf(self.config.WKT_POLYGON)
+
+
+        # Create transform object for rasterio
+        transform = from_origin(
+            raster_meta['transform'][2],  # top-left x
+            raster_meta['transform'][5],  # top-left y
+            raster_meta['transform'][0],  # pixel width
+            abs(raster_meta['transform'][4])  # pixel height (make positive)
+        )
+        raster_meta['nodata'] = -1
+        # Create in-memory dataset and mask
+        with MemoryFile() as memfile:
+            with memfile.open(
+                driver='GTiff',
+                height=raster_meta['height'],
+                width=raster_meta['width'],
+                count=1,
+                dtype=raster_array.dtype,
+                crs=raster_meta['crs'],
+                transform=transform
+            ) as dataset:
+
+                # Write data
+                dataset.write(raster_array, 1)
+
+                # Ensure polygon is in same CRS as raster
+                if polygon_gdf.crs != dataset.crs:
+                    polygon_gdf = polygon_gdf.to_crs(dataset.crs)
+
+                # Apply mask
+                geoms = [mapping(polygon_gdf.geometry.values[0])]
+                out_image, out_transform = mask(
+                    dataset,
+                    geoms,
+                    crop=False,
+                    filled=True,
+                    invert=False,
+                    nodata=-1  # Temporary mask value outside 0-1 range
+                )
+                return out_image
