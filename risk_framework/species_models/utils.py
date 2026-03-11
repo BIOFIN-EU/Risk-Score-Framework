@@ -1351,4 +1351,4 @@ class SpeciesHabitatSuitabilityUtils():
                     invert=False,
                     nodata=-1  # Temporary mask value outside 0-1 range
                 )
-                return out_image
+                return out_image[0]

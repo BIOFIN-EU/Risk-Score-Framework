@@ -1,7 +1,10 @@
 import uuid
 from typing import Optional
 
-from risk_framework.conf import SessionLocal
+from shapely.geometry import shape
+import requests
+
+from risk_framework.conf import SessionLocal, NOMINATIM_API
 
 
 def get_db():
@@ -28,3 +31,20 @@ def generate_geo_uuid(species_name: str, country_code: str, wkt_polygon: Optiona
     cache_uuid = str(uuid.uuid5(namespace, input_string))
 
     return cache_uuid
+
+
+def get_country_wkt(country_code):
+    params = {
+        'country': country_code,
+        'countrycodes': country_code,
+        'format': 'json',
+        'polygon_geojson': 1,
+        'limit': 1,
+        'featuretype': 'country'
+    }
+    headers = {'User-Agent': 'MyApp/1.0'}
+
+    response = requests.get(NOMINATIM_API, params=params, headers=headers)
+    data = response.json()[0]
+    geometry = shape(data['geojson'])
+    return geometry.wkt

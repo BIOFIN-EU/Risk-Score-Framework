@@ -20,7 +20,8 @@ from risk_framework.web_api.schemas import (
 )
 from risk_framework.web_api.utils import (
     get_db,
-    generate_geo_uuid
+    generate_geo_uuid,
+    get_country_wkt
 )
 from risk_framework.species_models.base import SpeciesHabitatSuitabilityModel
 
@@ -68,16 +69,21 @@ def create_hsi_and_raster_records(geo_id, all_results, scenario, period, wkt_pol
     return new_record
 
 
-def run_and_create_new_hsi_records(geo_id, species_name, country_code, wkt_poligon, db):
+def run_and_create_new_hsi_records(geo_id, species_name, country_code, wkt_polygon, db):
+    country_code = country_code.upper()
+    if wkt_polygon == "" or wkt_polygon is None:
+        wkt_polygon = get_country_wkt(country_code)
+
     run_extra_confs = {
         'SPECIES_SCIENTIFIC_NAME': species_name,
-        'COUNTRY_CODE': country_code.upper()
+        'COUNTRY_CODE': country_code,
+        'WKT_POLYGON': wkt_polygon,
     }
-    if wkt_poligon:
-        run_extra_confs['WKT_POLIGON'] = wkt_poligon
+
     hsi_model = SpeciesHabitatSuitabilityModel(run_extra_confs)
 
     all_results = hsi_model.run(run_extra_confs)
+    all_results['meta']['nodata'] = -1
 
     # Extract first scenario and period
     scenarios_records = {}
@@ -90,7 +96,7 @@ def run_and_create_new_hsi_records(geo_id, species_name, country_code, wkt_polig
             raster_summary = result['summary_stats']
             raster_summary = result['summary_stats']
             scenario_record = create_hsi_and_raster_records(
-                geo_id, all_results, scenario, period, wkt_poligon, raster_values, raster_summary, all_results['meta'], db)
+                geo_id, all_results, scenario, period, wkt_polygon, raster_values, raster_summary, all_results['meta'], db)
             scenarios_records[scenario]['periods'][period] = scenario_record
     return {'scenarios': scenarios_records}
 
@@ -137,27 +143,26 @@ async def predict_future_species_habitat_suitability_index(request: FutureSpecie
     Returns:
     - JSON dictionary containing the species habitat suitability index results
     """
-    try:
-        geo_id = generate_geo_uuid(
-            request.species_name,
-            request.country_code,
-            request.wkt_poligon
-        )
-        query = db.query(SpeciesHabitatSuitabilityIndexDB).options(
-            joinedload(SpeciesHabitatSuitabilityIndexDB.value_raster)
-        )
-        query = query.filter(
-            SpeciesHabitatSuitabilityIndexDB.geo_id == geo_id,
-            SpeciesHabitatSuitabilityIndexDB.climate_scenario == request.climate_scenario,
-            SpeciesHabitatSuitabilityIndexDB.climate_model == str([request.climate_model]),
-            SpeciesHabitatSuitabilityIndexDB.period == request.period,
-        )
+    geo_id = generate_geo_uuid(
+        request.species_name,
+        request.country_code,
+        request.wkt_poligon
+    )
+    query = db.query(SpeciesHabitatSuitabilityIndexDB).options(
+        joinedload(SpeciesHabitatSuitabilityIndexDB.value_raster)
+    )
+    query = query.filter(
+        SpeciesHabitatSuitabilityIndexDB.geo_id == geo_id,
+        SpeciesHabitatSuitabilityIndexDB.climate_scenario == request.climate_scenario,
+        SpeciesHabitatSuitabilityIndexDB.climate_model == str([request.climate_model]),
+        SpeciesHabitatSuitabilityIndexDB.period == request.period,
+    )
 
-        existing_hsi_record = query.first()
-        return retrieve_or_calculate_hsi(request, geo_id, request.climate_scenario, request.period, existing_hsi_record, db)
+    existing_hsi_record = query.first()
+    return retrieve_or_calculate_hsi(request, geo_id, request.climate_scenario, request.period, existing_hsi_record, db)
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+# except Exception as e:
+    #     raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
 @hsi_router.post("/calculate-current-habitat-suitability/", response_model=SpeciesHabitatSuitabilityIndexResponse)

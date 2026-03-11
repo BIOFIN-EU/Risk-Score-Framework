@@ -36,6 +36,9 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 DeclarativeBaseModel = declarative_base()
 
 
+NOMINATIM_API = "https://nominatim.openstreetmap.org/search"
+
+
 
 class SpeciesHabitatSuitabilityConfig():
     def __init__(self, **kwargs):
