@@ -1343,7 +1343,7 @@ class SpeciesHabitatSuitabilityUtils():
 
                 # Apply mask
                 geoms = [mapping(polygon_gdf.geometry.values[0])]
-                out_image, out_transform = mask(
+                mask_array, out_transform = mask(
                     dataset,
                     geoms,
                     crop=False,
@@ -1351,4 +1351,19 @@ class SpeciesHabitatSuitabilityUtils():
                     invert=False,
                     nodata=-1  # Temporary mask value outside 0-1 range
                 )
-                return out_image[0]
+                masked_raster = np.where(mask_array[0] == 1, raster_array, -1)# Check pixels that are NOT -1 in masked_result
+                masked_result = mask_array[0]
+                valid_pixels = masked_result != -1
+
+                # Compare original vs masked where mask has valid values
+                if np.any(valid_pixels):
+                    are_equal = np.allclose(raster_array[valid_pixels], masked_result[valid_pixels])
+                    print(f"Original and masked values match inside polygon: {are_equal}")
+
+                    if not are_equal:
+                        diff = np.abs(raster_array[valid_pixels] - masked_result[valid_pixels])
+                        print(f"Max difference: {np.max(diff)}")
+                        print(f"Mean difference: {np.mean(diff)}")
+                else:
+                    print("No valid pixels found inside polygon")
+                return mask_array[0]

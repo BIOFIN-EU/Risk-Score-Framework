@@ -14,7 +14,7 @@ class FutureSpeciesHabitatSuitabilityIndexRequest(BaseModel):
     climate_scenario: str
     climate_model: str
     period: str
-    wkt_poligon: Optional[str] = None  # Optional
+    wkt_polygon: Optional[str] = None  # Optional
     class Config:
         schema_extra = {
             "example": {
@@ -23,20 +23,20 @@ class FutureSpeciesHabitatSuitabilityIndexRequest(BaseModel):
                 "climate_scenario": "ssp245",
                 "climate_model": "EC-Earth3-Veg",
                 "period": "2021-2040",
-                "wkt_poligon": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))"
+                "wkt_polygon": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))"
             }
         }
 
 class CurrentSpeciesHabitatSuitabilityIndexRequest(BaseModel):
     species_name: str
     country_code: str
-    wkt_poligon: Optional[str] = None  # Optional
+    wkt_polygon: Optional[str] = None  # Optional
     class Config:
         schema_extra = {
             "example": {
                 "species_name": "Lullula arborea",
                 "country_code": "LU",
-                "wkt_poligon": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))"
+                "wkt_polygon": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))"
             }
         }
 

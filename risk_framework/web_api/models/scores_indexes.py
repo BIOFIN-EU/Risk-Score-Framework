@@ -34,3 +34,4 @@ class SpeciesHabitatSuitabilityIndexDB(DeclarativeBaseModel):
     # Relationships
     value_raster = relationship("RasterData", foreign_keys=[value_raster_id])
     # explainability_raster = relationship("RasterData", foreign_keys=[explainability_raster_id])
+
