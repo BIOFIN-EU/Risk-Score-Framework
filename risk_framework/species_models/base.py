@@ -178,7 +178,7 @@ class SpeciesHabitatSuitabilityModel():
     def calculate_current_species_suitability(self):
         print("calculate_current_species_suitability")
         # import json
-        ret_json, meta = self.ssi_utils.calculate_current_species_suitability(
+        ret_json = self.ssi_utils.calculate_current_species_suitability(
             data_dir=self.config.DATA_DIR,
             species_safe=self.config.SPECIES_SAFE
         )

@@ -1251,7 +1251,6 @@ class SpeciesHabitatSuitabilityUtils():
             'species': species_safe,
             'country': self.config.COUNTRY_CODE,
             'scenarios': {},
-            'meta': {},
             'climate_models': [self.config.SCENARIO_MODEL,]
             # 'region' wkt?
         }
@@ -1276,9 +1275,9 @@ class SpeciesHabitatSuitabilityUtils():
                     W=W,
                     meta=meta
                 )
-                prob_meta = prob_json_output.pop('meta', {})
+                # prob_meta = prob_json_output.pop('meta', {})
                 ret_dict['scenarios'][ssp]['periods'][period] = prob_json_output
-                ret_dict['meta'] = prob_meta
+                # ret_dict['meta'] = prob_meta
         return ret_dict
 
     def calculate_current_species_suitability(self, data_dir, species_safe):
@@ -1301,8 +1300,8 @@ class SpeciesHabitatSuitabilityUtils():
             W=W,
             meta=meta
         )
-        prob_meta = prob_json_output.pop('meta', {})
-        return prob_json_output, prob_meta
+        # prob_meta = prob_json_output.pop('meta', {})
+        return prob_json_output
 
 
     def load_poligon_gdf(self, wkt_polygon):

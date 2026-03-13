@@ -65,6 +65,7 @@ class SRIBaseModel(object):
         Align all rasters to the reference raster shape and bounds
         """
         reference_meta = species_metas[0]
+        reference_raster = species_rasters[0]
         h = reference_meta['height']
         w = reference_meta['width']
         aligned_rasters = []
@@ -76,10 +77,10 @@ class SRIBaseModel(object):
             reference_meta['transform'][0],
             abs(reference_meta['transform'][4])
         )
-        aligned_rasters.append(species_rasters[0])
+        aligned_rasters.append(reference_raster)
         for raster, meta in zip(species_rasters[1:], species_metas[1:]):
             # Create destination array with reference shape
-            dest = np.full((h, w), -1, dtype=np.float32)
+            dest = np.full((h, w), -1, dtype=reference_raster.dtype)
 
             # Create source transform
             src_transform = from_origin(
@@ -101,7 +102,8 @@ class SRIBaseModel(object):
                 dst_nodata=-1,  # <-- ADD THIS
                 resampling=Resampling.bilinear
             )
-
+            # Replace negative areas with reference raster values
+            dest[dest < 0] = reference_raster[dest < 0]
             aligned_rasters.append(dest)
 
         return aligned_rasters
@@ -115,25 +117,24 @@ class SRIBaseModel(object):
         list_of_species_hsi = []
         list_of_species_meta = []
         for species_name in self.species_list:
-            import ipdb; ipdb.set_trace()
             species_hsi, meta = self.get_hsi_and_meta_for_one_species(species_name, climate_scenario, climate_model, period)
             list_of_species_hsi.append(species_hsi)
             list_of_species_meta.append(meta)
 
         default_meta = list_of_species_meta[0]
-        # list_of_species_hsi_aligned = self.align_rasters(list_of_species_hsi, list_of_species_meta)
+        list_of_species_hsi_aligned = self.align_rasters(list_of_species_hsi, list_of_species_meta)
 
-        # sri_raster = self.species_hsi_aggregation_method(list_of_species_hsi)
-        sri_raster = list_of_species_hsi[0].tolist()
+        sri_raster = self.species_hsi_aggregation_method(list_of_species_hsi_aligned)
+        # sri_raster = list_of_species_hsi[1].tolist()
         return {
             "species_list": self.species_list,
             "country": self.country_code,
             "scenario": climate_scenario,
             "period": period,
             "raster_data": {
-                "raster": sri_raster
+                "raster": sri_raster,
+                "meta": default_meta
             },
-            'meta': default_meta,
             'logic_type': None,
             'correction_method': None,
         }
@@ -166,7 +167,7 @@ if __name__ == '__main__':
     result = fsri.run(climate_scenario='ssp245', climate_model='EC-Earth3-Veg', period='2021-2040')
 
 
-    meta = result['meta']
+    meta = result['raster_data']['meta']
     dtype = meta['dtype']
     # predictor = meta['predictor']
     compress = meta['compress']
@@ -183,7 +184,7 @@ if __name__ == '__main__':
     # )
     # # Save as GeoTIFF - rasterio handles the transform directly
     with rasterio.open(
-        'probability_raster_fsri.tif',
+        'probability_raster_fsriall.tif',
         'w',
         driver='GTiff',
         height=raster.shape[0],

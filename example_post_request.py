@@ -31,11 +31,13 @@ POLYGON((6.221110073743708 49.78007047228277,6.203365196590148 49.73459984424554
 
 # Prepare the data
 data = {
-    "species_name": "Lullula arborea",
+    # "species_name": "Lullula arborea",
     # "species_name": "Accipiter nisus",
+    "species_name": "Aegithalos caudatus",
+
     # "species_name": "Streptopelia turtur",
-    "country_code": "LU",
-    # "country_code": "NL",
+    # "country_code": "LU",
+    "country_code": "NL",
     "climate_scenario": "ssp245",
     # "climate_scenario": "ssp585",
     "climate_model": "EC-Earth3-Veg",
