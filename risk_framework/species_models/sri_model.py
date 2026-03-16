@@ -19,12 +19,17 @@ url = "http://localhost:8000/api/v1/predict-future-habitat-suitability/"
 
 
 class SRIBaseModel(object):
-    def __init__(self, country_code, wkt_polygon, db):
+    def __init__(self, correction_method, country_code, wkt_polygon, db, species_list=None):
+        self.correction_method = correction_method
         self.country_code = country_code
         self.wkt_polygon = wkt_polygon
         if wkt_polygon is None or wkt_polygon == "":
             self.wkt_polygon = get_country_wkt(country_code)
-        self.species_list = self.get_species_list()
+
+        if species_list is None:
+            self.species_list = self.get_species_list()
+        else:
+            self.species_list = species_list
         self.geo_id = generate_geo_uuid(
             self.species_list, self.country_code, self.wkt_polygon
         )
@@ -108,6 +113,11 @@ class SRIBaseModel(object):
 
         return aligned_rasters
 
+
+    def apply_correction_method(self, sri_raster):
+        if self.correction_method is None:
+            return sri_raster
+
     def run(self, climate_scenario, climate_model, period):
         # if current prediction
         if climate_scenario is None:
@@ -124,19 +134,27 @@ class SRIBaseModel(object):
         default_meta = list_of_species_meta[0]
         list_of_species_hsi_aligned = self.align_rasters(list_of_species_hsi, list_of_species_meta)
 
-        sri_raster = self.species_hsi_aggregation_method(list_of_species_hsi_aligned)
-        # sri_raster = list_of_species_hsi[1].tolist()
+        non_corrected_sri_raster = self.species_hsi_aggregation_method(list_of_species_hsi_aligned)
+
+        sri_raster = self.apply_correction_method(non_corrected_sri_raster)
+
         return {
             "species_list": self.species_list,
-            "country": self.country_code,
-            "scenario": climate_scenario,
+            "country_code": self.country_code,
+            "wkt_polygon": self.wkt_polygon,
+            "climate_scenario": climate_scenario,
+            "climate_models": [climate_model],
             "period": period,
             "raster_data": {
                 "raster": sri_raster,
-                "meta": default_meta
+                "meta": default_meta,
+                'summary_stats': {
+                    'mean_species_richness_index': float(np.mean(sri_raster)),
+                    'std_species_richness_index': float(np.std(sri_raster))
+                },
             },
             'logic_type': None,
-            'correction_method': None,
+            'correction_method': self.correction_method,
         }
 
 

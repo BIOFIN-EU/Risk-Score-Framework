@@ -19,7 +19,8 @@ from risk_framework.web_api.utils import (
 )
 from risk_framework.species_models.base import SpeciesHabitatSuitabilityModel
 from risk_framework.web_api.models.operations import (
-    retrieve_or_calculate_hsi_future_or_current
+    retrieve_or_calculate_hsi_future_or_current,
+    retrieve_or_calculate_sri_future_or_current,
 )
 
 
@@ -74,3 +75,50 @@ async def calculate_current_species_habitat_suitability_index(request: CurrentSp
         request.wkt_polygon
     )
     return retrieve_or_calculate_hsi_future_or_current(request.species_name, request.country_code, request.wkt_polygon, geo_id, climate_scenario, climate_model, period, db, future=False)
+
+
+
+
+sri_router = APIRouter()
+
+
+@sri_router.post("/calculate-current-species-richness-index/", response_model=SpeciesRichnessIndexResponse)
+async def calculate_current_species_richness_index(request: CurrentSpeciesRichnessIndexRequest, db: Session = Depends(get_db)):
+    """
+    Calculate current Species Richness Index for a given country and optional area polygon.
+
+    Args:
+        request: CurrentSpeciesRichnessIndexRequest containing:
+            - country_code: ISO 3166-1 alpha-2 country code (e.g., 'BR', 'US')
+            - wkt_polygon: Optional WKT (Well-Known Text) polygon string to restrict calculation area
+            - logic_type: 'fuzzy' or 'crisp' - determines calculation methodology
+            - correction_method: Optional correction method to apply. Currently only supports None, or HFI
+            - override_species_list: Optional custom species list to use instead of defaults
+
+    Returns:
+    - JSON dictionary containing the Species Richness Index result
+    """
+    climate_scenario = 'current'
+    period = climate_scenario
+    climate_model = None
+    logic_type = request.logic_type
+    correction_method = request.correction_method
+    geo_id = generate_geo_uuid(
+        [''],
+        request.country_code,
+        request.wkt_polygon
+    )
+
+    return retrieve_or_calculate_sri_future_or_current(
+        request.override_species_list,
+        request.country_code,
+        request.wkt_polygon,
+        geo_id,
+        climate_scenario,
+        climate_model,
+        period,
+        logic_type,
+        correction_method,
+        db,
+        future=False
+    )
