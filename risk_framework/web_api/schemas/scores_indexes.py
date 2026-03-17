@@ -1,11 +1,11 @@
 from pydantic import BaseModel
 from uuid import UUID
-from typing import Dict, Any, Optional
-from decimal import Decimal
+from typing import Optional
 
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
-from datetime import datetime
+from typing import Optional
+
+from risk_framework.web_api.schemas.rasters import RasterDataResponse
 
 
 class BaseScoreIndexRequest(BaseModel):
@@ -18,6 +18,7 @@ class BaseScoreIndexRequest(BaseModel):
                 "wkt_polygon": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))"
             }
         }
+
 class BaseFutureScoreIndexRequest(BaseScoreIndexRequest):
     climate_scenario: str = Field(..., description="The climate scenario (e.g., ssp245)")
     climate_model: str = Field(..., description="The climate model used in calculations (e.g., EC-Earth3-Veg)")
@@ -32,107 +33,10 @@ class BaseFutureScoreIndexRequest(BaseScoreIndexRequest):
         })
 
 
-class FutureSpeciesHabitatSuitabilityIndexRequest(BaseModel):
-    species_name: str
-    country_code: str
-    climate_scenario: str
-    climate_model: str
-    period: str
-    wkt_polygon: Optional[str] = None  # Optional
-    class Config:
-        schema_extra = {
-            "example": {
-                "species_name": "Lullula arborea",
-                "country_code": "LU",
-                "climate_scenario": "ssp245",
-                "climate_model": "EC-Earth3-Veg",
-                "period": "2021-2040",
-                "wkt_polygon": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))"
-            }
-        }
-
-class CurrentSpeciesHabitatSuitabilityIndexRequest(BaseModel):
-    species_name: str
-    country_code: str
-    wkt_polygon: Optional[str] = None  # Optional
-    class Config:
-        schema_extra = {
-            "example": {
-                "species_name": "Lullula arborea",
-                "country_code": "LU",
-                "wkt_polygon": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))"
-            }
-        }
-
-
-class CurrentSpeciesRichnessIndexRequest(BaseModel):
-    species_name: str
-    country_code: str
-    wkt_polygon: Optional[str] = None  # Optional
-    class Config:
-        schema_extra = {
-            "example": {
-                "species_name": "Lullula arborea",
-                "country_code": "LU",
-                "wkt_polygon": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))"
-            }
-        }
-
-
-
-
-
-class RasterSummaryStats(BaseModel):
-    """Summary statistics for the raster data"""
-    mean_habitat_suitability: float
-    std_habitat_suitability: float
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "mean_habitat_suitability": 0.45,
-                "std_habitat_suitability": 0.12
-            }
-        }
-
-class RasterDataResponse(BaseModel):
-    """Raster data as a 2D list of floats"""
-    raster: List[List[float]] = Field(..., description="2D array of raster values")
-    summary_stats: RasterSummaryStats
-    meta: Dict[str, Any] = Field(..., description="Raster metadata")
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "raster": [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]],
-                "summary_stats": {
-                    "mean_raster_value": 0.35,
-                    "std_raster_value": 0.18,
-                    "meta": {
-                        "driver": "GTiff",
-                        "dtype": "float32",
-                        "width": 233,
-                        "height": 170,
-                        "crs": "GEOGCS[\"WGS 84\",...]"
-                    }
-                }
-            }
-        }
-
-class PeriodData(BaseModel):
-    """Data for a specific time period"""
-    raster_data: RasterDataResponse
-
-class ScenarioData(BaseModel):
-    """Data for a specific scenario"""
-    periods: Dict[str, PeriodData]
-
-
-
 class BaseRasterScoreIndexResponse(BaseModel):
     country_code: str
     wkt_polygon: str
-    scenario: str = Field(..., description="The climate scenario (e.g., ssp245)")
+    climate_scenario: str = Field(..., description="The climate scenario (e.g., ssp245)")
     climate_model: str = Field(..., description="The climate model used in calculations (e.g., EC-Earth3-Veg)")
     period: str = Field(..., description="The time period (e.g., 2021-2040)")
     raster_data: RasterDataResponse
@@ -140,13 +44,32 @@ class BaseRasterScoreIndexResponse(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "country": "LU",
+                "country_code": "LU",
+                "wkt_polygon": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))",
                 "climate_model": "EC-Earth3-Veg",
-                "scenario": "ssp245",
+                "climate_scenario": "ssp245",
                 "period": "2021-2040",
                 "raster_data": RasterDataResponse.Config.schema_extra['example']
             }
         }
+
+
+class CurrentSpeciesHabitatSuitabilityIndexRequest(BaseScoreIndexRequest):
+    species: str
+    class Config(BaseScoreIndexRequest.Config):
+        schema_extra = BaseScoreIndexRequest.Config.schema_extra.copy()
+        schema_extra['example'].update({
+            "species": "Lullula arborea",
+        })
+
+
+class FutureSpeciesHabitatSuitabilityIndexRequest(BaseFutureScoreIndexRequest):
+    species: str
+    class Config(BaseFutureScoreIndexRequest.Config):
+        schema_extra = BaseFutureScoreIndexRequest.Config.schema_extra.copy()
+        schema_extra['example'].update({
+            "species": "Lullula arborea",
+        })
 
 
 
@@ -162,14 +85,66 @@ class SpeciesHabitatSuitabilityIndexResponse(BaseRasterScoreIndexResponse):
         })
 
 
+class CurrentSpeciesRichnessIndexRequest(BaseScoreIndexRequest):
+    override_species_list: Optional[str] = Field(
+        None,
+        description="Comma-separated list of Indicator Species to be used during calculation instead of the default ones (e.g., 'Anthus trivialis,Columba palumbus')"
+    )
+    logic_type: str = Field(
+        ...,
+        description="The type of logic used for the calculation (i.e., 'fuzzy' or 'crisp')"
+    )
+    correction_method: Optional[str] = Field(
+        None,
+        description="The type of correction method used. Options are HFI or null"
+    )
+
+    class Config(BaseFutureScoreIndexRequest.Config):
+        schema_extra = BaseFutureScoreIndexRequest.Config.schema_extra.copy()
+        schema_extra['example'].update({
+            "override_species_list": "Anthus trivialis,Columba palumbus",
+            "logic_type": "fuzzy",
+            "correction_method": "HFI",
+        })
+
+class FutureSpeciesRichnessIndexRequest(BaseFutureScoreIndexRequest):
+    override_species_list: Optional[str] = Field(
+        None,
+        description="Comma-separated list of Indicator Species to be used during calculation instead of the default ones (e.g., 'Anthus trivialis,Columba palumbus')"
+    )
+    logic_type: str = Field(
+        ...,
+        description="The type of logic used for the calculation (i.e., 'fuzzy' or 'crisp')"
+    )
+    correction_method: Optional[str] = Field(
+        None,
+        description="The type of correction method used. Options are HFI or null"
+    )
+
+    class Config(BaseFutureScoreIndexRequest.Config):
+        schema_extra = BaseFutureScoreIndexRequest.Config.schema_extra.copy()
+        schema_extra['example'].update({
+            "override_species_list": "Anthus trivialis,Columba palumbus",
+            "logic_type": "fuzzy",
+            "correction_method": "HFI",
+        })
+
 class SpeciesRichnessIndexResponse(BaseRasterScoreIndexResponse):
     """Main response schema for SpeciesRichnessIndexResponse:
     """
     species_list: str = Field(..., description="Comma-separated list of Indicator Species used during calculation (e.g., 'Anthus trivialis,Columba palumbus')")
-
+    logic_type: str = Field(
+        ...,
+        description="The type of logic used for the calculation (i.e., 'fuzzy' or 'crisp')"
+    )
+    correction_method: Optional[str] = Field(
+        None,
+        description="The type of correction method used. (i.e., 'HFI' or null)"
+    )
     class Config(BaseRasterScoreIndexResponse.Config):
         schema_extra = BaseRasterScoreIndexResponse.Config.schema_extra.copy()
         schema_extra['example'].update({
-            "species_list": 'Anthus trivialis,Columba palumbus',
+            "species_list": "Anthus trivialis,Columba palumbus",
+            "logic_type": "fuzzy",
+            "correction_method": "HFI",
         })
-

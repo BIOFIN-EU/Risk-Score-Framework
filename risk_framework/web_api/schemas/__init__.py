@@ -1,2 +1,2 @@
-from .rasters import RasterData
+from .rasters import *
 from .scores_indexes import *

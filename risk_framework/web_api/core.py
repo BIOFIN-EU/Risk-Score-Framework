@@ -8,8 +8,6 @@ from fastapi.routing import APIRoute
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from risk_framework.conf import engine, SessionLocal, DeclarativeBaseModel
-from risk_framework.web_api.models.scores_indexes import SpeciesHabitatSuitabilityIndexDB
-from risk_framework.web_api.models.rasters import RasterData
 from risk_framework.web_api.routes import hsi_router
 
 logger = logging.getLogger(__name__)

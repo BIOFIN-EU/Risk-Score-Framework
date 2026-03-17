@@ -6,7 +6,7 @@ from sqlalchemy.orm import joinedload
 from risk_framework.web_api.models import (
     SpeciesHabitatSuitabilityIndexDB,
     SpeciesRichnessIndexDB,
-    RasterData,
+    RasterDataDB,
 )
 from risk_framework.web_api.schemas import (
     SpeciesHabitatSuitabilityIndexResponse,
@@ -72,18 +72,22 @@ def retrieve_or_calculate_sri(species_list, country_code, wkt_polygon, geo_id, c
 
     return SpeciesRichnessIndexResponse(
         id=existing_record.id,
-        species=existing_record.species,
-        country=existing_record.country_code,
+        species_list=existing_record.species_list,
+        country_code=existing_record.country_code,
+        wkt_polygon=existing_record.wkt_polygon,
         scenario=existing_record.climate_scenario,
+        climate_model=existing_record.climate_scenario,
         period=existing_record.period,
+        correction_method=existing_record.correction_method,
+        logic_type=existing_record.logic_type,
         raster_data=RasterDataResponse(
             raster=existing_raster_value,
             summary_stats=RasterSummaryStats(
-                mean_habitat_suitability=float(existing_record.mean_value),
-                std_habitat_suitability=float(existing_record.mean_std)
-            )
-        ),
-        meta=existing_record.value_raster.raster_meta
+                mean_habitat_suitability=float(existing_record.value_raster.mean_value),
+                std_habitat_suitability=float(existing_record.value_raster.mean_std)
+            ),
+            meta=existing_record.value_raster.raster_meta
+        )
     )
 
 def run_and_create_new_sri_record(species_list, geo_id, country_code, wkt_polygon, climate_scenario, climate_model, period, logic_type, correction_method, db):
@@ -91,7 +95,7 @@ def run_and_create_new_sri_record(species_list, geo_id, country_code, wkt_polygo
         wkt_polygon = get_country_wkt(country_code)
 
     if logic_type.lower() == 'fuzzy':
-        sri_model = FuzzySRIModel(correction_method, country_code, wkt_polygon=wkt_polygon, db=db)
+        sri_model = FuzzySRIModel(correction_method, country_code, wkt_polygon=wkt_polygon, db=db, species_list=species_list)
     else:
         sri_model = FuzzySRIModel(correction_method, country_code, wkt_polygon=wkt_polygon, db=db, species_list=species_list)
 
@@ -111,7 +115,6 @@ def run_and_create_new_sri_record(species_list, geo_id, country_code, wkt_polygo
     }
 
 def create_sri_and_raster_records(geo_id, result, db):
-    wkt_polygon
     species_list = ','.join(result['species_list'])
     country_code = result['country_code']
     wkt_polygon = result['wkt_polygon']
@@ -125,13 +128,15 @@ def create_sri_and_raster_records(geo_id, result, db):
     raster_values = raster_data['raster']
     raster_meta = raster_data['meta']
     raster_summary = raster_data['summary_stats']
-    mean_value = raster_summary['mean_species_richness_index']
-    mean_std = raster_summary['std_species_richness_index']
-    new_raster_data = RasterData(
+    mean_value = raster_summary['mean_raster_value']
+    mean_std = raster_summary['std_raster_value']
+    new_raster_data = RasterDataDB(
         id=str(uuid.uuid4()),
         geo_id=geo_id,
         raster_bin=pickle.dumps(raster_values),
-        raster_meta=raster_meta
+        raster_meta=raster_meta,
+        mean_value=float(mean_value),
+        mean_std=float(mean_std),
     )
 
     db.add(new_raster_data)
@@ -146,9 +151,7 @@ def create_sri_and_raster_records(geo_id, result, db):
         country_code=country_code,
         climate_scenario=climate_scenario,
         climate_model=str(climate_models),
-        period=period,
-        mean_value=float(mean_value),
-        mean_std=float(mean_std),
+        period=period
     )
 
     db.add(new_record)
@@ -169,6 +172,7 @@ def retrieve_or_calculate_hsi_future_or_current(species_name, country_code, wkt_
 
     query = query.filter(
         SpeciesHabitatSuitabilityIndexDB.geo_id == geo_id,
+        SpeciesHabitatSuitabilityIndexDB.species == species_name,
         SpeciesHabitatSuitabilityIndexDB.climate_scenario == climate_scenario,
     )
     if future:
@@ -191,20 +195,24 @@ def retrieve_or_calculate_hsi(species_name, country_code, wkt_polygon, geo_id, c
 
     existing_raster_value = pickle.loads(existing_hsi_record.value_raster.raster_bin)
 
+
+
     return SpeciesHabitatSuitabilityIndexResponse(
         id=existing_hsi_record.id,
         species=existing_hsi_record.species,
-        country=existing_hsi_record.country_code,
-        scenario=existing_hsi_record.climate_scenario,
+        country_code=existing_hsi_record.country_code,
+        wkt_polygon=existing_hsi_record.wkt_polygon,
+        climate_scenario=existing_hsi_record.climate_scenario,
+        climate_model=existing_hsi_record.climate_model,
         period=existing_hsi_record.period,
         raster_data=RasterDataResponse(
             raster=existing_raster_value,
             summary_stats=RasterSummaryStats(
-                mean_habitat_suitability=float(existing_hsi_record.mean_value),
-                std_habitat_suitability=float(existing_hsi_record.mean_std)
-            )
-        ),
-        meta=existing_hsi_record.value_raster.raster_meta
+                mean_habitat_suitability=float(existing_hsi_record.value_raster.mean_value),
+                std_habitat_suitability=float(existing_hsi_record.value_raster.mean_std)
+            ),
+            meta=existing_hsi_record.value_raster.raster_meta
+        )
     )
 
 def run_and_create_new_hsi_records(geo_id, species_name, country_code, wkt_polygon, db):
@@ -246,11 +254,13 @@ def create_hsi_and_raster_records(geo_id, all_results, scenario, period, wkt_pol
         climate_models = ''
     mean_value = raster_summary['mean_habitat_suitability']
     mean_std = raster_summary['std_habitat_suitability']
-    new_raster_data = RasterData(
+    new_raster_data = RasterDataDB(
         id=str(uuid.uuid4()),
         geo_id=geo_id,
         raster_bin=pickle.dumps(raster_values),
-        raster_meta=raster_meta
+        raster_meta=raster_meta,
+        mean_value=float(mean_value),
+        mean_std=float(mean_std)
     )
 
     db.add(new_raster_data)
@@ -265,9 +275,7 @@ def create_hsi_and_raster_records(geo_id, all_results, scenario, period, wkt_pol
         country_code=country_code,
         climate_scenario=scenario,
         climate_model=str(climate_models),  # Extract from your model results if available
-        period=period,
-        mean_value=float(mean_value),
-        mean_std=float(mean_std),
+        period=period
     )
 
     db.add(new_record)

@@ -1,24 +1,18 @@
 from sqlalchemy.orm import Session, joinedload
 from fastapi import FastAPI, HTTPException, APIRouter, Depends
 
-# from risk_framework.web_api.core import app
-from risk_framework.web_api.models import (
-    SpeciesHabitatSuitabilityIndexDB,
-    RasterData,
-)
 from risk_framework.web_api.schemas import (
     FutureSpeciesHabitatSuitabilityIndexRequest,
     CurrentSpeciesHabitatSuitabilityIndexRequest,
     SpeciesHabitatSuitabilityIndexResponse,
-    RasterDataResponse,
-    RasterSummaryStats,
+    CurrentSpeciesRichnessIndexRequest,
+    SpeciesRichnessIndexResponse,
 )
 from risk_framework.web_api.utils import (
     get_db,
     generate_geo_uuid,
 )
-from risk_framework.species_models.base import SpeciesHabitatSuitabilityModel
-from risk_framework.web_api.models.operations import (
+from risk_framework.web_api.models.db_operations import (
     retrieve_or_calculate_hsi_future_or_current,
     retrieve_or_calculate_sri_future_or_current,
 )
@@ -46,7 +40,6 @@ async def predict_future_species_habitat_suitability_index(request: FutureSpecie
     - JSON dictionary containing the species habitat suitability index results
     """
     geo_id = generate_geo_uuid(
-        [request.species_name],
         request.country_code,
         request.wkt_polygon
     )
@@ -70,7 +63,6 @@ async def calculate_current_species_habitat_suitability_index(request: CurrentSp
     period = climate_scenario
     climate_model = None
     geo_id = generate_geo_uuid(
-        [request.species_name],
         request.country_code,
         request.wkt_polygon
     )
@@ -104,7 +96,6 @@ async def calculate_current_species_richness_index(request: CurrentSpeciesRichne
     logic_type = request.logic_type
     correction_method = request.correction_method
     geo_id = generate_geo_uuid(
-        [''],
         request.country_code,
         request.wkt_polygon
     )

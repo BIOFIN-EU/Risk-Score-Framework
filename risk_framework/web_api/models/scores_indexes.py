@@ -18,6 +18,7 @@ class SpeciesHabitatSuitabilityIndexDB(DeclarativeBaseModel):
 
     # Foreign keys to RasterData
     value_raster_id = Column(String, ForeignKey('raster_data.id'), nullable=False)
+    value_raster = relationship("RasterDataDB", foreign_keys=[value_raster_id])
     # explainability_raster_id = Column(String, ForeignKey('raster_data.id'), nullable=False)
 
     # Metadata fields
@@ -28,13 +29,9 @@ class SpeciesHabitatSuitabilityIndexDB(DeclarativeBaseModel):
     period = Column(String, nullable=False)
     # has_humam_footprint = Column(Boolean, nullable=False) # only add this to the new one that also include HFI
 
-    # Statistical fields
-    mean_value = Column(Numeric, nullable=False)
-    mean_std = Column(Numeric, nullable=False)
     # mean_explainability = Column(JSON, nullable=False)
 
     # Relationships
-    value_raster = relationship("RasterData", foreign_keys=[value_raster_id])
     # explainability_raster = relationship("RasterData", foreign_keys=[explainability_raster_id])
 
 
@@ -50,6 +47,8 @@ class SpeciesRichnessIndexDB(DeclarativeBaseModel):
 
     # Foreign keys to RasterData
     value_raster_id = Column(String, ForeignKey('raster_data.id'), nullable=False)
+    # Relationships
+    value_raster = relationship("RasterData", foreign_keys=[value_raster_id])
 
     # Metadata fields
     species_list = Column(String, nullable=False)
@@ -60,9 +59,4 @@ class SpeciesRichnessIndexDB(DeclarativeBaseModel):
     correction_method = Column(String, nullable=False)
     logic_type = Column(String, nullable=False) #fuzzy/crisp
 
-    # Statistical fields
-    mean_value = Column(Numeric, nullable=False)
-    mean_std = Column(Numeric, nullable=False)
 
-    # Relationships
-    value_raster = relationship("RasterData", foreign_keys=[value_raster_id])

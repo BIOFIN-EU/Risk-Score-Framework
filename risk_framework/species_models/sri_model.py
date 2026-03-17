@@ -9,7 +9,7 @@ from risk_framework.species_models.per_country_species_conf import (
     INDICATOR_SP_PER_COUNTRY,
 )
 
-from risk_framework.web_api.models.operations import (
+from risk_framework.web_api.models.db_operations import (
     retrieve_or_calculate_hsi_future_or_current,
 )
 from risk_framework.web_api.utils import generate_geo_uuid, get_country_wkt
@@ -30,9 +30,7 @@ class SRIBaseModel(object):
             self.species_list = self.get_species_list()
         else:
             self.species_list = species_list
-        self.geo_id = generate_geo_uuid(
-            self.species_list, self.country_code, self.wkt_polygon
-        )
+        self.geo_id = generate_geo_uuid(self.country_code, self.wkt_polygon)
         self.db = db
 
     def get_species_list(self):
@@ -44,7 +42,7 @@ class SRIBaseModel(object):
         is_future = True
         if period.lower() == "current":
             is_future = False
-        hsi_geo_id = generate_geo_uuid([species_name], self.country_code, self.wkt_polygon)
+        hsi_geo_id = generate_geo_uuid(self.country_code, self.wkt_polygon)
         species_hsi = retrieve_or_calculate_hsi_future_or_current(
             species_name,
             self.country_code,
