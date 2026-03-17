@@ -8,6 +8,30 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 
+class BaseScoreIndexRequest(BaseModel):
+    country_code: str
+    wkt_polygon: Optional[str] = None  # Optional
+    class Config:
+        schema_extra = {
+            "example": {
+                "country_code": "LU",
+                "wkt_polygon": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))"
+            }
+        }
+class BaseFutureScoreIndexRequest(BaseScoreIndexRequest):
+    climate_scenario: str = Field(..., description="The climate scenario (e.g., ssp245)")
+    climate_model: str = Field(..., description="The climate model used in calculations (e.g., EC-Earth3-Veg)")
+    period: str = Field(..., description="The time period (e.g., 2021-2040)")
+
+    class Config(BaseScoreIndexRequest.Config):
+        schema_extra = BaseScoreIndexRequest.Config.schema_extra.copy()
+        schema_extra['example'].update({
+            "climate_scenario": "ssp245",
+            "climate_model": "EC-Earth3-Veg",
+            "period": "2021-2040",
+        })
+
+
 class FutureSpeciesHabitatSuitabilityIndexRequest(BaseModel):
     species_name: str
     country_code: str
@@ -40,6 +64,24 @@ class CurrentSpeciesHabitatSuitabilityIndexRequest(BaseModel):
             }
         }
 
+
+class CurrentSpeciesRichnessIndexRequest(BaseModel):
+    species_name: str
+    country_code: str
+    wkt_polygon: Optional[str] = None  # Optional
+    class Config:
+        schema_extra = {
+            "example": {
+                "species_name": "Lullula arborea",
+                "country_code": "LU",
+                "wkt_polygon": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))"
+            }
+        }
+
+
+
+
+
 class RasterSummaryStats(BaseModel):
     """Summary statistics for the raster data"""
     mean_habitat_suitability: float
@@ -57,14 +99,22 @@ class RasterDataResponse(BaseModel):
     """Raster data as a 2D list of floats"""
     raster: List[List[float]] = Field(..., description="2D array of raster values")
     summary_stats: RasterSummaryStats
+    meta: Dict[str, Any] = Field(..., description="Raster metadata")
 
     class Config:
         schema_extra = {
             "example": {
                 "raster": [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]],
                 "summary_stats": {
-                    "mean_habitat_suitability": 0.35,
-                    "std_habitat_suitability": 0.18
+                    "mean_raster_value": 0.35,
+                    "std_raster_value": 0.18,
+                    "meta": {
+                        "driver": "GTiff",
+                        "dtype": "float32",
+                        "width": 233,
+                        "height": 170,
+                        "crs": "GEOGCS[\"WGS 84\",...]"
+                    }
                 }
             }
         }
@@ -77,36 +127,49 @@ class ScenarioData(BaseModel):
     """Data for a specific scenario"""
     periods: Dict[str, PeriodData]
 
-class SpeciesHabitatSuitabilityIndexResponse(BaseModel):
-    """Main response schema for SpeciesHabitatSuitabilityIndex:
-"""
-    species: str
-    country: str
+
+
+class BaseRasterScoreIndexResponse(BaseModel):
+    country_code: str
+    wkt_polygon: str
     scenario: str = Field(..., description="The climate scenario (e.g., ssp245)")
+    climate_model: str = Field(..., description="The climate model used in calculations (e.g., EC-Earth3-Veg)")
     period: str = Field(..., description="The time period (e.g., 2021-2040)")
     raster_data: RasterDataResponse
-    meta: Dict[str, Any] = Field(..., description="Raster metadata")
 
     class Config:
         schema_extra = {
             "example": {
-                "species": "Lullula arborea",
                 "country": "LU",
+                "climate_model": "EC-Earth3-Veg",
                 "scenario": "ssp245",
                 "period": "2021-2040",
-                "raster_data": {
-                    "raster": [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]],
-                    "summary_stats": {
-                        "mean_habitat_suitability": 0.35,
-                        "std_habitat_suitability": 0.18
-                    }
-                },
-                "meta": {
-                    "driver": "GTiff",
-                    "dtype": "float32",
-                    "width": 233,
-                    "height": 170,
-                    "crs": "GEOGCS[\"WGS 84\",...]"
-                }
+                "raster_data": RasterDataResponse.Config.schema_extra['example']
             }
         }
+
+
+
+class SpeciesHabitatSuitabilityIndexResponse(BaseRasterScoreIndexResponse):
+    """Main response schema for SpeciesHabitatSuitabilityIndex:
+    """
+    species: str
+
+    class Config(BaseRasterScoreIndexResponse.Config):
+        schema_extra = BaseRasterScoreIndexResponse.Config.schema_extra.copy()
+        schema_extra['example'].update({
+            "species": "Lullula arborea",
+        })
+
+
+class SpeciesRichnessIndexResponse(BaseRasterScoreIndexResponse):
+    """Main response schema for SpeciesRichnessIndexResponse:
+    """
+    species_list: str = Field(..., description="Comma-separated list of Indicator Species used during calculation (e.g., 'Anthus trivialis,Columba palumbus')")
+
+    class Config(BaseRasterScoreIndexResponse.Config):
+        schema_extra = BaseRasterScoreIndexResponse.Config.schema_extra.copy()
+        schema_extra['example'].update({
+            "species_list": 'Anthus trivialis,Columba palumbus',
+        })
+

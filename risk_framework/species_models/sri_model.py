@@ -149,8 +149,8 @@ class SRIBaseModel(object):
                 "raster": sri_raster,
                 "meta": default_meta,
                 'summary_stats': {
-                    'mean_species_richness_index': float(np.mean(sri_raster)),
-                    'std_species_richness_index': float(np.std(sri_raster))
+                    'mean_raster_value': float(np.mean(sri_raster)),
+                    'std_raster_value': float(np.std(sri_raster))
                 },
             },
             'logic_type': None,
