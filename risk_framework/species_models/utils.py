@@ -1248,7 +1248,7 @@ class SpeciesHabitatSuitabilityUtils():
         model_name = 'Ensemble'
         ensamble_model = models.get(model_name)
         ret_dict = {
-            'species': species_safe,
+            'species': self.config.SPECIES_SCIENTIFIC_NAME,
             'country': self.config.COUNTRY_CODE,
             'scenarios': {},
             'climate_models': [self.config.SCENARIO_MODEL,]

@@ -38,10 +38,10 @@ data = {
     # "species": "Streptopelia turtur",
     # "country_code": "LU",
     "country_code": "NL",
-    "climate_scenario": "ssp245",
+    # "climate_scenario": "ssp245",
     # "climate_scenario": "ssp585",
-    "climate_model": "EC-Earth3-Veg",
-    "period": "2021-2040",
+    # "climate_model": "EC-Earth3-Veg",
+    # "period": "2021-2040",
     # "period": "2041-2060",
 
     # "wkt_polygon": wkt_polygon
