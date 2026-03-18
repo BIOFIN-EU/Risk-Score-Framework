@@ -99,7 +99,6 @@ async def calculate_current_species_richness_index(request: CurrentSpeciesRichne
         request.country_code,
         request.wkt_polygon
     )
-
     return retrieve_or_calculate_sri_future_or_current(
         request.override_species_list,
         request.country_code,

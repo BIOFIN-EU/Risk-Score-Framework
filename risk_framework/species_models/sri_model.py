@@ -55,7 +55,7 @@ class SRIBaseModel(object):
             self.db,
             future=is_future,
         )
-        meta = species_hsi.meta
+        meta = species_hsi.raster_data.meta
         meta_dtype = np.dtype(meta['dtype'])
 
         raster_array = np.array(species_hsi.raster_data.raster, dtype=meta_dtype)

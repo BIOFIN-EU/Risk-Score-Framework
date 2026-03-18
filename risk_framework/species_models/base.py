@@ -80,9 +80,15 @@ class SpeciesHabitatSuitabilityModel():
         print("   •", current_bin)
 
 
+    def _quick_fix_issue1(self):
+        "see https://github.com/BIOFIN-EU/Risk-Score-Framework/issues/1"
+        if os.path.exists(self.config.ENV_1KM_DRIVE) and os.path.exists(self.config.ENV_1KM_INTERP):
+            os.remove(self.config.ENV_1KM_DRIVE)
+            os.remove(self.config.ENV_1KM_INTERP)
 
     def first_step_for_each_model(self):
         print("First step")
+        self._quick_fix_issue1()
         self.build_training_data_if_missing()
         self.ssi_utils.verify_files_exist(self.config.AOI_PREFIX, self.config.CSV_PREFIX, dst_dir=self.config.DATA_DIR)
         aoi, aoi_gdf_wgs84, aoi_bbox = self.ssi_utils.load_aoi_or_fallback(self.config.DATA_DIR, self.config.SPECIES_SAFE)

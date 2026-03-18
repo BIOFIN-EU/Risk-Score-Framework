@@ -66,7 +66,18 @@ def retrieve_or_calculate_sri_future_or_current(override_species_list, country_c
 def retrieve_or_calculate_sri(species_list, country_code, wkt_polygon, geo_id, climate_scenario, climate_model, period, logic_type, correction_method, existing_record, db):
     # If record exists, retrieve it and return cached result
     if not existing_record:
-        existing_record = run_and_create_new_sri_record(species_list, geo_id, country_code.upper(), climate_scenario, climate_model, period, logic_type, correction_method, wkt_polygon, db)
+        existing_record = run_and_create_new_sri_record(
+            species_list,
+            geo_id,
+            country_code.upper(),
+            wkt_polygon,
+            climate_scenario,
+            climate_model,
+            period,
+            logic_type,
+            correction_method,
+            db
+        )
 
     existing_raster_value = pickle.loads(existing_record.value_raster.raster_bin)
 
@@ -74,7 +85,7 @@ def retrieve_or_calculate_sri(species_list, country_code, wkt_polygon, geo_id, c
         id=existing_record.id,
         species_list=existing_record.species_list,
         country_code=existing_record.country_code,
-        geometry=existing_record.wkt_polygon,
+        geometry=existing_record.geometry,
         scenario=existing_record.climate_scenario,
         climate_model=existing_record.climate_scenario,
         period=existing_record.period,
@@ -105,15 +116,7 @@ def run_and_create_new_sri_record(species_list, geo_id, country_code, wkt_polygo
     scenario_record = create_sri_and_raster_records(
         geo_id, result, db)
 
-    return {
-        'scenarios': {
-            climate_scenario: {
-                'periods': {
-                    period: scenario_record
-                }
-            }
-        }
-    }
+    return scenario_record
 
 def create_sri_and_raster_records(geo_id, result, db):
     species_list = ','.join(result['species_list'])
@@ -122,6 +125,8 @@ def create_sri_and_raster_records(geo_id, result, db):
     climate_scenario = result['climate_scenario']
     climate_models = result['climate_models']
     period = result['period']
+    correction_method = result['correction_method']
+    logic_type = result['logic_type']
 
     if climate_scenario == 'current':
         climate_models = ''
@@ -152,7 +157,9 @@ def create_sri_and_raster_records(geo_id, result, db):
         country_code=country_code,
         climate_scenario=climate_scenario,
         climate_model=str(climate_models),
-        period=period
+        period=period,
+        correction_method=correction_method,
+        logic_type=logic_type,
     )
 
     db.add(new_record)

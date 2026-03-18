@@ -36,7 +36,7 @@ class BaseFutureScoreIndexRequest(BaseScoreIndexRequest):
 class BaseRasterScoreIndexResponse(BaseModel):
     country_code: str
     geometry: str
-    climate_scenario: str = Field(..., description="The climate scenario (e.g., ssp245)")
+    climate_scenario: Optional[str] = Field(None, description="The climate scenario (e.g., ssp245)")
     climate_model: str = Field(..., description="The climate model used in calculations (e.g., EC-Earth3-Veg)")
     period: str = Field(..., description="The time period (e.g., 2021-2040)")
     raster_data: RasterDataResponse

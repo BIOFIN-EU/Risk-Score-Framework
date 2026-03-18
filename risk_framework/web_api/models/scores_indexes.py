@@ -56,7 +56,7 @@ class SpeciesRichnessIndexDB(DeclarativeBaseModel):
     climate_scenario = Column(String, nullable=False)
     climate_model = Column(String, nullable=False)
     period = Column(String, nullable=False)
-    correction_method = Column(String, nullable=False)
+    correction_method = Column(String, nullable=True)
     logic_type = Column(String, nullable=False) #fuzzy/crisp
 
 
