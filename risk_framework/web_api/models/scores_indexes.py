@@ -48,7 +48,7 @@ class SpeciesRichnessIndexDB(DeclarativeBaseModel):
     # Foreign keys to RasterData
     value_raster_id = Column(String, ForeignKey('raster_data.id'), nullable=False)
     # Relationships
-    value_raster = relationship("RasterData", foreign_keys=[value_raster_id])
+    value_raster = relationship("RasterDataDB", foreign_keys=[value_raster_id])
 
     # Metadata fields
     species_list = Column(String, nullable=False)

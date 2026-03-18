@@ -43,7 +43,7 @@ async def predict_future_species_habitat_suitability_index(request: FutureSpecie
         request.country_code,
         request.wkt_polygon
     )
-    return retrieve_or_calculate_hsi_future_or_current(request.species_name, request.country_code, request.wkt_polygon, geo_id, request.climate_scenario, request.climate_model, request.period, db, future=True)
+    return retrieve_or_calculate_hsi_future_or_current(request.species, request.country_code, request.wkt_polygon, geo_id, request.climate_scenario, request.climate_model, request.period, db, future=True)
 
 
 @hsi_router.post("/calculate-current-habitat-suitability/", response_model=SpeciesHabitatSuitabilityIndexResponse)
@@ -66,7 +66,7 @@ async def calculate_current_species_habitat_suitability_index(request: CurrentSp
         request.country_code,
         request.wkt_polygon
     )
-    return retrieve_or_calculate_hsi_future_or_current(request.species_name, request.country_code, request.wkt_polygon, geo_id, climate_scenario, climate_model, period, db, future=False)
+    return retrieve_or_calculate_hsi_future_or_current(request.species, request.country_code, request.wkt_polygon, geo_id, climate_scenario, climate_model, period, db, future=False)
 
 
 

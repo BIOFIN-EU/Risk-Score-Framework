@@ -35,7 +35,7 @@ class BaseFutureScoreIndexRequest(BaseScoreIndexRequest):
 
 class BaseRasterScoreIndexResponse(BaseModel):
     country_code: str
-    wkt_polygon: str
+    geometry: str
     climate_scenario: str = Field(..., description="The climate scenario (e.g., ssp245)")
     climate_model: str = Field(..., description="The climate model used in calculations (e.g., EC-Earth3-Veg)")
     period: str = Field(..., description="The time period (e.g., 2021-2040)")
@@ -45,7 +45,7 @@ class BaseRasterScoreIndexResponse(BaseModel):
         schema_extra = {
             "example": {
                 "country_code": "LU",
-                "wkt_polygon": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))",
+                "geometry": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))",
                 "climate_model": "EC-Earth3-Veg",
                 "climate_scenario": "ssp245",
                 "period": "2021-2040",

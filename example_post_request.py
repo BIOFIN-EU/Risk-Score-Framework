@@ -14,8 +14,8 @@ from rasterio.io import MemoryFile
 from rasterio.transform import from_origin
 
 # API endpoint
-url = "http://localhost:8000/api/v1/predict-future-habitat-suitability/"
-# url = "http://localhost:8000/api/v1/calculate-current-habitat-suitability/"
+# url = "http://localhost:8000/api/v1/predict-future-habitat-suitability/"
+url = "http://localhost:8000/api/v1/calculate-current-habitat-suitability/"
 
 # each raster need to have their own meta... they are all different u.u....
 
@@ -31,11 +31,11 @@ POLYGON((6.221110073743708 49.78007047228277,6.203365196590148 49.73459984424554
 
 # Prepare the data
 data = {
-    # "species_name": "Lullula arborea",
-    # "species_name": "Accipiter nisus",
-    "species_name": "Aegithalos caudatus",
+    "species": "Lullula arborea",
+    # "species": "Accipiter nisus",
+    # "species": "Aegithalos caudatus",
 
-    # "species_name": "Streptopelia turtur",
+    # "species": "Streptopelia turtur",
     # "country_code": "LU",
     "country_code": "NL",
     "climate_scenario": "ssp245",
@@ -65,9 +65,11 @@ except requests.exceptions.RequestException as e:
     print(f"Error making request: {e}")
     result = response.json()
     print(json.dumps(result, indent=2))
-    exit
 except json.JSONDecodeError as e:
     print(f"Error parsing response JSON: {e}")
+
+except Exception:
+    exit
 
 
 # with open('your_raster.json', 'w') as f:
@@ -171,7 +173,7 @@ except json.JSONDecodeError as e:
 
 # import ipdb; ipdb.set_trace()
 # # Extract data
-meta = result['meta']
+meta = result['raster_data']['meta']
 dtype = meta['dtype']
 # dtype = 'float64'
 # predictor = meta['predictor']

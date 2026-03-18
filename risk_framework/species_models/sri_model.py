@@ -9,9 +9,9 @@ from risk_framework.species_models.per_country_species_conf import (
     INDICATOR_SP_PER_COUNTRY,
 )
 
-from risk_framework.web_api.models.db_operations import (
-    retrieve_or_calculate_hsi_future_or_current,
-)
+# from risk_framework.web_api.models.db_operations import (
+#     retrieve_or_calculate_hsi_future_or_current,
+# )
 from risk_framework.web_api.utils import generate_geo_uuid, get_country_wkt
 
 
@@ -19,7 +19,8 @@ url = "http://localhost:8000/api/v1/predict-future-habitat-suitability/"
 
 
 class SRIBaseModel(object):
-    def __init__(self, correction_method, country_code, wkt_polygon, db, species_list=None):
+    def __init__(self, hsi_retrieval_method, correction_method, country_code, wkt_polygon, db, species_list=None):
+        self.hsi_retrieval_method = hsi_retrieval_method
         self.correction_method = correction_method
         self.country_code = country_code
         self.wkt_polygon = wkt_polygon
@@ -43,7 +44,7 @@ class SRIBaseModel(object):
         if period.lower() == "current":
             is_future = False
         hsi_geo_id = generate_geo_uuid(self.country_code, self.wkt_polygon)
-        species_hsi = retrieve_or_calculate_hsi_future_or_current(
+        species_hsi = self.hsi_retrieval_method(
             species_name,
             self.country_code,
             self.wkt_polygon,

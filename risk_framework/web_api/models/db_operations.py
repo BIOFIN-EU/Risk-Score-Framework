@@ -74,7 +74,7 @@ def retrieve_or_calculate_sri(species_list, country_code, wkt_polygon, geo_id, c
         id=existing_record.id,
         species_list=existing_record.species_list,
         country_code=existing_record.country_code,
-        wkt_polygon=existing_record.wkt_polygon,
+        geometry=existing_record.wkt_polygon,
         scenario=existing_record.climate_scenario,
         climate_model=existing_record.climate_scenario,
         period=existing_record.period,
@@ -83,8 +83,8 @@ def retrieve_or_calculate_sri(species_list, country_code, wkt_polygon, geo_id, c
         raster_data=RasterDataResponse(
             raster=existing_raster_value,
             summary_stats=RasterSummaryStats(
-                mean_habitat_suitability=float(existing_record.value_raster.mean_value),
-                std_habitat_suitability=float(existing_record.value_raster.mean_std)
+                mean_raster_value=float(existing_record.value_raster.mean_value),
+                std_raster_value=float(existing_record.value_raster.mean_std)
             ),
             meta=existing_record.value_raster.raster_meta
         )
@@ -94,10 +94,11 @@ def run_and_create_new_sri_record(species_list, geo_id, country_code, wkt_polygo
     if wkt_polygon == "" or wkt_polygon is None:
         wkt_polygon = get_country_wkt(country_code)
 
+    hsi_retrieval_method = retrieve_or_calculate_hsi_future_or_current
     if logic_type.lower() == 'fuzzy':
-        sri_model = FuzzySRIModel(correction_method, country_code, wkt_polygon=wkt_polygon, db=db, species_list=species_list)
+        sri_model = FuzzySRIModel(hsi_retrieval_method, correction_method, country_code, wkt_polygon=wkt_polygon, db=db, species_list=species_list)
     else:
-        sri_model = FuzzySRIModel(correction_method, country_code, wkt_polygon=wkt_polygon, db=db, species_list=species_list)
+        sri_model = FuzzySRIModel(hsi_retrieval_method, correction_method, country_code, wkt_polygon=wkt_polygon, db=db, species_list=species_list)
 
     result = sri_model.run(climate_scenario=climate_scenario, climate_model=climate_model, period=period)
 
@@ -196,20 +197,19 @@ def retrieve_or_calculate_hsi(species_name, country_code, wkt_polygon, geo_id, c
     existing_raster_value = pickle.loads(existing_hsi_record.value_raster.raster_bin)
 
 
-
     return SpeciesHabitatSuitabilityIndexResponse(
         id=existing_hsi_record.id,
         species=existing_hsi_record.species,
         country_code=existing_hsi_record.country_code,
-        wkt_polygon=existing_hsi_record.wkt_polygon,
+        geometry=existing_hsi_record.geometry,
         climate_scenario=existing_hsi_record.climate_scenario,
         climate_model=existing_hsi_record.climate_model,
         period=existing_hsi_record.period,
         raster_data=RasterDataResponse(
             raster=existing_raster_value,
             summary_stats=RasterSummaryStats(
-                mean_habitat_suitability=float(existing_hsi_record.value_raster.mean_value),
-                std_habitat_suitability=float(existing_hsi_record.value_raster.mean_std)
+                mean_raster_value=float(existing_hsi_record.value_raster.mean_value),
+                std_raster_value=float(existing_hsi_record.value_raster.mean_std)
             ),
             meta=existing_hsi_record.value_raster.raster_meta
         )
