@@ -1193,6 +1193,7 @@ class SpeciesHabitatSuitabilityUtils():
         prob_meta.update(count=1, dtype="float32", nodata=-1, compress="DEFLATE", predictor=3)
         if self.config.WKT_POLYGON != "":
             prob_raster = self.apply_geometry_mask_to_raster(prob_raster, prob_meta)
+            # prob_raster, prob_meta = self.apply_geometry_mask_to_raster(prob_raster, prob_meta)
             prob_meta['nodata'] = -1
         prob_json_output = self.export_meta_and_raster_to_json_dict(prob_raster, prob_meta)
         return prob_json_output
@@ -1350,19 +1351,22 @@ class SpeciesHabitatSuitabilityUtils():
                     invert=False,
                     nodata=-1  # Temporary mask value outside 0-1 range
                 )
-                masked_raster = np.where(mask_array[0] == 1, raster_array, -1)# Check pixels that are NOT -1 in masked_result
-                masked_result = mask_array[0]
-                valid_pixels = masked_result != -1
+                # masked_raster = np.where(mask_array[0] == 1, raster_array, -1)# Check pixels that are NOT -1 in masked_result
+                # masked_result = mask_array[0]
+                # valid_pixels = masked_result != -1
 
-                # Compare original vs masked where mask has valid values
-                if np.any(valid_pixels):
-                    are_equal = np.allclose(raster_array[valid_pixels], masked_result[valid_pixels])
-                    print(f"Original and masked values match inside polygon: {are_equal}")
+                # # Compare original vs masked where mask has valid values
+                # if np.any(valid_pixels):
+                #     are_equal = np.allclose(raster_array[valid_pixels], masked_result[valid_pixels])
+                #     print(f"Original and masked values match inside polygon: {are_equal}")
 
-                    if not are_equal:
-                        diff = np.abs(raster_array[valid_pixels] - masked_result[valid_pixels])
-                        print(f"Max difference: {np.max(diff)}")
-                        print(f"Mean difference: {np.mean(diff)}")
-                else:
-                    print("No valid pixels found inside polygon")
+                #     if not are_equal:
+                #         diff = np.abs(raster_array[valid_pixels] - masked_result[valid_pixels])
+                #         print(f"Max difference: {np.max(diff)}")
+                #         print(f"Mean difference: {np.mean(diff)}")
+                # else:
+                #     print("No valid pixels found inside polygon")
+                mask_meta = dict(dataset.profile).copy()
+                mask_meta['transform'] = out_transform
+                # return mask_array[0], mask_meta
                 return mask_array[0]

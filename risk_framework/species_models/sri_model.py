@@ -1,15 +1,21 @@
 import numpy as np
 import requests
 
-
-from rasterio.warp import reproject, Resampling
+import rasterio
+from rasterio.warp import reproject, Resampling, calculate_default_transform
+from rasterio.transform import array_bounds
 from rasterio.transform import from_origin
 
+from rasterio.mask import mask
+
+
+from risk_framework.conf import HFP_DATASET_PATH
+
 from risk_framework.species_models.per_country_species_conf import (
-    INDICATOR_SP_PER_COUNTRY,
+    INDICATOR_SP_PER_COUNTRY
 )
 
-from risk_framework.web_api.utils import generate_geo_uuid, get_country_wkt
+from risk_framework.web_api.utils import get_country_wkt, load_poligon_gdf, reproject_to_crs
 
 
 
@@ -22,6 +28,7 @@ class SRIBaseModel(object):
         if wkt_polygon is None or wkt_polygon == "":
             self.wkt_polygon = get_country_wkt(country_code)
 
+        self.hfp_dataset_raster_path = HFP_DATASET_PATH
         if species_list is None:
             self.species_list = self.get_species_list()
         else:
@@ -106,9 +113,81 @@ class SRIBaseModel(object):
 
         return aligned_rasters
 
+    def load_hfp_raster_and_transform(self):
+        print('Will load HFP')
+        # Open HF raster
+        with rasterio.open(self.hfp_dataset_raster_path) as hfp_src:
+            print('Loaded...')
 
-    def apply_correction_method(self, sri_raster):
+            gdf = load_poligon_gdf(self.wkt_polygon).to_crs(hfp_src.crs)
+            hfp_cropped, hfp_cropped_transform = mask(
+                hfp_src,
+                gdf.geometry,
+                crop=True,
+                all_touched=True
+            )
+            print('Croped to polygon mask')
+            hfp_cropped = hfp_cropped[0]
+
+            dst_crs = 'EPSG:4326'
+
+            src_bounds = array_bounds(
+                hfp_cropped.shape[0],  # height
+                hfp_cropped.shape[1],  # width
+                hfp_cropped_transform
+            )
+
+            dst_transform, dst_width, dst_height = calculate_default_transform(
+                hfp_src.crs, dst_crs,
+                hfp_cropped.shape[1], hfp_cropped.shape[0],  # width, height
+                *src_bounds  # left, bottom, right, top
+            )
+
+            hfi_raster_cliped = np.empty((dst_height, dst_width), dtype=np.float32)
+
+            # Reproject
+            reproject(
+                source=hfp_cropped,
+                destination=hfi_raster_cliped,
+                src_transform=hfp_cropped_transform,
+                src_crs=hfp_src.crs,
+                dst_transform=dst_transform,
+                dst_crs=dst_crs,
+                resampling=Resampling.bilinear
+            )
+            print('Reprojected back')
+            hfp_meta = dict(hfp_src.profile).copy()
+            hfp_meta.update({
+                'crs': dst_crs,
+                'transform': dst_transform,
+                'width': dst_width,
+                'height': dst_height
+            })
+            norm_hfi_raster = (100 - (2 * hfi_raster_cliped)) / (100 + (21 * hfi_raster_cliped))
+            norm_hfi_raster.astype(np.float32)
+            return norm_hfi_raster, dst_transform
+
+    def apply_correction_method(self, sri_raster, sri_raster_meta):
         if self.correction_method is None:
+            return sri_raster
+        else:
+            norm_hfi_raster, clipped_hfp_transform = self.load_hfp_raster_and_transform()
+            hfi_resampled = np.empty(sri_raster.shape, dtype=np.float32)
+            reproject(
+                source=norm_hfi_raster,
+                destination=hfi_resampled,
+                src_transform=clipped_hfp_transform,
+                src_crs=sri_raster_meta['crs'],
+                dst_transform=sri_raster_meta['transform'],
+                dst_crs=sri_raster_meta['crs'],
+                resampling=Resampling.bilinear
+            )
+
+            # Create mask where SRI has valid data (not -1)
+            valid_mask = sri_raster >= 0
+
+            # Only multiply where mask is True
+            sri_raster[valid_mask] *= hfi_resampled[valid_mask]
             return sri_raster
 
     def run(self, climate_scenario, climate_model, period):
@@ -130,7 +209,7 @@ class SRIBaseModel(object):
 
         non_corrected_sri_raster = self.species_hsi_aggregation_method(list_of_species_hsi_aligned)
 
-        sri_raster = self.apply_correction_method(non_corrected_sri_raster)
+        sri_raster = self.apply_correction_method(non_corrected_sri_raster, default_meta)
 
         return {
             "species_list": self.species_list,
@@ -140,7 +219,7 @@ class SRIBaseModel(object):
             "climate_models": [climate_model],
             "period": period,
             "raster_data": {
-                "raster": sri_raster,
+                "raster": sri_raster.tolist(),
                 "meta": default_meta,
                 'summary_stats': {
                     'mean_raster_value': float(np.mean(sri_raster)),
@@ -159,7 +238,7 @@ class FuzzySRIModel(SRIBaseModel):
         # Calculate fuzzy mean (mean across species axis)
         fuzzy_mean = np.mean(stacked, axis=0)
 
-        return fuzzy_mean.tolist()
+        return fuzzy_mean
 
     def run(self, climate_scenario, climate_model, period):
         data = super().run(climate_scenario, climate_model, period)
