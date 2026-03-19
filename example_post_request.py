@@ -13,6 +13,11 @@ from rasterio.transform import from_origin
 from rasterio.io import MemoryFile
 from rasterio.transform import from_origin
 
+raster_name = 'sri'
+prediction_type = 'current'
+
+url = f"http://localhost:8000/api/v1/{raster_name}/{prediction_type}/"
+
 # API endpoint
 # url = "http://localhost:8000/api/v1/predict-future-habitat-suitability/"
 # url = "http://localhost:8000/api/v1/calculate-current-habitat-suitability/"
@@ -52,8 +57,6 @@ from rasterio.transform import from_origin
 
 
 # SRI:
-raster_name = 'sri'
-url = "http://localhost:8000/api/v1/calculate-current-species-richness-index/"
 
 # Prepare the data
 data = {
@@ -210,7 +213,7 @@ raster = np.array(raster_value, dtype=np.dtype(dtype))
 rasterio_kwargs = meta
 # # Save as GeoTIFF - rasterio handles the transform directly
 with rasterio.open(
-    f'probability_raster_{raster_name}.tif',
+    f'raster_{raster_name}_{prediction_type}.tif',
     'w',
     driver='GTiff',
     height=raster.shape[0],

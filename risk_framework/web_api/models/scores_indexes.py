@@ -27,8 +27,6 @@ class SpeciesHabitatSuitabilityIndexDB(DeclarativeBaseModel):
     climate_scenario = Column(String, nullable=False)
     climate_model = Column(String, nullable=False)
     period = Column(String, nullable=False)
-    # has_humam_footprint = Column(Boolean, nullable=False) # only add this to the new one that also include HFI
-
     # mean_explainability = Column(JSON, nullable=False)
 
     # Relationships

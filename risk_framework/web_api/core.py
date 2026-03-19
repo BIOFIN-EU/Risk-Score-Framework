@@ -18,8 +18,10 @@ class Application(FastAPI):
         super().__init__(*args, **kwargs)
         self.db_session = SessionLocal
         self.setup_database()
-        self.include_router(hsi_router, prefix="/api/v1")
-        self.include_router(sri_router, prefix="/api/v1")
+        self.api_version = 'v1'
+        self.api_versioned_root_path = f'/api/{self.api_version}'
+        self.include_router(hsi_router, prefix=f"{self.api_versioned_root_path}/hsi")
+        self.include_router(sri_router, prefix=f"{self.api_versioned_root_path}/sri")
 
     def setup_database(self):
         """Setup database lifecycle handlers"""

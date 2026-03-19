@@ -107,9 +107,9 @@ def run_and_create_new_sri_record(species_list, geo_id, country_code, wkt_polygo
 
     hsi_retrieval_method = retrieve_or_calculate_hsi_future_or_current
     if logic_type.lower() == 'fuzzy':
-        sri_model = FuzzySRIModel(hsi_retrieval_method, correction_method, country_code, wkt_polygon=wkt_polygon, db=db, species_list=species_list)
+        sri_model = FuzzySRIModel(geo_id, hsi_retrieval_method, correction_method, country_code, wkt_polygon=wkt_polygon, db=db, species_list=species_list)
     else:
-        sri_model = FuzzySRIModel(hsi_retrieval_method, correction_method, country_code, wkt_polygon=wkt_polygon, db=db, species_list=species_list)
+        sri_model = FuzzySRIModel(geo_id, hsi_retrieval_method, correction_method, country_code, wkt_polygon=wkt_polygon, db=db, species_list=species_list)
 
     result = sri_model.run(climate_scenario=climate_scenario, climate_model=climate_model, period=period)
 
@@ -223,6 +223,7 @@ def retrieve_or_calculate_hsi(species_name, country_code, wkt_polygon, geo_id, c
     )
 
 def run_and_create_new_hsi_records(geo_id, species_name, country_code, wkt_polygon, db):
+    print('Running HSI.')
     country_code = country_code.upper()
     if wkt_polygon == "" or wkt_polygon is None:
         wkt_polygon = get_country_wkt(country_code)
