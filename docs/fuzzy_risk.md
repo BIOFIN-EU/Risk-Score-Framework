@@ -50,5 +50,17 @@ Also would be good to "validate" the usefullness of the risk score by showing th
 Compare the explanation and interpretability of the original risk score from their crisp (non-fuzzy) values, compared to the nice view where we can show which rules where activated when running the inference for a given input. i.e., with FIS you can say: the risk index is 0.3 because in this case, rules 1, 3 and 5 where used, with rule 1 being the most critical to this result. And things like that. And since each rule is just a if-then rule, this will be much easier to read then having to go back and forth from scores (0-1) and each components formulas.
 
 
+
+### new take on HFI x SRI
+In the context of Nature Positive Activities, which place would have a risk of biodiversity loss due to the current conditions in the region, if they are left as it is (inaction)?
+A) A region with a prestine field with few species in it?
+B) Some region with a busy Factory and few species in it?
+
+In this scenario, if we were to take no positive action, and just sit and watch, B would be more at risk of loosing biodiversity. B is already a place where the biodierstiy is already declining due to human activities.
+
+For instance, taking a bare socker field, with no trees, lets call it scenario Y. Then, through NPAs, we turn it into a park, adding bee hives, threes, a lake, lets call this scenario Z. In this case, it would make sense to say that the scenario Y has a bigger risk of loosing biodiversity if no nature positive activities are done in the region. Meanwhile, once we have scenario Z, we can clearly say that it has less of a change of loosing biodiversity if no further actions are taken, compared to scenario Y.
+
+
+
 # References
 [1]: Yang H, Simmons BA, Ray R, Nolte C, Gopal S, Ma Y, Ma X, Gallagher KP. Risks to global biodiversity and Indigenous lands from China’s overseas development finance. Nature Ecology & Evolution. 2021 Nov;5(11):1520-9.

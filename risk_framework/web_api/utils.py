@@ -8,7 +8,7 @@ from rasterio.transform import from_origin
 from rasterio.warp import reproject, calculate_default_transform
 from shapely import wkt
 from shapely.geometry import mapping
-from shapely.geometry import shape
+from shapely.geometry import shape ,Point
 import geopandas as gpd
 import numpy as np
 import rasterio
@@ -42,7 +42,6 @@ def generate_geo_uuid(country_code: str, wkt_polygon: Optional[str] = None) -> s
 
     return cache_uuid
 
-
 def get_country_wkt(country_code):
     params = {
         'country': country_code,
@@ -56,8 +55,17 @@ def get_country_wkt(country_code):
 
     response = requests.get(NOMINATIM_API, params=params, headers=headers)
     data = response.json()[0]
+    centroid = Point(float(data['lon']), float(data['lat']))
     geometry = shape(data['geojson'])
+    if geometry.geom_type == 'MultiPolygon':
+        geoms = list(geometry.geoms)
+        for poly in geoms:
+            if poly.contains(centroid):
+                geometry = poly
+                break
+
     return geometry.wkt
+
 
 def load_poligon_gdf(wkt_polygon):
     geometry = wkt.loads(wkt_polygon)
@@ -107,21 +115,21 @@ def apply_geometry_mask_to_raster(wkt_polygon, raster_array, raster_meta, crop=F
                 invert=False,
                 nodata=nodata
             )
-            masked_raster = np.where(mask_array[0] == 1, raster_array, -1)# Check pixels that are NOT -1 in masked_result
-            masked_result = mask_array[0]
-            valid_pixels = masked_result != -1
+            # masked_raster = np.where(mask_array[0] == 1, raster_array, -1)# Check pixels that are NOT -1 in masked_result
+            # masked_result = mask_array[0]
+            # valid_pixels = masked_result != -1
 
-            # Compare original vs masked where mask has valid values
-            if np.any(valid_pixels):
-                are_equal = np.allclose(raster_array[valid_pixels], masked_result[valid_pixels])
-                print(f"Original and masked values match inside polygon: {are_equal}")
+            # # Compare original vs masked where mask has valid values
+            # if np.any(valid_pixels):
+            #     are_equal = np.allclose(raster_array[valid_pixels], masked_result[valid_pixels])
+            #     print(f"Original and masked values match inside polygon: {are_equal}")
 
-                if not are_equal:
-                    diff = np.abs(raster_array[valid_pixels] - masked_result[valid_pixels])
-                    print(f"Max difference: {np.max(diff)}")
-                    print(f"Mean difference: {np.mean(diff)}")
-            else:
-                print("No valid pixels found inside polygon")
+            #     if not are_equal:
+            #         diff = np.abs(raster_array[valid_pixels] - masked_result[valid_pixels])
+            #         print(f"Max difference: {np.max(diff)}")
+            #         print(f"Mean difference: {np.mean(diff)}")
+            # else:
+            #     print("No valid pixels found inside polygon")
             return mask_array[0]
 
 def reproject_to_crs(rasterio_src, dst_crs='EPSG:4326'):

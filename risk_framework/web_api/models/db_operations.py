@@ -163,7 +163,7 @@ def create_sri_and_raster_records(geo_id, result, db):
     )
 
     db.add(new_record)
-    db.commit()
+    # db.commit()
     new_record.value_raster = new_raster_data
     return new_record
 
