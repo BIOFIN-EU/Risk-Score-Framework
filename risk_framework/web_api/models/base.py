@@ -12,6 +12,6 @@ class BaseClimateSpatialIndexScoreDB(DeclarativeBaseModel):
     geometry = Column(String, nullable=True)  # WKT EPSG:4326
     country_code = Column(String, nullable=False)
 
-    climate_scenario = Column(String, nullable=False)
-    climate_model = Column(String, nullable=False)
-    period = Column(String, nullable=False)
+    climate_scenario = Column(String, nullable=True)
+    climate_model = Column(String, nullable=True)
+    period = Column(String, nullable=True)
