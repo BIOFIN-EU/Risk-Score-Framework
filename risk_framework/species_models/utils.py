@@ -1191,10 +1191,6 @@ class SpeciesHabitatSuitabilityUtils():
 
         prob_meta = meta.copy()
         prob_meta.update(count=1, dtype="float32", nodata=-1, compress="DEFLATE", predictor=3)
-        if self.config.WKT_POLYGON != "":
-            prob_raster = self.apply_geometry_mask_to_raster(prob_raster, prob_meta)
-            # prob_raster, prob_meta = self.apply_geometry_mask_to_raster(prob_raster, prob_meta)
-            prob_meta['nodata'] = -1
         prob_json_output = self.export_meta_and_raster_to_json_dict(prob_raster, prob_meta)
         return prob_json_output
 

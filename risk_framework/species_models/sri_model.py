@@ -4,6 +4,7 @@ import requests
 import rasterio
 import geopandas as gpd
 from shapely import wkt
+from shapely.geometry import box
 from rasterio.warp import reproject, Resampling, calculate_default_transform
 from rasterio.transform import array_bounds
 from rasterio.transform import from_origin
@@ -116,6 +117,16 @@ class SRIBaseModel(object):
 
         return aligned_rasters
 
+    def inverted_hfi_normalization(self, hfi_raster):
+        valid_raster = hfi_raster >= 0
+        norm_hfi_raster = hfi_raster.copy()
+        norm_hfi_raster.astype(np.float32)
+
+        norm_hfi_raster[valid_raster] = (100 - (2 * hfi_raster[valid_raster])) / (100 + (21 * hfi_raster[valid_raster]))
+        # norm_hfi_raster[valid_raster] = (23 * hfi_raster[valid_raster]) / (100 + (21 * hfi_raster[valid_raster]))
+
+        return norm_hfi_raster
+
     def load_hfp_raster_and_transform(self):
         print('Will load HFP')
         # Open HF raster
@@ -123,9 +134,22 @@ class SRIBaseModel(object):
 
             print('Loaded...')
             polygon_gdf = load_poligon_gdf(self.wkt_polygon).to_crs(hfp_src.crs)
+            bounds = polygon_gdf.total_bounds
+            pixel_size_x = abs(hfp_src.transform.a)
+            pixel_size_y = abs(hfp_src.transform.e)
+            bbox_margin_x = 10 * pixel_size_x
+            bbox_margin_y = 10 * pixel_size_y
+            gdf_bbox_emargin = box(
+                bounds[0] - bbox_margin_x,
+                bounds[1] - bbox_margin_y,
+                bounds[2] + bbox_margin_x,
+                bounds[3] + bbox_margin_y
+            )
+
+
             hfp_cropped, hfp_cropped_transform = mask(
                 hfp_src,
-                polygon_gdf.geometry,
+                [gdf_bbox_emargin],
                 crop=True,
                 filled=True,
                 invert=False,
@@ -136,19 +160,19 @@ class SRIBaseModel(object):
             print('Croped to polygon mask')
             hfp_cropped = hfp_cropped[0]
 
-            with rasterio.open(
-                f'raster_hfi_hfp_cropped.tif',
-                'w',
-                driver='GTiff',
-                height=hfp_cropped.shape[0],
-                width=hfp_cropped.shape[1],
-                count=1,
-                dtype=np.float32,
-                crs=hfp_src.crs,
-                # transform=clipped_hfp_transform['transform'],  # rasterio accepts the affine directly
-                transform=hfp_cropped_transform,  # rasterio accepts the affine directly
-            ) as dst:
-                dst.write(hfp_cropped, 1)
+            # with rasterio.open(
+            #     f'raster_hfi_hfp_cropped.tif',
+            #     'w',
+            #     driver='GTiff',
+            #     height=hfp_cropped.shape[0],
+            #     width=hfp_cropped.shape[1],
+            #     count=1,
+            #     dtype=np.float32,
+            #     crs=hfp_src.crs,
+            #     # transform=clipped_hfp_transform['transform'],  # rasterio accepts the affine directly
+            #     transform=hfp_cropped_transform,  # rasterio accepts the affine directly
+            # ) as dst:
+            #     dst.write(hfp_cropped, 1)
 
             hfp_meta = dict(hfp_src.profile).copy()
             hfp_meta.update({
@@ -156,9 +180,7 @@ class SRIBaseModel(object):
                 'width': hfp_cropped.shape[1],
                 'height': hfp_cropped.shape[0]
             })
-            hfi_raster_cliped = hfp_cropped
-            norm_hfi_raster = (100 - (2 * hfi_raster_cliped)) / (100 + (21 * hfi_raster_cliped))
-            norm_hfi_raster.astype(np.float32)
+            norm_hfi_raster = self.inverted_hfi_normalization(hfp_cropped)
             return norm_hfi_raster, hfp_cropped_transform
 
     def apply_correction_method(self, sri_raster, sri_raster_meta):
@@ -177,19 +199,20 @@ class SRIBaseModel(object):
                 resampling=Resampling.bilinear
             )
 
-            with rasterio.open(
-                f'raster_hfi_clipped_rep.tif',
-                'w',
-                driver='GTiff',
-                height=norm_hfi_raster.shape[0],
-                width=norm_hfi_raster.shape[1],
-                count=1,
-                dtype=np.float32,
-                crs=sri_raster_meta['crs'],
-                # transform=clipped_hfp_transform['transform'],  # rasterio accepts the affine directly
-                transform=clipped_hfp_transform,  # rasterio accepts the affine directly
-            ) as dst:
-                dst.write(norm_hfi_raster, 1)
+            # with rasterio.open(
+            #     f'raster_hfi_clipped_rep.tif',
+            #     'w',
+            #     driver='GTiff',
+            #     height=norm_hfi_raster.shape[0],
+            #     width=norm_hfi_raster.shape[1],
+            #     count=1,
+            #     dtype=np.float32,
+            #     crs=sri_raster_meta['crs'],
+            #     # transform=clipped_hfp_transform['transform'],  # rasterio accepts the affine directly
+            #     transform=clipped_hfp_transform,  # rasterio accepts the affine directly
+            # ) as dst:
+            #     dst.write(norm_hfi_raster, 1)
+
             # Create mask where SRI and HFI has valid data (not >= 0)
             valid_mask = (sri_raster >= 0) & (hfi_resampled >= 0)
 
