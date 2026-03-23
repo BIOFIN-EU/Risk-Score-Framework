@@ -49,6 +49,7 @@ class SRIBaseModel(object):
         is_future = True
         if period.lower() == "current":
             is_future = False
+
         species_hsi = self.hsi_retrieval_method(
             species_name,
             self.country_code,
@@ -128,7 +129,6 @@ class SRIBaseModel(object):
         return norm_hfi_raster
 
     def load_hfp_raster_and_transform(self):
-        print('Will load HFP')
         # Open HF raster
         with rasterio.open(self.hfp_dataset_raster_path) as hfp_src:
             polygon_gdf = load_poligon_gdf(self.wkt_polygon).to_crs(hfp_src.crs)
@@ -240,6 +240,10 @@ class SRIBaseModel(object):
 
         sri_raster = self.apply_correction_method(non_corrected_sri_raster, default_meta)
 
+        valid_mask = sri_raster >= 0
+        mean_raster_value = float(np.mean(sri_raster[valid_mask]))
+        std_raster_value =  float(np.std(sri_raster[valid_mask]))
+
         return {
             "species_list": self.species_list,
             "country_code": self.country_code,
@@ -251,8 +255,8 @@ class SRIBaseModel(object):
                 "raster": sri_raster.tolist(),
                 "meta": default_meta,
                 'summary_stats': {
-                    'mean_raster_value': float(np.mean(sri_raster)),
-                    'std_raster_value': float(np.std(sri_raster))
+                    'mean_raster_value': mean_raster_value,
+                    'std_raster_value': std_raster_value
                 },
             },
             'logic_type': None,

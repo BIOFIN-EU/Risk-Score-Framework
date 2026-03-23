@@ -1119,13 +1119,18 @@ class SpeciesHabitatSuitabilityUtils():
             meta_copy[key] = replace_nan(meta_copy[key])
 
         cleaned_raster = replace_nan(raster_list)
+
+        valid_mask = cleaned_raster >= 0 # hardcoded, change later to meta nodata val
+        mean_raster_value = float(np.mean(cleaned_raster[valid_mask]))
+        std_raster_value =  float(np.std(cleaned_raster[valid_mask]))
+
         # Create JSON data structure
         json_data = {
             'meta':  meta_copy,
             'raster': cleaned_raster,
             'summary_stats': {
-                'mean_habitat_suitability': float(np.mean(raster_data)),
-                'std_habitat_suitability': float(np.std(raster_data))
+                'mean_habitat_suitability': mean_raster_value,
+                'std_habitat_suitability': std_raster_value
             },
         }
         return json_data

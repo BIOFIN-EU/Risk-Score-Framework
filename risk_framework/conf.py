@@ -38,6 +38,8 @@ DeclarativeBaseModel = declarative_base()
 
 NOMINATIM_API = "https://nominatim.openstreetmap.org/search"
 HFP_DATASET_PATH = os.path.join(BASE_DATA_DIR, 'HFP2009_rep.tif')
+CH_DATASET_PATH = os.path.join(BASE_DATA_DIR, 'Basic_Critical_Habitat_2025.tif')
+CH_REPROJ_DATASET_PATH = os.path.join(BASE_DATA_DIR, 'Basic_Critical_Habitat_2025_rep.tif')
 
 
 

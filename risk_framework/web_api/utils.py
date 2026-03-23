@@ -132,14 +132,20 @@ def apply_geometry_mask_to_raster(wkt_polygon, raster_array, raster_meta, crop=F
             #     print("No valid pixels found inside polygon")
             return mask_array[0]
 
-def reproject_to_crs(rasterio_src, dst_crs='EPSG:4326'):
+def reproject_to_crs(rasterio_src, dst_crs='EPSG:4326', dst_nodata=None, dst_dtype=None):
     # Calculate transform for EPSG:4326
     transform, width, height = calculate_default_transform(
         rasterio_src.crs, dst_crs, rasterio_src.width, rasterio_src.height, *rasterio_src.bounds
     )
 
+    if dst_dtype is None:
+        dst_dtype = rasterio_src.dtypes[0]
+
     # Create destination array
-    destination = np.zeros((height, width), dtype=rasterio_src.dtypes[0])
+    destination = np.zeros((height, width), dtype=dst_dtype)
+
+    if dst_nodata is None:
+        dst_nodata = rasterio_src.nodata
 
     # Reproject
     reproject(
@@ -147,14 +153,17 @@ def reproject_to_crs(rasterio_src, dst_crs='EPSG:4326'):
         destination=destination,
         src_transform=rasterio_src.transform,
         src_crs=rasterio_src.crs,
+        src_nodata=rasterio_src.nodata,
         dst_transform=transform,
         dst_crs=dst_crs,
+        dst_nodata=dst_nodata,
         resampling=Resampling.bilinear
     )
 
     metadata = rasterio_src.profile.copy()
     metadata.update({
         'crs': dst_crs,
+        'nodata': dst_nodata,
         'transform': transform,
         'width': width,
         'height': height
