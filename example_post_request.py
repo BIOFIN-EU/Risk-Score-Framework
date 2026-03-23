@@ -70,7 +70,7 @@ data = {
     # "country_code": "LU",
     "country_code": "NL",
     "logic_type": "fuzzy",
-    "correction_method": "HSI",
+    "correction_method": "HFI",
     # "climate_scenario": "ssp245",
     # "climate_scenario": "ssp585",
     # "climate_model": "EC-Earth3-Veg",

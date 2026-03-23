@@ -50,21 +50,3 @@ class SpeciesRichnessIndexDB(BaseClimateSpatialIndexScoreDB):
         secondary=hsi_sri_link,
         back_populates="sri_related"
     )
-
-
-class SpeciesRichnessIndexDB(BaseClimateSpatialIndexScoreDB):
-    __tablename__ = "species_richness_index"
-
-    # Foreign keys to RasterData
-    value_raster_id = Column(String, ForeignKey('raster_data.id'), nullable=False)
-    value_raster = relationship("RasterDataDB", foreign_keys=[value_raster_id])
-    # Metadata fields
-    species_list = Column(String, nullable=False)
-    correction_method = Column(String, nullable=True)
-    logic_type = Column(String, nullable=False) #fuzzy/crisp
-
-    hsi_related = relationship(
-        "SpeciesHabitatSuitabilityIndexDB",
-        secondary=hsi_sri_link,
-        back_populates="sri_related"
-    )

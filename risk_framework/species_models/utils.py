@@ -1106,6 +1106,11 @@ class SpeciesHabitatSuitabilityUtils():
     def export_meta_and_raster_to_json_dict(self, raster_data, meta):
         meta_copy = meta.copy()
         meta_copy['crs'] = meta.get('crs').wkt
+
+        valid_mask = raster_data >= 0
+        mean_raster_value = float(np.mean(raster_data[valid_mask]))
+        std_raster_value =  float(np.std(raster_data[valid_mask]))
+
         raster_list = raster_data.tolist()
         # Recursively replace nan with None in the nested list
         def replace_nan(obj):
@@ -1120,9 +1125,6 @@ class SpeciesHabitatSuitabilityUtils():
 
         cleaned_raster = replace_nan(raster_list)
 
-        valid_mask = cleaned_raster >= 0 # hardcoded, change later to meta nodata val
-        mean_raster_value = float(np.mean(cleaned_raster[valid_mask]))
-        std_raster_value =  float(np.std(cleaned_raster[valid_mask]))
 
         # Create JSON data structure
         json_data = {
