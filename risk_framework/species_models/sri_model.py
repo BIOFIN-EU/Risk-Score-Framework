@@ -64,7 +64,7 @@ class SRIBaseModel(object):
         meta_dtype = np.dtype(meta['dtype'])
 
         raster_array = np.array(species_hsi.raster_data.raster, dtype=meta_dtype)
-        return raster_array, meta
+        return species_hsi, raster_array, meta
 
     def species_hsi_aggregation_method(self, list_of_species_hsi):
         raise NotImplementedError()
@@ -131,8 +131,6 @@ class SRIBaseModel(object):
         print('Will load HFP')
         # Open HF raster
         with rasterio.open(self.hfp_dataset_raster_path) as hfp_src:
-
-            print('Loaded...')
             polygon_gdf = load_poligon_gdf(self.wkt_polygon).to_crs(hfp_src.crs)
             bounds = polygon_gdf.total_bounds
             pixel_size_x = abs(hfp_src.transform.a)
@@ -157,7 +155,6 @@ class SRIBaseModel(object):
                 # all_touched=True
             )
 
-            print('Croped to polygon mask')
             hfp_cropped = hfp_cropped[0]
 
             # with rasterio.open(
@@ -227,11 +224,13 @@ class SRIBaseModel(object):
             climate_scenario = 'current'
             period = climate_scenario
 
+        hsi_registry_list = []
         list_of_species_hsi = []
         list_of_species_meta = []
         for species_name in self.species_list:
-            species_hsi, meta = self.get_hsi_and_meta_for_one_species(species_name, climate_scenario, climate_model, period)
-            list_of_species_hsi.append(species_hsi)
+            species_hsi_reg, species_hsi_raster, meta = self.get_hsi_and_meta_for_one_species(species_name, climate_scenario, climate_model, period)
+            hsi_registry_list.append(species_hsi_reg.id)
+            list_of_species_hsi.append(species_hsi_raster)
             list_of_species_meta.append(meta)
 
         default_meta = list_of_species_meta[0]
@@ -258,6 +257,10 @@ class SRIBaseModel(object):
             },
             'logic_type': None,
             'correction_method': self.correction_method,
+            'meta': {
+                'hsi_id_list': hsi_registry_list
+                # 'hsi_registry_list': hsi_registry_list
+            }
         }
 
 

@@ -127,6 +127,13 @@ def create_sri_and_raster_records(geo_id, result, db):
     period = result['period']
     correction_method = result['correction_method']
     logic_type = result['logic_type']
+    # hsi_registry_list = result['meta']['hsi_registry_list']
+
+    hsi_id_list = result['meta']['hsi_id_list']
+
+    hsi_instances = db.query(SpeciesHabitatSuitabilityIndexDB).filter(
+        SpeciesHabitatSuitabilityIndexDB.id.in_(hsi_id_list)
+    ).all()
 
     if climate_scenario == 'current':
         climate_models = ''
@@ -136,6 +143,7 @@ def create_sri_and_raster_records(geo_id, result, db):
     raster_summary = raster_data['summary_stats']
     mean_value = raster_summary['mean_raster_value']
     mean_std = raster_summary['std_raster_value']
+
     new_raster_data = RasterDataDB(
         id=str(uuid.uuid4()),
         geo_id=geo_id,
@@ -160,10 +168,12 @@ def create_sri_and_raster_records(geo_id, result, db):
         period=period,
         correction_method=correction_method,
         logic_type=logic_type,
+        # hsi_related=hsi_registry_list
+        hsi_related=hsi_instances
     )
 
     db.add(new_record)
-    # db.commit()
+    db.commit()
     new_record.value_raster = new_raster_data
     return new_record
 

@@ -34,6 +34,7 @@ class BaseFutureScoreIndexRequest(BaseScoreIndexRequest):
 
 
 class BaseRasterScoreIndexResponse(BaseModel):
+    id: str
     country_code: str
     geometry: str
     climate_scenario: Optional[str] = Field(None, description="The climate scenario (e.g., ssp245)")
@@ -44,6 +45,7 @@ class BaseRasterScoreIndexResponse(BaseModel):
     class Config:
         schema_extra = {
             "example": {
+                "id": 'abc-...-123',
                 "country_code": "LU",
                 "geometry": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))",
                 "climate_model": "EC-Earth3-Veg",

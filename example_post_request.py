@@ -14,7 +14,9 @@ from rasterio.io import MemoryFile
 from rasterio.transform import from_origin
 
 raster_name = 'sri'
+# raster_name = 'hsi'
 prediction_type = 'current'
+# prediction_type = 'future'
 
 url = f"http://localhost:8000/api/v1/{raster_name}/{prediction_type}/"
 
@@ -33,7 +35,8 @@ url = f"http://localhost:8000/api/v1/{raster_name}/{prediction_type}/"
 # wkt_polygon = """
 # POLYGON((6.221110073743708 49.78007047228277,6.203365196590148 49.73459984424554,6.296590013756872 49.740444947385186,6.335201035001955 49.77807805368181,6.221110073743708 49.78007047228277))
 # """
-# raster_name = 'hsi'
+
+
 # # Prepare the data
 # data = {
 #     "species": "Lullula arborea",
@@ -41,12 +44,12 @@ url = f"http://localhost:8000/api/v1/{raster_name}/{prediction_type}/"
 #     # "species": "Aegithalos caudatus",
 
 #     # "species": "Streptopelia turtur",
-#     # "country_code": "LU",
-#     "country_code": "NL",
-#     # "climate_scenario": "ssp245",
+#     "country_code": "LU",
+#     # "country_code": "NL",
+#     "climate_scenario": "ssp245",
 #     # "climate_scenario": "ssp585",
-#     # "climate_model": "EC-Earth3-Veg",
-#     # "period": "2021-2040",
+#     "climate_model": "EC-Earth3-Veg",
+#     "period": "2021-2040",
 #     # "period": "2041-2060",
 
 #     # "wkt_polygon": wkt_polygon
@@ -58,7 +61,6 @@ url = f"http://localhost:8000/api/v1/{raster_name}/{prediction_type}/"
 
 # SRI:
 
-# Prepare the data
 data = {
     # "species": "Lullula arborea",
     # "species": "Accipiter nisus",
@@ -68,6 +70,7 @@ data = {
     # "country_code": "LU",
     "country_code": "NL",
     "logic_type": "fuzzy",
+    "correction_method": "HSI",
     # "climate_scenario": "ssp245",
     # "climate_scenario": "ssp585",
     # "climate_model": "EC-Earth3-Veg",
@@ -205,7 +208,7 @@ meta = result['raster_data']['meta']
 dtype = meta['dtype']
 # dtype = 'float64'
 # predictor = meta['predictor']
-compress = meta['compress']
+# compress = meta['compress']
 raster_value = result['raster_data']['raster']
 # raster_value = out_image[0]  # Remove the band dimension
 raster = np.array(raster_value, dtype=np.dtype(dtype))
