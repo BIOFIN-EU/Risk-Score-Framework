@@ -13,8 +13,9 @@ from rasterio.transform import from_origin
 from rasterio.io import MemoryFile
 from rasterio.transform import from_origin
 
-raster_name = 'sri'
 # raster_name = 'hsi'
+# raster_name = 'sri'
+raster_name = 'chi'
 prediction_type = 'current'
 # prediction_type = 'future'
 
@@ -37,6 +38,7 @@ url = f"http://localhost:8000/api/v1/{raster_name}/{prediction_type}/"
 # """
 
 
+# HSI
 # # Prepare the data
 # data = {
 #     "species": "Lullula arborea",
@@ -61,25 +63,32 @@ url = f"http://localhost:8000/api/v1/{raster_name}/{prediction_type}/"
 
 # SRI:
 
-data = {
-    # "species": "Lullula arborea",
-    # "species": "Accipiter nisus",
-    # "species": "Aegithalos caudatus",
+# data = {
+#     # "species": "Lullula arborea",
+#     # "species": "Accipiter nisus",
+#     # "species": "Aegithalos caudatus",
 
-    # "species": "Streptopelia turtur",
+#     # "species": "Streptopelia turtur",
+#     # "country_code": "LU",
+#     "country_code": "NL",
+#     "logic_type": "fuzzy",
+#     "correction_method": "HFI",
+#     # "climate_scenario": "ssp245",
+#     # "climate_scenario": "ssp585",
+#     # "climate_model": "EC-Earth3-Veg",
+#     # "period": "2021-2040",
+#     # "period": "2041-2060",
+
+#     # "wkt_polygon": wkt_polygon
+# }
+
+
+# CHI:
+data = {
     # "country_code": "LU",
     "country_code": "NL",
-    "logic_type": "fuzzy",
-    "correction_method": "HFI",
-    # "climate_scenario": "ssp245",
-    # "climate_scenario": "ssp585",
-    # "climate_model": "EC-Earth3-Veg",
-    # "period": "2021-2040",
-    # "period": "2041-2060",
-
     # "wkt_polygon": wkt_polygon
 }
-
 
 
 # Make the POST request

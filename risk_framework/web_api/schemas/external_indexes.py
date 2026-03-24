@@ -7,9 +7,14 @@ from typing import Optional
 
 from risk_framework.web_api.schemas.rasters import RasterDataResponse
 from risk_framework.web_api.schemas.base import (
-    BaseRasterScoreIndexResponse
+    BaseScoreIndexRequest,
+    BaseRasterScoreIndexResponse,
 )
 
+
+
+class CriticalHabitatIndexRequest(BaseScoreIndexRequest):
+    pass
 
 
 

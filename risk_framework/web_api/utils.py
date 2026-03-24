@@ -6,7 +6,7 @@ from rasterio.io import MemoryFile
 from rasterio.mask import mask
 from rasterio.transform import from_origin
 from rasterio.warp import reproject, calculate_default_transform
-from shapely import wkt
+from shapely import wkt , MultiPolygon
 from shapely.geometry import mapping
 from shapely.geometry import shape ,Point
 import geopandas as gpd
@@ -15,7 +15,7 @@ import rasterio
 
 import requests
 
-from risk_framework.conf import SessionLocal, NOMINATIM_API
+from risk_framework.conf import SessionLocal, NOMINATIM_API, NOMINATIM_REVERSE_API
 
 
 def get_db():
@@ -58,13 +58,44 @@ def get_country_wkt(country_code):
     centroid = Point(float(data['lon']), float(data['lat']))
     geometry = shape(data['geojson'])
     if geometry.geom_type == 'MultiPolygon':
+        # add valid polygons from list of polygons that contain centroid or have their centroid X km from the centroid.
         geoms = list(geometry.geoms)
         for poly in geoms:
             if poly.contains(centroid):
                 geometry = poly
-                break
 
     return geometry.wkt
+
+
+def get_continent(lat, lon):
+    """
+    Get continent for a given coordinate using reverse geocoding.
+    """
+    params = {
+        'lat': lat,
+        'lon': lon,
+        'format': 'json',
+        'addressdetails': 1,
+        'zoom': 1  # Low zoom gives continent level
+    }
+    headers = {'User-Agent': 'MyApp/1.0'}
+
+    response = requests.get(NOMINATIM_REVERSE_API, params=params, headers=headers)
+    data = response.json()
+
+    # Continent is usually in address details
+    if 'address' in data:
+        continent = data['address'].get('continent')
+        if continent:
+            return continent
+
+    # Alternative: Use high-level administrative hierarchy
+    if 'geocoding' in data and 'continent' in data['geocoding']:
+        return data['geocoding']['continent']
+
+
+    return None
+
 
 
 def load_poligon_gdf(wkt_polygon):

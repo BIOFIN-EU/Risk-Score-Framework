@@ -32,7 +32,8 @@ def retrieve_or_calculate_ch(country_code, wkt_polygon, geo_id, db):
         CriticalHabitatIndexDB.geo_id == geo_id,
     )
 
-    existing_record = query.first()
+    # existing_record = query.first()
+    existing_record = None
     # If record exists, retrieve it and return cached result
     if not existing_record:
         existing_record = run_and_create_new_ch_record(
@@ -91,8 +92,8 @@ def create_ch_and_raster_records(geo_id, result, db):
         mean_std=float(mean_std),
     )
 
-    db.add(new_raster_data)
-    db.flush()
+    # db.add(new_raster_data)
+    # db.flush()
 
     new_record = CriticalHabitatIndexDB(
         id=str(uuid.uuid4()),
@@ -102,8 +103,8 @@ def create_ch_and_raster_records(geo_id, result, db):
         country_code=country_code,
     )
 
-    db.add(new_record)
-    db.commit()
+    # db.add(new_record)
+    # db.commit()
     new_record.value_raster = new_raster_data
     return new_record
 

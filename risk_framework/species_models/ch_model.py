@@ -87,7 +87,8 @@ class CHModel(object):
 
             ch_cropped, ch_cropped_transform = mask(
                 ch_src,
-                [gdf_bbox_emargin],
+                polygon_gdf.geometry,
+                # [gdf_bbox_emargin],
                 crop=True,
                 filled=True,
                 invert=False,
@@ -122,7 +123,7 @@ class CHModel(object):
         print('Running CH model.')
         ch_raster, ch_raster_meta = self.load_ch_raster_and_meta()
         ch_index_raster = self.transform_ch_to_index(ch_raster, ch_raster_meta)
-
+        ch_raster_meta['crs'] = str(ch_raster_meta['crs'])
         valid_mask = ch_index_raster != ch_raster_meta['nodata']
         mean_raster_value = float(np.mean(ch_index_raster[valid_mask]))
         std_raster_value =  float(np.std(ch_index_raster[valid_mask]))
