@@ -57,12 +57,20 @@ def get_country_wkt(country_code):
     data = response.json()[0]
     centroid = Point(float(data['lon']), float(data['lat']))
     geometry = shape(data['geojson'])
+    valid_polygons = []
     if geometry.geom_type == 'MultiPolygon':
         # add valid polygons from list of polygons that contain centroid or have their centroid X km from the centroid.
         geoms = list(geometry.geoms)
         for poly in geoms:
+            poly_centroid = poly.centroid
             if poly.contains(centroid):
-                geometry = poly
+                valid_polygons.append(poly)
+            else:
+                # approx
+                distance_km = centroid.distance(poly_centroid) * 111
+                if distance_km < 750:
+                    valid_polygons.append(poly)
+    geometry = MultiPolygon(valid_polygons)
 
     return geometry.wkt
 

@@ -87,8 +87,8 @@ class CHModel(object):
 
             ch_cropped, ch_cropped_transform = mask(
                 ch_src,
-                polygon_gdf.geometry,
-                # [gdf_bbox_emargin],
+                # polygon_gdf.geometry,
+                [gdf_bbox_emargin],
                 crop=True,
                 filled=True,
                 invert=False,
