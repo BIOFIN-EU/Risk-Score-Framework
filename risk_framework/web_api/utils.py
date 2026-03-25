@@ -70,7 +70,7 @@ def get_country_wkt(country_code):
                 distance_km = centroid.distance(poly_centroid) * 111
                 if distance_km < 750:
                     valid_polygons.append(poly)
-    geometry = MultiPolygon(valid_polygons)
+        geometry = MultiPolygon(valid_polygons)
 
     return geometry.wkt
 
