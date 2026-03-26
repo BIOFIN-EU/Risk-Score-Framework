@@ -4,64 +4,102 @@ import pickle
 from sqlalchemy.orm import joinedload
 
 from risk_framework.web_api.models import (
-    SpeciesHabitatSuitabilityIndexDB,
-    SpeciesRichnessIndexDB,
-    RasterDataDB,
+    BiodiversityRiskIndexDB,
 )
 from risk_framework.web_api.schemas import (
-    SpeciesRichnessIndexResponse,
+    BiodiversityRiskIndexResponse,
     RasterDataResponse,
     RasterSummaryStats,
 )
 from risk_framework.web_api.utils import (
     get_country_wkt
 )
-from risk_framework.species_models.sri_model import (
-    FuzzySRIModel
+
+from risk_framework.biodiversity_risk import (
+    BioRiskPlusFIS
 )
 
 from risk_framework.species_models.per_country_species_conf import (
     INDICATOR_SP_PER_COUNTRY,
 )
 
-from .hsi_db_op import retrieve_or_calculate_hsi_future_or_current
 
+from .sri_db_op import retrieve_or_calculate_sri_future_or_current
+from .external_indexes_op import (
+    retrieve_or_calculate_ch,
+    retrieve_or_calculate_pa,
+)
 
-
-def retrieve_or_calculate_sri_future_or_current(override_species_list, country_code, wkt_polygon, geo_id, climate_scenario, climate_model, period, logic_type, correction_method, db, future=False):
+def retrieve_or_calculate_risk_future_or_current(
+        country_code,
+        wkt_polygon,
+        geo_id,
+        climate_scenario,
+        climate_model,
+        period,
+        sri_logic_type,
+        sri_correction_method,
+        sri_override_species_list,
+        db,
+        future=False,
+    ):
     country_code = country_code.upper()
     if not future:
         climate_scenario = 'current'
         period = climate_scenario
 
-    query = db.query(SpeciesRichnessIndexDB).options(
-        joinedload(SpeciesRichnessIndexDB.value_raster)
+    query = db.query(BiodiversityRiskIndexDB).options(
+        joinedload(BiodiversityRiskIndexDB.value_raster)
     )
-    species_list = override_species_list
-    if override_species_list is None:
-        species_list = INDICATOR_SP_PER_COUNTRY.get(country_code, [])
+    sri_species_list = sri_override_species_list
+    if sri_override_species_list is None:
+        sri_species_list = INDICATOR_SP_PER_COUNTRY.get(country_code, [])
 
-    species_list.sort()
+    sri_species_list.sort()
 
-    species_list_str = ','.join(species_list)
+    sri_species_list_str = ','.join(sri_species_list)
     query = query.filter(
-        SpeciesRichnessIndexDB.geo_id == geo_id,
-        SpeciesRichnessIndexDB.climate_scenario == climate_scenario,
-        SpeciesRichnessIndexDB.logic_type == logic_type,
-        SpeciesRichnessIndexDB.correction_method == correction_method,
-        SpeciesRichnessIndexDB.species_list == species_list_str,
+        BiodiversityRiskIndexDB.geo_id == geo_id,
+        BiodiversityRiskIndexDB.climate_scenario == climate_scenario,
+        BiodiversityRiskIndexDB.sri_logic_type == sri_logic_type,
+        BiodiversityRiskIndexDB.sri_correction_method == sri_correction_method,
+        BiodiversityRiskIndexDB.sri_species_list == sri_species_list_str,
     )
     if future:
         query.filter(
-        SpeciesRichnessIndexDB.climate_model == str([climate_model]),
-        SpeciesRichnessIndexDB.period == period,
+        BiodiversityRiskIndexDB.climate_model == str([climate_model]),
+        BiodiversityRiskIndexDB.period == period,
     )
 
-    existing_record = query.first()
-    return retrieve_or_calculate_sri(species_list, country_code, wkt_polygon, geo_id, climate_scenario, climate_model, period, logic_type, correction_method, existing_record, db)
+    existing_hsi_record = query.first()
+    return retrieve_or_calculate_risk(
+        country_code,
+        wkt_polygon,
+        geo_id,
+        climate_scenario,
+        climate_model,
+        period,
+        sri_logic_type,
+        sri_correction_method,
+        sri_override_species_list,
+        existing_hsi_record,
+        db
+    )
 
 
-def retrieve_or_calculate_sri(species_list, country_code, wkt_polygon, geo_id, climate_scenario, climate_model, period, logic_type, correction_method, existing_record, db):
+def retrieve_or_calculate_risk(
+        country_code,
+        wkt_polygon,
+        geo_id,
+        climate_scenario,
+        climate_model,
+        period,
+        sri_logic_type,
+        sri_correction_method,
+        sri_species_list,
+        existing_record,
+        db
+    ):
     # If record exists, retrieve it and return cached result
     if not existing_record:
         existing_record = run_and_create_new_sri_record(

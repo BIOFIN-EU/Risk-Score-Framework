@@ -1,0 +1,62 @@
+from sqlalchemy import Column, String, ForeignKey, Table, JSON
+from sqlalchemy.orm import relationship
+
+from risk_framework.web_api.models.base import BaseClimateSpatialIndexScoreDB
+
+from risk_framework.conf import DeclarativeBaseModel
+
+
+risk_chi_link = Table(
+    "risk_chi_link",
+    DeclarativeBaseModel.metadata,
+    Column("biodiversity_risk_index", String, ForeignKey("biodiversity_risk_index.id")),
+    Column("chi_id", String, ForeignKey("critical_habitat_index.id"))
+)
+
+risk_pai_link = Table(
+    "risk_pai_link",
+    DeclarativeBaseModel.metadata,
+    Column("biodiversity_risk_index", String, ForeignKey("biodiversity_risk_index.id")),
+    Column("pai_id", String, ForeignKey("protected_area_index.id"))
+)
+
+risk_sri_link = Table(
+    "risk_sri_link",
+    DeclarativeBaseModel.metadata,
+    Column("biodiversity_risk_index", String, ForeignKey("biodiversity_risk_index.id")),
+    Column("sri_id", String, ForeignKey("species_richness_index.id"))
+)
+
+
+class BiodiversityRiskIndexDB(BaseClimateSpatialIndexScoreDB):
+    __tablename__ = "biodiversity_risk_index"
+
+    # Foreign keys to RasterData
+    value_raster_id = Column(String, ForeignKey('raster_data.id'), nullable=False)
+    value_raster = relationship("RasterDataDB", foreign_keys=[value_raster_id])
+    explainability_raster_id = Column(String, ForeignKey('raster_data.id'), nullable=False)
+    explainability_raster = relationship("RasterDataDB", foreign_keys=[explainability_raster_id])
+    explainability_json = Column(JSON, nullable=False)  # General Explainability data as JSON
+
+    risk_model = Column(String, nullable=False) #(YangEtAl2021/SihamEtAl2026/PontesEtAl2026)?
+    risk_ling_thresholds = Column(String, nullable=False) #comma separated values for thresholds
+
+    sri_species_list = Column(String, nullable=False)
+    sri_correction_method = Column(String, nullable=True)
+    sri_logic_type = Column(String, nullable=False)
+
+
+    # Relationships
+    chi_related = relationship(
+        "CriticalHabitatIndexDB",
+        secondary=risk_chi_link,
+    )
+    pai_related = relationship(
+        "ProtectedAreaIndexDB",
+        secondary=risk_pai_link,
+    )
+    sri_related = relationship(
+        "SpeciesRichnessIndexDB",
+        secondary=risk_sri_link,
+    )
+
