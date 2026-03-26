@@ -16,8 +16,18 @@ from risk_framework.web_api.schemas.base import (
 class CriticalHabitatIndexRequest(BaseScoreIndexRequest):
     pass
 
-
-
 class CriticalHabitatIndexResponse(BaseRasterScoreIndexResponse):
     class Config(BaseRasterScoreIndexResponse.Config):
         schema_extra = BaseRasterScoreIndexResponse.Config.schema_extra.copy()
+
+
+
+class ProtectedAreaIndexRequest(BaseScoreIndexRequest):
+    pass
+
+
+class ProtectedAreaIndexResponse(BaseRasterScoreIndexResponse):
+    class Config(BaseRasterScoreIndexResponse.Config):
+        schema_extra = BaseRasterScoreIndexResponse.Config.schema_extra.copy()
+
+

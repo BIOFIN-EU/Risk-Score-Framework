@@ -13,9 +13,8 @@ from rasterio.transform import from_origin
 from rasterio.io import MemoryFile
 from rasterio.transform import from_origin
 
-# raster_name = 'hsi'
-# raster_name = 'sri'
-raster_name = 'chi'
+# raster_name = 'chi'
+raster_name = 'pai'
 
 url = f"http://localhost:8000/api/v1/others/{raster_name}/"
 
@@ -78,7 +77,7 @@ raster = np.array(raster_value, dtype=np.dtype(dtype))
 rasterio_kwargs = meta
 # # Save as GeoTIFF - rasterio handles the transform directly
 with rasterio.open(
-    f'raster_others_{raster_name}.tif',
+    f'raster_others_{raster_name}_{data["country_code"]}.tif',
     'w',
     driver='GTiff',
     height=raster.shape[0],

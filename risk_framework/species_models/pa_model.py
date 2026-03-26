@@ -1,3 +1,4 @@
+import os
 import glob
 import numpy as np
 import requests
@@ -148,10 +149,14 @@ class PAModel(object):
 
             return pa_cropped, pa_meta
 
+    def clean_up_temp_raster(self):
+        if os.path.exists(self.temp_pa_path):
+            os.remove(self.temp_pa_path)
 
     def run(self):
         print('Running CH model.')
         pa_raster, pa_raster_meta = self.get_pa_raster()
+        self.clean_up_temp_raster()
         pa_raster_meta['crs'] = str(pa_raster_meta['crs'])
         mean_raster_value = float(np.mean(pa_raster))
         std_raster_value =  float(np.std(pa_raster))
