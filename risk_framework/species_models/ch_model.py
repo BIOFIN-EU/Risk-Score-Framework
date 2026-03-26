@@ -1,6 +1,5 @@
 import numpy as np
 import requests
-
 import rasterio
 import geopandas as gpd
 from shapely import wkt

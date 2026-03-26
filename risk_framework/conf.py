@@ -42,6 +42,16 @@ HFP_DATASET_PATH = os.path.join(BASE_DATA_DIR, 'HFP2009_rep.tif')
 CH_DATASET_PATH = os.path.join(BASE_DATA_DIR, 'Basic_Critical_Habitat_2025.tif')
 CH_REPROJ_DATASET_PATH = os.path.join(BASE_DATA_DIR, 'Basic_Critical_Habitat_2025_rep.tif')
 
+PA_PARTS_DATASET_PATH = os.path.join(
+    BASE_DATA_DIR, 'WDPA_Mar2026_Public_shp',
+    'WDPA_Mar2026_Public_shp_*',
+    'WDPA_Mar2026_Public_shp-polygons.shp'
+)
+PA_REPROJ_DATASET_PATH = os.path.join(BASE_DATA_DIR, 'WDPA_Mar2026_Public_shp_rep.tif')
+PA_TEMP_FILE_FORMAT = os.path.join(BASE_DATA_DIR, 'country_{country_code}')
+
+
+BASE_RESOLUTION = 1000
 
 
 class SpeciesHabitatSuitabilityConfig():
@@ -57,7 +67,7 @@ class SpeciesHabitatSuitabilityConfig():
         self.SCENARIOS = kwargs.get('SCENARIOS', [self.MIDDLE_SCENARIO, self.UPPER_SCENARIO])
         self.PERIODS = kwargs.get('PERIODS', ["2021-2040", "2041-2060"])
         self.EE_EXPORT_FOLDER_NAME = kwargs.get('EE_EXPORT_FOLDER_NAME', "All_Sp")
-        self.GRAIN_SIZE = kwargs.get('GRAIN_SIZE', 1000)
+        self.GRAIN_SIZE = kwargs.get('GRAIN_SIZE', BASE_RESOLUTION)
         self.NODATA_VAL = kwargs.get('NODATA_VAL', -9999.0)
         self.AOI_BBOX = kwargs.get('AOI_BBOX', (5.737, 49.447, 6.527, 50.181))
         self.GBIF_API_BASE = kwargs.get('GBIF_API_BASE', "https://api.gbif.org/v1/occurrence/search")
