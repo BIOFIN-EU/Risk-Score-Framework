@@ -48,7 +48,7 @@ PA_PARTS_DATASET_PATH = os.path.join(
     'WDPA_Mar2026_Public_shp-polygons.shp'
 )
 PA_REPROJ_DATASET_PATH = os.path.join(BASE_DATA_DIR, 'WDPA_Mar2026_Public_shp_rep.tif')
-PA_TEMP_FILE_FORMAT = os.path.join(BASE_DATA_DIR, 'country_{country_code}')
+PA_TEMP_FILE_FORMAT = os.path.join(BASE_DATA_DIR, 'country_{country_code}', 'pa_reproj.tif')
 
 
 BASE_RESOLUTION = 1000
