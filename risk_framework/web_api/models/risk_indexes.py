@@ -47,17 +47,12 @@ class BiodiversityRiskIndexDB(BaseClimateSpatialIndexScoreDB):
     sri_correction_method = Column(String, nullable=True)
     sri_logic_type = Column(String, nullable=False)
 
-    # Relationships
-    chi_related = relationship(
-        "CriticalHabitatIndexDB",
-        secondary=risk_chi_link,
-    )
-    pai_related = relationship(
-        "ProtectedAreaIndexDB",
-        secondary=risk_pai_link,
-    )
-    sri_related = relationship(
-        "SpeciesRichnessIndexDB",
-        secondary=risk_sri_link,
-    )
+    # Foreign keys for one-to-one relationships
+    chi_related_id = Column(String, ForeignKey('critical_habitat_index.id'), nullable=False)
+    pai_related_id = Column(String, ForeignKey('protected_area_index.id'),  nullable=False)
+    sri_related_id = Column(String, ForeignKey('species_richness_index.id'), nullable=False)
 
+    # One-to-one relationships
+    chi_related = relationship("CriticalHabitatIndexDB", foreign_keys=[chi_related_id])
+    pai_related = relationship("ProtectedAreaIndexDB", foreign_keys=[pai_related_id])
+    sri_related = relationship("SpeciesRichnessIndexDB", foreign_keys=[sri_related_id])

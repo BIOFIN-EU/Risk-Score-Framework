@@ -204,19 +204,19 @@ def create_risk_and_raster_records(geo_id, result, db):
     crop_to_polygon = result['crop_to_polygon']
     risk_ling_thresholds = result['risk_ling_thresholds']
 
-    chi_id_list = result['meta']['chi_id_list']
-    pai_id_list = result['meta']['pai_id_list']
-    sri_id_list = result['meta']['sri_id_list']
+    chi_id = result['meta']['chi_id']
+    pai_id = result['meta']['pai_id']
+    sri_id = result['meta']['sri_id']
 
-    chi_instances = db.query(CriticalHabitatIndexDB).filter(
-        CriticalHabitatIndexDB.id.in_(chi_id_list)
-    ).all()
-    pai_instances = db.query(ProtectedAreaIndexDB).filter(
-        ProtectedAreaIndexDB.id.in_(pai_id_list)
-    ).all()
-    sri_instances = db.query(SpeciesRichnessIndexDB).filter(
-        SpeciesRichnessIndexDB.id.in_(sri_id_list)
-    ).all()
+    # chi_instance = db.query(CriticalHabitatIndexDB).filter(
+    #     CriticalHabitatIndexDB.id == chi_id
+    # ).first()
+    # pai_instance = db.query(ProtectedAreaIndexDB).filter(
+    #     ProtectedAreaIndexDB.id == pai_id
+    # ).first()
+    # sri_instance = db.query(SpeciesRichnessIndexDB).filter(
+    #     SpeciesRichnessIndexDB.id == sri_id
+    # ).first()
 
     if climate_scenario == 'current':
         climate_models = ''
@@ -259,9 +259,9 @@ def create_risk_and_raster_records(geo_id, result, db):
         sri_species_list=sri_species_list,
         sri_correction_method=correction_method,
         sri_logic_type=logic_type,
-        chi_related=chi_instances,
-        pai_related=pai_instances,
-        sri_related=sri_instances,
+        chi_related_id=chi_id,
+        pai_related_id=pai_id,
+        sri_related_id=sri_id,
     )
 
 
