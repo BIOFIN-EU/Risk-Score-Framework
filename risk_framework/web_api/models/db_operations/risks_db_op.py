@@ -5,6 +5,10 @@ from sqlalchemy.orm import joinedload
 
 from risk_framework.web_api.models import (
     BiodiversityRiskIndexDB,
+    CriticalHabitatIndexDB,
+    ProtectedAreaIndexDB,
+    SpeciesRichnessIndexDB,
+    RasterDataDB,
 )
 from risk_framework.web_api.schemas import (
     BiodiversityRiskIndexResponse,
@@ -16,7 +20,8 @@ from risk_framework.web_api.utils import (
 )
 
 from risk_framework.biodiversity_risk import (
-    BioRiskPlusFIS
+    BioRiskPlusFIS,
+    BiofinBiodiversityRiskModelWrapper,
 )
 
 from risk_framework.species_models.per_country_species_conf import (
@@ -40,6 +45,8 @@ def retrieve_or_calculate_risk_future_or_current(
         sri_logic_type,
         sri_correction_method,
         sri_override_species_list,
+        crop_to_polygon,
+        risk_model,
         db,
         future=False,
     ):
@@ -64,6 +71,8 @@ def retrieve_or_calculate_risk_future_or_current(
         BiodiversityRiskIndexDB.sri_logic_type == sri_logic_type,
         BiodiversityRiskIndexDB.sri_correction_method == sri_correction_method,
         BiodiversityRiskIndexDB.sri_species_list == sri_species_list_str,
+        BiodiversityRiskIndexDB.crop_to_polygon == crop_to_polygon,
+        BiodiversityRiskIndexDB.risk_model == risk_model,
     )
     if future:
         query.filter(
@@ -83,6 +92,8 @@ def retrieve_or_calculate_risk_future_or_current(
         sri_correction_method,
         sri_override_species_list,
         existing_hsi_record,
+        crop_to_polygon,
+        risk_model,
         db
     )
 
@@ -98,26 +109,30 @@ def retrieve_or_calculate_risk(
         sri_correction_method,
         sri_species_list,
         existing_record,
+        crop_to_polygon,
+        risk_model,
         db
     ):
     # If record exists, retrieve it and return cached result
     if not existing_record:
-        existing_record = run_and_create_new_sri_record(
-            species_list,
+        existing_record = run_and_create_new_risk_record(
             geo_id,
             country_code.upper(),
             wkt_polygon,
             climate_scenario,
             climate_model,
             period,
-            logic_type,
-            correction_method,
+            sri_logic_type,
+            sri_correction_method,
+            sri_species_list,
+            crop_to_polygon,
+            risk_model,
             db
         )
 
     existing_raster_value = pickle.loads(existing_record.value_raster.raster_bin)
 
-    return SpeciesRichnessIndexResponse(
+    return BiodiversityRiskIndexResponse(
         id=existing_record.id,
         species_list=existing_record.species_list,
         country_code=existing_record.country_code,
@@ -137,25 +152,45 @@ def retrieve_or_calculate_risk(
         )
     )
 
-def run_and_create_new_sri_record(species_list, geo_id, country_code, wkt_polygon, climate_scenario, climate_model, period, logic_type, correction_method, db):
+def run_and_create_new_risk_record(
+        geo_id,
+        country_code,
+        wkt_polygon,
+        climate_scenario,
+        climate_model,
+        period,
+        sri_logic_type,
+        sri_correction_method,
+        sri_species_list,
+        crop_to_polygon,
+        risk_model,
+        db
+    ):
     if wkt_polygon == "" or wkt_polygon is None:
         wkt_polygon = get_country_wkt(country_code)
 
-    hsi_retrieval_method = retrieve_or_calculate_hsi_future_or_current
-    if logic_type.lower() == 'fuzzy':
-        sri_model = FuzzySRIModel(geo_id, hsi_retrieval_method, correction_method, country_code, wkt_polygon=wkt_polygon, db=db, species_list=species_list)
-    else:
-        sri_model = FuzzySRIModel(geo_id, hsi_retrieval_method, correction_method, country_code, wkt_polygon=wkt_polygon, db=db, species_list=species_list)
 
-    result = sri_model.run(climate_scenario=climate_scenario, climate_model=climate_model, period=period)
+    ch_retrieval_method = retrieve_or_calculate_ch,
+    pa_retrieval_method = retrieve_or_calculate_pa,
+    sri_retrieval_method = retrieve_or_calculate_sri_future_or_current
+    risk_model = BiofinBiodiversityRiskModelWrapper(
+        geo_id,
+        country_code,
+        wkt_polygon,
+        ch_retrieval_method, pa_retrieval_method, sri_retrieval_method,
+        sri_logic_type, sri_correction_method, sri_species_list,
+        crop_to_polygon=crop_to_polygon, risk_model=risk_model, db=db
+    )
 
-    scenario_record = create_sri_and_raster_records(
+    result = risk_model.run(climate_scenario=climate_scenario, climate_model=climate_model, period=period)
+
+    scenario_record = create_risk_and_raster_records(
         geo_id, result, db)
 
     return scenario_record
 
-def create_sri_and_raster_records(geo_id, result, db):
-    species_list = ','.join(result['species_list'])
+def create_risk_and_raster_records(geo_id, result, db):
+    sri_species_list = ','.join(result['species_list'])
     country_code = result['country_code']
     wkt_polygon = result['wkt_polygon']
     climate_scenario = result['climate_scenario']
@@ -163,12 +198,24 @@ def create_sri_and_raster_records(geo_id, result, db):
     period = result['period']
     correction_method = result['correction_method']
     logic_type = result['logic_type']
-    # hsi_registry_list = result['meta']['hsi_registry_list']
 
-    hsi_id_list = result['meta']['hsi_id_list']
+    xai_summary = result['xai_summary']
+    risk_model = result['risk_model']
+    crop_to_polygon = result['crop_to_polygon']
+    risk_ling_thresholds = result['risk_ling_thresholds']
 
-    hsi_instances = db.query(SpeciesHabitatSuitabilityIndexDB).filter(
-        SpeciesHabitatSuitabilityIndexDB.id.in_(hsi_id_list)
+    chi_id_list = result['meta']['chi_id_list']
+    pai_id_list = result['meta']['pai_id_list']
+    sri_id_list = result['meta']['sri_id_list']
+
+    chi_instances = db.query(CriticalHabitatIndexDB).filter(
+        CriticalHabitatIndexDB.id.in_(chi_id_list)
+    ).all()
+    pai_instances = db.query(ProtectedAreaIndexDB).filter(
+        ProtectedAreaIndexDB.id.in_(pai_id_list)
+    ).all()
+    sri_instances = db.query(SpeciesRichnessIndexDB).filter(
+        SpeciesRichnessIndexDB.id.in_(sri_id_list)
     ).all()
 
     if climate_scenario == 'current':
@@ -180,6 +227,52 @@ def create_sri_and_raster_records(geo_id, result, db):
     mean_value = raster_summary['mean_raster_value']
     mean_std = raster_summary['std_raster_value']
 
+    new_raster_data = create_raster_record(geo_id, raster_values, raster_meta, mean_value, mean_std)
+    db.add(new_raster_data)
+    db.flush()
+
+    xai_raster_data = result['xai_raster_data']
+    xai_raster_values = xai_raster_data['raster']
+    xai_raster_meta = xai_raster_data['meta']
+    xai_raster_summary = xai_raster_data['summary_stats']
+    xai_mean_value = xai_raster_summary['mean_raster_value']
+    xai_mean_std = xai_raster_summary['std_raster_value']
+    new_xai_raster_data = create_raster_record(geo_id, xai_raster_values, xai_raster_meta, xai_mean_value, xai_mean_std)
+    db.add(new_xai_raster_data)
+    db.flush()
+
+
+    new_record = BiodiversityRiskIndexDB(
+        id=str(uuid.uuid4()),
+        geo_id=geo_id,
+        country_code=country_code,
+        geometry=wkt_polygon,
+        value_raster_id=new_raster_data.id,
+        xai_raster_id=new_xai_raster_data.id,
+        xai_summary_json=xai_summary,
+        risk_model=risk_model,
+        risk_ling_thresholds=risk_ling_thresholds,
+        crop_to_polygon=crop_to_polygon,
+        climate_scenario=climate_scenario,
+        climate_model=str(climate_models),
+        period=period,
+        sri_species_list=sri_species_list,
+        sri_correction_method=correction_method,
+        sri_logic_type=logic_type,
+        chi_related=chi_instances,
+        pai_related=pai_instances,
+        sri_related=sri_instances,
+    )
+
+
+    db.add(new_record)
+    db.commit()
+    new_record.value_raster = new_raster_data
+    new_record.xai_raster = new_xai_raster_data
+    return new_record
+
+
+def create_raster_record(geo_id, raster_values, raster_meta, mean_value, mean_std):
     new_raster_data = RasterDataDB(
         id=str(uuid.uuid4()),
         geo_id=geo_id,
@@ -188,28 +281,4 @@ def create_sri_and_raster_records(geo_id, result, db):
         mean_value=float(mean_value),
         mean_std=float(mean_std),
     )
-
-    db.add(new_raster_data)
-    db.flush()
-
-    new_record = SpeciesRichnessIndexDB(
-        id=str(uuid.uuid4()),
-        geo_id=geo_id,
-        value_raster_id=new_raster_data.id,
-        geometry=wkt_polygon,
-        species_list=species_list,
-        country_code=country_code,
-        climate_scenario=climate_scenario,
-        climate_model=str(climate_models),
-        period=period,
-        correction_method=correction_method,
-        logic_type=logic_type,
-        # hsi_related=hsi_registry_list
-        hsi_related=hsi_instances
-    )
-
-    db.add(new_record)
-    db.commit()
-    new_record.value_raster = new_raster_data
-    return new_record
-
+    return new_raster_data

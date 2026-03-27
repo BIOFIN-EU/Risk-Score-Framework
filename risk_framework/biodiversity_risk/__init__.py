@@ -1,1 +1,2 @@
+from .model_wrapper import BiofinBiodiversityRiskModelWrapper
 from .bio_risk_plus import BioRiskPlusFIS

@@ -26,10 +26,11 @@ async def calculate_current_biodiversity_risk_index(request: CurrentBiodiversity
         request: CurrentBiodiversityRiskIndexRequest containing:
             - country_code: ISO 3166-1 alpha-2 country code (e.g., 'BR', 'US')
             - wkt_polygon: Optional WKT (Well-Known Text) polygon string to restrict calculation area
+            - crop_to_polygon: True/False, if should crop result raster to wkt_polygon area.
+            - risk_model: YangEtAl2021 or SihamEtAl2026 or PontesEtAl2026 - determines the risk model used for the calculation.
             - sri_logic_type: 'fuzzy' or 'crisp' - determines calculation methodology for the SRI component.
             - sri_correction_method: Optional correction method to apply to the SRI component. Currently only supports None, or HFI
             - sri_override_species_list: Optional custom species list to use for SRI calculation instead of defaults
-            - risk_model: YangEtAl2021 or SihamEtAl2026 or PontesEtAl2026 - determines the risk model used for the calculation.
 
     Returns:
     - JSON dictionary containing the Biodiversity Loss Risk Index result
@@ -40,6 +41,8 @@ async def calculate_current_biodiversity_risk_index(request: CurrentBiodiversity
     sri_logic_type = request.sri_logic_type
     sri_correction_method = request.sri_correction_method
     sri_override_species_list = request.sri_override_species_list
+    crop_to_polygon = request.crop_to_polygon
+    risk_model = request.risk_model
     geo_id = generate_geo_uuid(
         request.country_code,
         request.wkt_polygon
@@ -54,6 +57,8 @@ async def calculate_current_biodiversity_risk_index(request: CurrentBiodiversity
         sri_logic_type,
         sri_correction_method,
         sri_override_species_list,
+        crop_to_polygon,
+        risk_model,
         db,
         future=False
     )
