@@ -432,7 +432,10 @@ class BioRiskPlusFIS(object):
                     si=self.sri_raster[i, j]
                 )
                 if self.last_explainable_data:
-                    self.explainable_data_rule_raster[i, j] = next(self.last_explainable_data['activated_rules'].values())
+                    # retrieve only top activated rule id that
+                    top_activated_rule_data = list(self.last_explainable_data['activated_rules'].values())[0]
+                    rule_id = top_activated_rule_data['rule_id']
+                    self.explainable_data_rule_raster[i, j] = rule_id
         self.post_processing()
         return risk_raster
 

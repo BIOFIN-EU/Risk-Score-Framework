@@ -47,6 +47,7 @@ class ExplainableControlSystemSimulation(ctrl.ControlSystemSimulation):
 
             # self.antecedent, cons,
             fire_activations_dict[rule_idx] = {
+                'rule_id': rule_idx,
                 'rule': f'IF {rule.antecedent} THEN {",".join([str(c) for c in rule.consequent])}',
                 'activation': rule.aggregate_firing[self]
             }

@@ -10,6 +10,8 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures, if any."""
+        self.lowers_risk = 0.11
+        self.highest_risk = 0.95
         self.chl_raster = np.array([
             [0, 1,  0.5,   0],
             [0.5, 0,  1, 0.5],
@@ -76,6 +78,32 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
             'si': 0
         })
         self.assertIn('activated_rules', self.fis.fis_sim.explainable_data)
+
+    def test_fis_run_raster_inputs_multiple_cases_simple(self):
+
+        self.chl_raster = np.array([
+            [1,     1],
+            [0,     0],
+        ], dtype=np.float32)
+        self.pa_raster = np.array([
+            [1,     1],
+            [0,     0],
+        ], dtype=np.float32)
+
+        self.sri_raster = np.array([
+            [0,     0],
+            [1,     1],
+        ], dtype=np.float32)
+        expected_raster = [
+            [self.highest_risk,     self.highest_risk],
+            [self.lowers_risk,     self.lowers_risk],
+        ]
+
+        risk_raster = self.fis.run(self.chl_raster, self.pa_raster, self.sri_raster)
+
+        self.assertEqual(risk_raster.shape, (2, 2))
+        np.testing.assert_array_almost_equal(risk_raster,expected_raster, decimal=2)
+
 
     def _test_fis_run_raster_inputs_multiple_cases(self):
         self.chl_raster = np.array([
