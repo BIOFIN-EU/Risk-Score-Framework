@@ -81,9 +81,8 @@ def load_poligon_gdf(wkt_polygon):
     return polygon_gdf
 
 
-def apply_geometry_mask_to_raster(wkt_polygon, raster_array, raster_meta, crop=False, nodata=-1):
-    cliped_raster_meta = raster_meta.copy()
-    polygon_gdf = load_poligon_gdf(wkt_polygon)
+def apply_geometry_mask_to_raster(polygon_gdf, raster_array, raster_meta, crop=False, nodata=-9999.0):
+    cliped_raster_meta = dict(raster_meta.copy())
 
 
     # Create transform object for rasterio
@@ -93,7 +92,6 @@ def apply_geometry_mask_to_raster(wkt_polygon, raster_array, raster_meta, crop=F
         cliped_raster_meta['transform'][0],  # pixel width
         abs(cliped_raster_meta['transform'][4])  # pixel height (make positive)
     )
-    cliped_raster_meta['nodata'] = nodata
     # Create in-memory dataset and mask
     with MemoryFile() as memfile:
         with memfile.open(
@@ -103,6 +101,7 @@ def apply_geometry_mask_to_raster(wkt_polygon, raster_array, raster_meta, crop=F
             count=1,
             dtype=raster_array.dtype,
             crs=raster_meta['crs'],
+            nodata=raster_meta['nodata'],
             transform=transform
         ) as dataset:
 
@@ -118,27 +117,19 @@ def apply_geometry_mask_to_raster(wkt_polygon, raster_array, raster_meta, crop=F
             mask_array, out_transform = mask(
                 dataset,
                 geoms,
-                crop=False,
+                crop=crop,
+                all_touched=True,
                 filled=True,
                 invert=False,
                 nodata=nodata
             )
-            # masked_raster = np.where(mask_array[0] == 1, raster_array, -1)# Check pixels that are NOT -1 in masked_result
-            # masked_result = mask_array[0]
-            # valid_pixels = masked_result != -1
-
-            # # Compare original vs masked where mask has valid values
-            # if np.any(valid_pixels):
-            #     are_equal = np.allclose(raster_array[valid_pixels], masked_result[valid_pixels])
-            #     print(f"Original and masked values match inside polygon: {are_equal}")
-
-            #     if not are_equal:
-            #         diff = np.abs(raster_array[valid_pixels] - masked_result[valid_pixels])
-            #         print(f"Max difference: {np.max(diff)}")
-            #         print(f"Mean difference: {np.mean(diff)}")
-            # else:
-            #     print("No valid pixels found inside polygon")
-            return mask_array[0]
+            final_raster = mask_array[0]
+            cliped_raster_meta.update({
+                'transform': out_transform,
+                'width': final_raster.shape[1],
+                'height': final_raster.shape[0]
+            })
+            return final_raster, cliped_raster_meta
 
 def reproject_to_crs(rasterio_src, dst_crs='EPSG:4326', dst_nodata=None, dst_dtype=None):
     # Calculate transform for EPSG:4326

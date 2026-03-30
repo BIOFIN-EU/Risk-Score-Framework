@@ -1,11 +1,14 @@
+from functools import lru_cache
 from collections import Counter
+import json
 
 import numpy as np
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 
 
-from .skfis_extended import ExplainableControlSystemSimulation
+from risk_framework.biodiversity_risk.skfis_extended import ExplainableControlSystemSimulation
+from risk_framework.conf import RISK_FUZZY_CACHED_FILE
 
 
 # Define Yager AND operator with p=0.5
@@ -44,17 +47,108 @@ class BioRiskPlusFIS(object):
 
 
     """
-    def __init__(self):
+    def __init__(self, cache=True, sri_rounding=4):
         self.raster_nodata = -9999
         self.default_score_names = ['low', 'medium-low', 'medium', 'medium-high', 'high']
         self.get_rates_uod = lambda: np.arange(0, 1.01, 0.01)
         self.setup_vars_and_mfs()
         self.setup_rules()
+        self.cache = cache
+        self.sri_rounding = sri_rounding
         self.fis = ctrl.ControlSystem(self.rules)
         # self.fis_sim = ctrl.ControlSystemSimulation(self.fis, cache=False)
-        self.fis_sim = ExplainableControlSystemSimulation(self.fis, cache=False)
+        self.fis_sim = ExplainableControlSystemSimulation(self.fis, cache=cache)
+        self.fis_sim.si_rounding = self.sri_rounding
         self.explainable_data = None
         self.explainable_data_rule_raster = None
+        self.loaded_cache_db = None
+
+    def prepare_risk_cache_db(self):
+        """Precompute all possible combinations and save to cache file"""
+
+        # Define all possible values
+        ch_values = [
+            np.float64(self.map_ch_fuzzy_label_to_crisp(0.0)),
+            np.float64(self.map_ch_fuzzy_label_to_crisp(0.5)),
+            np.float64(self.map_ch_fuzzy_label_to_crisp(1.0))
+        ]
+        pa_values = [0.0, 1.0]
+
+        # Generate si values from 0 to 1 inclusive with step 0.0001
+        si_values = np.arange(0.0, 1.0001, 0.0001).round(4).tolist()
+
+        # Create cache dictionary
+        cache_db = {}
+
+        # Calculate total combinations for progress tracking
+        total_combinations = len(ch_values) * len(pa_values) * len(si_values)
+        processed = 0
+
+        print(f"Preparing risk cache database...")
+        print(f"  ch values: {ch_values}")
+        print(f"  pa values: {pa_values}")
+        print(f"  si values: {len(si_values)} (0.0000 to 1.0000)")
+        print(f"  Total combinations: {total_combinations:,}")
+        print()
+
+        # Iterate through all combinations
+        for ch in ch_values:
+            for pa in pa_values:
+                for si in si_values:
+                    # Round si to ensure consistency
+                    si_rounded = np.round(si, decimals=self.sri_rounding)
+
+                    # Create cache key
+                    cache_key = f"{ch}_{pa}_{si_rounded:.4f}"
+
+                    # Run the model
+                    output, explainable_data = self.run_single_cached(
+                        ch=ch,
+                        pa=pa,
+                        si=si
+                    )
+
+                    # Convert numpy types to Python native types for JSON serialization
+                    if isinstance(output, np.floating):
+                        output = float(output)
+
+                    # Store in cache database
+                    cache_db[cache_key] = {
+                        'output': output,
+                        'explainable_data': explainable_data
+                    }
+
+                    # Update progress
+                    processed += 1
+                    if processed % 1000 == 0 or processed == total_combinations:
+                        percent = (processed / total_combinations) * 100
+                        print(f"Progress: {processed:,}/{total_combinations:,} ({percent:.1f}%)")
+            #         if processed == 1000:
+            #             break
+
+            #     if processed == 1000:
+            #         break
+
+            # if processed == 1000:
+                # break
+
+
+        # Save to JSON file
+        print(f"\nSaving cache to {RISK_FUZZY_CACHED_FILE}...")
+        try:
+            with open(RISK_FUZZY_CACHED_FILE, 'w') as f:
+                json.dump(cache_db, f, indent=2)
+            print(f"Successfully saved {len(cache_db):,} entries to cache file")
+        except Exception as e:
+            print(f"Error saving cache: {e}")
+
+        return cache_db
+
+    def setup_cache_db(self):
+        if self.cache:
+            with open(RISK_FUZZY_CACHED_FILE, 'r') as f:
+                self.loaded_cache_db = json.load(f)
+
 
     def setup_vars_and_mfs(self):
         self.ch_var = ctrl.Antecedent(self.get_rates_uod(), 'ch')
@@ -379,11 +473,11 @@ class BioRiskPlusFIS(object):
         mapped_raster = np.vectorize(label_map.get)(chl_raster)
         return mapped_raster
 
-    def pre_process(self, chl_raster, pa_raster, sri_raster):
-        # add valid mask filter here? only should run for valid mask, and put self.raster_nodata on the rest
-        self.chl_raster = chl_raster
+    def pre_process(self, ch_raster, pa_raster, sri_raster):
+        # ch with linguistic based values. not the final index values
+        self.chl_raster = ch_raster
         self.pa_raster = pa_raster
-        self.sri_raster = sri_raster
+        self.sri_raster = np.round(sri_raster, decimals=self.sri_rounding)
         self.ch_raster = self.map_ch_fuzzy_label_to_crisp(self.chl_raster)
         self.valid_mask = (self.sri_raster >= 0) & (self.ch_raster >= 0) & (self.pa_raster >= 0)
 
@@ -415,37 +509,63 @@ class BioRiskPlusFIS(object):
         }
         return expl_info
 
-    def run(self, chl_raster, pa_raster, sri_raster):
+    def run(self, ch_raster, pa_raster, sri_raster):
         self.failed = []
-        self.pre_process(chl_raster, pa_raster, sri_raster)
+        self.pre_process(ch_raster, pa_raster, sri_raster)
         # Create empty risk raster with same shape as input (only using one raster, all should be equal)
         risk_raster = np.full_like(self.ch_raster, self.raster_nodata, dtype=np.float64)
 
         self.explainable_data_rule_raster = np.full_like(self.ch_raster, self.raster_nodata, dtype=np.int16)
         # Get shape for iteration
         rows, cols = self.ch_raster.shape
+        total_pixels = rows * cols
+        valid_pixels = np.sum(self.valid_mask)
+        processed_pixels = 0
+        last_percent = 0
+
+        print(f"Total pixels: {total_pixels:,}")
+        print(f"Valid pixels: {valid_pixels:,} ({valid_pixels/total_pixels*100:.1f}%)")
+        print("Processing...")
+
 
         # Iterate through each pixel position
         for i in range(rows):
             for j in range(cols):
                 if self.valid_mask[i, j]:
-                    pixel_result = self.run_single(
+                    # pixel_result = self.run_single(
+                    #     ch=self.ch_raster[i, j],
+                    #     pa=self.pa_raster[i, j],
+                    #     si=self.sri_raster[i, j]
+                    # )
+                    pixel_result, last_explainable_data = self.run_single_cached(
                         ch=self.ch_raster[i, j],
                         pa=self.pa_raster[i, j],
                         si=self.sri_raster[i, j]
                     )
                     risk_raster[i, j] = pixel_result
-                    if self.last_explainable_data:
+                    # if self.last_explainable_data:
+                    if last_explainable_data:
                         # retrieve only top activated rule id that
-                        top_activated_rule_data = list(self.last_explainable_data['activated_rules'].values())[0]
+                        # top_activated_rule_data = list(self.last_explainable_data['activated_rules'].values())[0]
+                        top_activated_rule_data = list(last_explainable_data['activated_rules'].values())[0]
                         rule_id = top_activated_rule_data['rule_id']
                         self.explainable_data_rule_raster[i, j] = rule_id
+                    processed_pixels += 1
+
+                    # Print progress every 1%
+                    current_percent = int(processed_pixels / valid_pixels * 100)
+                    if current_percent > last_percent:
+                        last_percent = current_percent
+                        print(f"Progress: {current_percent}% ({processed_pixels:,}/{valid_pixels:,} pixels)")
+
+        print(f"Processing complete: {processed_pixels:,}/{valid_pixels:,} pixels (100%)")
         self.post_processing()
         return risk_raster
 
     def run_single(self, **input_kwargs):
         for key, value in input_kwargs.items():
-            self.fis_sim.input[key] = np.float64(value)
+            value = np.float64(value)
+            self.fis_sim.input[key] = value
         self.fis_sim.compute()
         output = self.raster_nodata
         self.last_explainable_data = None
@@ -453,8 +573,32 @@ class BioRiskPlusFIS(object):
             self.failed.append((input_kwargs, ))
         else:
             output = self.fis_sim.output['risk']
-            self.last_explainable_data = self.fis_sim.explainable_data
+            self.last_explainable_data = self.fis_sim.last_explainable_data
         return output
+
+
+    @lru_cache(maxsize=100000)
+    def run_single_cached(self, ch, pa, si):
+        """Cached version that takes primitive arguments"""
+        self.fis_sim.input['ch'] = ch
+        self.fis_sim.input['pa'] = pa
+        self.fis_sim.input['si'] = si
+        self.fis_sim.compute()
+        output = self.raster_nodata
+        self.last_explainable_data = None
+        if 'risk' not in self.fis_sim.output:
+            self.failed.append(({'ch': ch, 'pa': pa, 'si': si},))
+        else:
+            output = self.fis_sim.output['risk']
+            self.last_explainable_data = self.fis_sim.last_explainable_data
+        return output, self.last_explainable_data.copy()
+
+
+    def run_from_cached_db(self, ch, pa, si):
+        si_round = np.round(si, decimals=self.si_rounding)
+        input_hash = (ch, pa, si_round)
+
+
 
 # class BioRiskPlusExtendedFIS(object):
 #     """
@@ -515,7 +659,7 @@ class BioRiskPlusFIS(object):
 #         self.ch_raster = self.map_ch_fuzzy_label_to_crisp()
 
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
 #     chl_raster = np.array([
 #         [0, 1,  0.5,   0],
 #         [0.5, 0,  1, 0.5],
@@ -547,3 +691,6 @@ class BioRiskPlusFIS(object):
 #         [0.81, 0.53,  0.25,   0.81]
 #     ], dtype=np.float32)
 #     np.testing.assert_array_almost_equal(fis.ch_raster,expected_ch_raster, decimal=2)
+
+    fis = BioRiskPlusFIS(cache=True, sri_rounding=4)
+    fis.prepare_risk_cache_db()

@@ -7,6 +7,9 @@ from rasterio.mask import mask
 from shapely.geometry import mapping
 
 
+from risk_framework.web_api.utils import apply_geometry_mask_to_raster
+
+
 
 class BiofinBiodiversityRiskModelWrapper(object):
     def __init__(
@@ -37,6 +40,7 @@ class BiofinBiodiversityRiskModelWrapper(object):
         self.sri_species_list = sri_species_list
         self.crop_to_polygon = crop_to_polygon
         self.risk_model_name = risk_model
+        self.raster_nodata = -9999.0
         self.db = db
         self.setup_risk_model()
 
@@ -48,7 +52,7 @@ class BiofinBiodiversityRiskModelWrapper(object):
             'SihamEtAl2026': BioRiskPlusFIS,
             'PontesEtAl2026': BioRiskPlusFIS,
         }
-        self.risk_model = models_map[self.risk_model_name]
+        self.risk_model = models_map[self.risk_model_name]()
 
 
     def get_raster_and_meta_from_ch_response_object(self):
@@ -124,7 +128,7 @@ class BiofinBiodiversityRiskModelWrapper(object):
                 dst_transform=ref_transform,
                 dst_crs=reference_meta['crs'],
                 dst_nodata=reference_meta['nodata'],
-                resampling=Resampling.bilinear
+                resampling=Resampling.nearest # ensure original categories from CH and PA datasets
             )
             aligned_rasters.append(dest)
 
@@ -140,10 +144,16 @@ class BiofinBiodiversityRiskModelWrapper(object):
             future = False
 
         ch_reg, ch_raster, ch_meta = self.get_raster_and_meta_from_ch_response_object()
+
         pa_reg, pa_raster, pa_meta = self.get_raster_and_meta_from_ch_response_object()
         sri_reg, sri_raster, sri_meta = self.get_raster_and_meta_from_sri_response_object(
             climate_model, climate_model, period, future)
-        import ipdb; ipdb.set_trace()
+        if self.crop_to_polygon:
+            polygon_gdf = load_poligon_gdf(self.wkt_polygon)
+            ch_raster, ch_meta = apply_geometry_mask_to_raster(polygon_gdf, ch_raster, ch_meta, crop=True, nodata=self.raster_nodata)
+            pa_raster, pa_meta = apply_geometry_mask_to_raster(polygon_gdf, pa_raster, pa_meta, crop=True, nodata=self.raster_nodata)
+            sri_raster, sri_meta = apply_geometry_mask_to_raster(polygon_gdf, sri_raster, sri_meta, crop=True, nodata=self.raster_nodata)
+
 
         rasters_list = [sri_raster, ch_raster, pa_raster]
         meta_list = [sri_meta, ch_meta, pa_meta]
@@ -156,7 +166,8 @@ class BiofinBiodiversityRiskModelWrapper(object):
 
         valid_mask = (sri_raster >= 0) & (ch_raster >= 0) & (pa_raster >= 0)
 
-        risk_raster = self.risk_model.run(ch_raster, pa_raster, sri_raster)
+        import ipdb; ipdb.set_trace()
+        risk_raster = self.risk_model.run(ch_raster=ch_raster, pa_raster=pa_raster, sri_raster=sri_raster)
         xai_data = self.risk_model.get_explainability_info()
 
         mean_raster_value = float(np.mean(risk_raster[valid_mask]))
@@ -224,7 +235,6 @@ if __name__ == '__main__':
         sri_logic_type, sri_correction_method, sri_species_list,
         crop_to_polygon=crop_to_polygon, risk_model=risk_model, db=db
     )
-    import ipdb; ipdb.set_trace()
     climate_scenario = 'current'
     climate_model = None
     period = 'current'
