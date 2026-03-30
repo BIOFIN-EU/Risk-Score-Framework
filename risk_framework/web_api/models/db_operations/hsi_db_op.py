@@ -101,7 +101,7 @@ def run_and_create_new_hsi_records(geo_id, species_name, country_code, wkt_polyg
             raster_values = result['raster']
             raster_summary = result['summary_stats']
             raster_meta = result['meta']
-            raster_meta['nodata'] = -1
+            raster_meta['nodata'] = -9999.0
             scenario_record = create_hsi_and_raster_records(
                 geo_id, all_results, scenario, period, wkt_polygon, raster_values, raster_summary, raster_meta, db)
             scenarios_records[scenario]['periods'][period] = scenario_record

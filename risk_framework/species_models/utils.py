@@ -1324,7 +1324,7 @@ class SpeciesHabitatSuitabilityUtils():
             raster_meta['transform'][0],  # pixel width
             abs(raster_meta['transform'][4])  # pixel height (make positive)
         )
-        raster_meta['nodata'] = -1
+        raster_meta['nodata'] = -9999.0
         # Create in-memory dataset and mask
         with MemoryFile() as memfile:
             with memfile.open(
@@ -1352,7 +1352,7 @@ class SpeciesHabitatSuitabilityUtils():
                     crop=False,
                     filled=True,
                     invert=False,
-                    nodata=-1  # Temporary mask value outside 0-1 range
+                    nodata=-9999.0  # Temporary mask value outside 0-1 range
                 )
                 # masked_raster = np.where(mask_array[0] == 1, raster_array, -1)# Check pixels that are NOT -1 in masked_result
                 # masked_result = mask_array[0]

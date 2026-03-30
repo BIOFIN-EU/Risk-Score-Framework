@@ -57,8 +57,8 @@ class CurrentSpeciesRichnessIndexRequest(BaseScoreIndexRequest):
         description="The type of correction method used. Options are HFI or null"
     )
 
-    class Config(BaseFutureScoreIndexRequest.Config):
-        schema_extra = BaseFutureScoreIndexRequest.Config.schema_extra.copy()
+    class Config(BaseScoreIndexRequest.Config):
+        schema_extra = BaseScoreIndexRequest.Config.schema_extra.copy()
         schema_extra['example'].update({
             "override_species_list": "Anthus trivialis,Columba palumbus",
             "logic_type": "fuzzy",
@@ -106,3 +106,73 @@ class SpeciesRichnessIndexResponse(BaseClimateRasterScoreIndexResponse):
             "logic_type": "fuzzy",
             "correction_method": "HFI",
         })
+
+
+
+
+
+class CurrentBiodiversityRiskIndexRequest(BaseScoreIndexRequest):
+    sri_override_species_list: Optional[str] = Field(
+        None,
+        description="Comma-separated list of Indicator Species to be used during SRI calculation instead of the default ones (e.g., 'Anthus trivialis,Columba palumbus')"
+    )
+    sri_logic_type: str = Field(
+        ...,
+        description="The type of logic used for the SRI calculation (i.e., 'fuzzy' or 'crisp')"
+    )
+    sri_correction_method: Optional[str] = Field(
+        None,
+        description="The type of SRI correction method used. Options are HFI or null"
+    )
+    crop_to_polygon: bool = Field(
+        ...,
+        description="If should crop output raster to the WKT Polygon used."
+    )
+    risk_model: str = Field(
+        ...,
+        description="The type of risk model used for this calculation. Options are: 'YangEtAl2021', 'SihamEtAl2026', 'PontesEtAl2026'"
+    )
+    class Config(BaseFutureScoreIndexRequest.Config):
+        schema_extra = BaseFutureScoreIndexRequest.Config.schema_extra.copy()
+        schema_extra['example'].update({
+            "sri_override_species_list": "Anthus trivialis,Columba palumbus",
+            "sri_logic_type": "fuzzy",
+            "sri_correction_method": "HFI",
+            'crop_to_polygon': True,
+            'risk_model': 'PontesEtAl2026',
+        })
+
+
+
+
+class BiodiversityRiskIndexResponse(BaseClimateRasterScoreIndexResponse):
+    """Main response schema for BiodiversityRiskIndexResponse:
+    """
+    sri_species_list: str = Field(..., description="Comma-separated list of Indicator Species used during SRI calculation (e.g., 'Anthus trivialis,Columba palumbus')")
+    sri_logic_type: str = Field(
+        ...,
+        description="The type of logic used for the SRI calculation (i.e., 'fuzzy' or 'crisp')"
+    )
+    sri_correction_method: Optional[str] = Field(
+        None,
+        description="The type of correction method used for the SRI. (i.e., 'HFI' or null)"
+    )
+    crop_to_polygon:  bool = Field(
+        ...,
+        description="If the output raster was cropped to the WKT Polygon used."
+    )
+    risk_model: str = Field(
+        ...,
+        description="The type of risk model used for this calculation."
+    )
+    class Config(BaseClimateRasterScoreIndexResponse.Config):
+        schema_extra = BaseClimateRasterScoreIndexResponse.Config.schema_extra.copy()
+        schema_extra['example'].update({
+            "sri_species_list": "Anthus trivialis,Columba palumbus",
+            "sri_logic_type": "fuzzy",
+            "sri_correction_method": "HFI",
+            'crop_to_polygon': True,
+            'risk_model': 'PontesEtAl2026',
+        })
+
+    #probably will want to add here and in SRI the URI reference to related resources (in here would be SRI, CHI and PAI)

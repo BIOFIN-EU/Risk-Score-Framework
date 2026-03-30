@@ -39,6 +39,7 @@ class SRIBaseModel(object):
             self.species_list = species_list
         self.geo_id = geo_id
         self.db = db
+        self.sri_no_data = -9999.0
 
     def get_species_list(self):
         species_list = INDICATOR_SP_PER_COUNTRY.get(self.country_code, [])
@@ -90,7 +91,7 @@ class SRIBaseModel(object):
         aligned_rasters.append(reference_raster)
         for raster, meta in zip(species_rasters[1:], species_metas[1:]):
             # Create destination array with reference shape
-            dest = np.full((h, w), -1, dtype=reference_raster.dtype)
+            dest = np.full((h, w), self.sri_no_data, dtype=reference_raster.dtype)
 
             # Create source transform
             src_transform = from_origin(
@@ -106,10 +107,10 @@ class SRIBaseModel(object):
                 destination=dest,
                 src_transform=src_transform,
                 src_crs=meta['crs'],
-                src_nodata=-1,  # <-- ADD THIS
+                src_nodata=self.sri_no_data,  # <-- ADD THIS
                 dst_transform=ref_transform,
                 dst_crs=reference_meta['crs'],
-                dst_nodata=-1,  # <-- ADD THIS
+                dst_nodata=self.sri_no_data,  # <-- ADD THIS
                 resampling=Resampling.bilinear
             )
             # Replace negative areas with reference raster values

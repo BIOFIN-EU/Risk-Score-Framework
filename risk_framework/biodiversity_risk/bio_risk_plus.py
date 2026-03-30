@@ -45,6 +45,7 @@ class BioRiskPlusFIS(object):
 
     """
     def __init__(self):
+        self.raster_nodata = -9999
         self.default_score_names = ['low', 'medium-low', 'medium', 'medium-high', 'high']
         self.get_rates_uod = lambda: np.arange(0, 1.01, 0.01)
         self.setup_vars_and_mfs()
@@ -378,6 +379,7 @@ class BioRiskPlusFIS(object):
         return mapped_raster
 
     def pre_process(self, chl_raster, pa_raster, sri_raster):
+        # add valid mask filter here? only should run for valid mask, and put self.raster_nodata on the rest
         self.chl_raster = chl_raster
         self.pa_raster = pa_raster
         self.sri_raster = sri_raster
@@ -393,12 +395,31 @@ class BioRiskPlusFIS(object):
         top_5_rules_activated = rule_counter.most_common(5)
         self.explainable_data = self.fis_sim.get_rules_string_by_id_list(top_5_rules_activated)
 
+    def get_xai_humam_text(self):
+        # fix this, too confusing...
+        # explainable data should just be the ids, not the at this point
+        # this method should instead transform this into a humam readable text.
+        return self.explainable_data
+
+    def get_explainability_info(self):
+        expl_info = {
+            'xai_raster_data': {
+                'raster': self.explainable_data_rule_raster,
+            },
+            'xai_summary_json': {
+                'xai_rules_meta': self.fis_sim.get_all_rules_id_components_map(),
+                'xai_humam_text': self.get_xai_humam_text()
+            }
+        }
+        return expl_info
+
     def run(self, chl_raster, pa_raster, sri_raster):
         self.failed = []
         self.pre_process(chl_raster, pa_raster, sri_raster)
         # Create empty risk raster with same shape as input (only using one raster, all should be equal)
-        risk_raster = np.zeros_like(self.ch_raster, dtype=np.float64)
-        self.explainable_data_rule_raster = np.full_like(self.ch_raster, -1, dtype=np.int16)
+        risk_raster = np.full_like(self.ch_raster, self.raster_nodata, dtype=np.float64)
+
+        self.explainable_data_rule_raster = np.full_like(self.ch_raster, self.raster_nodata, dtype=np.int16)
         # Get shape for iteration
         rows, cols = self.ch_raster.shape
 
