@@ -373,6 +373,7 @@ class BioRiskPlusFIS(object):
             # 0.5: fuzz.defuzz(self.ch_var.universe, self.ch_var['potential'].mf, 'centroid'), # potential
             0.5: 0.5, # avoid rounding errors, the centroid is 0.5 in any case
             1: fuzz.defuzz(self.ch_var.universe, self.ch_var['likely'].mf, 'lom'), #likely
+            self.raster_nodata: self.raster_nodata
         }
 
         mapped_raster = np.vectorize(label_map.get)(chl_raster)
@@ -384,6 +385,7 @@ class BioRiskPlusFIS(object):
         self.pa_raster = pa_raster
         self.sri_raster = sri_raster
         self.ch_raster = self.map_ch_fuzzy_label_to_crisp(self.chl_raster)
+        self.valid_mask = (self.sri_raster >= 0) & (self.ch_raster >= 0) & (self.pa_raster >= 0)
 
     def post_processing(self):
         valid_rules = self.explainable_data_rule_raster[
@@ -426,24 +428,26 @@ class BioRiskPlusFIS(object):
         # Iterate through each pixel position
         for i in range(rows):
             for j in range(cols):
-                risk_raster[i, j] = self.run_single(
-                    ch=self.ch_raster[i, j],
-                    pa=self.pa_raster[i, j],
-                    si=self.sri_raster[i, j]
-                )
-                if self.last_explainable_data:
-                    # retrieve only top activated rule id that
-                    top_activated_rule_data = list(self.last_explainable_data['activated_rules'].values())[0]
-                    rule_id = top_activated_rule_data['rule_id']
-                    self.explainable_data_rule_raster[i, j] = rule_id
+                if self.valid_mask[i, j]:
+                    pixel_result = self.run_single(
+                        ch=self.ch_raster[i, j],
+                        pa=self.pa_raster[i, j],
+                        si=self.sri_raster[i, j]
+                    )
+                    risk_raster[i, j] = pixel_result
+                    if self.last_explainable_data:
+                        # retrieve only top activated rule id that
+                        top_activated_rule_data = list(self.last_explainable_data['activated_rules'].values())[0]
+                        rule_id = top_activated_rule_data['rule_id']
+                        self.explainable_data_rule_raster[i, j] = rule_id
         self.post_processing()
         return risk_raster
 
     def run_single(self, **input_kwargs):
         for key, value in input_kwargs.items():
-            self.fis_sim.input[key] = value
+            self.fis_sim.input[key] = np.float64(value)
         self.fis_sim.compute()
-        output = 0
+        output = self.raster_nodata
         self.last_explainable_data = None
         if 'risk' not in self.fis_sim.output:
             self.failed.append((input_kwargs, ))

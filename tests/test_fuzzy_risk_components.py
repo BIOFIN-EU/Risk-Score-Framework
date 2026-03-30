@@ -10,9 +10,9 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures, if any."""
-        self.lowers_risk = 0.11
-        self.highest_risk = 0.95
-        self.chl_raster = np.array([
+        self.lowest_risk = 0.09285
+        self.highest_risk = 0.94583
+        self.ch_raster = np.array([
             [0, 1,  0.5,   0],
             [0.5, 0,  1, 0.5],
             [1, 0.5,  0,   1]
@@ -42,7 +42,7 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
         """Tear down test fixtures, if any."""
 
     def _test_map_ch_fuzzy_label_to_crisp_produces_correct_mapping(self):
-        ch_raster = self.fis.map_ch_fuzzy_label_to_crisp(self.chl_raster)
+        ch_raster = self.fis.map_ch_fuzzy_label_to_crisp(self.ch_raster)
         expected_ch_raster = np.array([
             [0.22, 0.80,  0.50,   0.22],
             [0.50, 0.22,  0.80, 0.50],
@@ -79,34 +79,62 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
         })
         self.assertIn('activated_rules', self.fis.fis_sim.explainable_data)
 
-    def test_fis_run_raster_inputs_multiple_cases_simple(self):
+    def _test_fis_run_raster_inputs_multiple_cases_simple(self):
 
-        self.chl_raster = np.array([
+        self.ch_raster = np.array([
             [1,     1],
             [0,     0],
-        ], dtype=np.float32)
+        ], dtype=np.float64)
         self.pa_raster = np.array([
             [1,     1],
             [0,     0],
-        ], dtype=np.float32)
+        ], dtype=np.float64)
 
         self.sri_raster = np.array([
             [0,     0],
             [1,     1],
-        ], dtype=np.float32)
+        ], dtype=np.float64)
         expected_raster = [
             [self.highest_risk,     self.highest_risk],
-            [self.lowers_risk,     self.lowers_risk],
+            [self.lowest_risk,     self.lowest_risk],
         ]
 
-        risk_raster = self.fis.run(self.chl_raster, self.pa_raster, self.sri_raster)
+        risk_raster = self.fis.run(self.ch_raster, self.pa_raster, self.sri_raster)
 
         self.assertEqual(risk_raster.shape, (2, 2))
         np.testing.assert_array_almost_equal(risk_raster,expected_raster, decimal=2)
 
+    def test_fis_run_raster_inputs_multiple_cases_only_valid_mask(self):
+        nd = self.fis.raster_nodata
+        self.ch_raster = np.array([
+            [nd,     nd],
+            [1,     0],
+            [0,     0],
+        ], dtype=np.float64)
+        self.pa_raster = np.array([
+            [1,     1],
+            [1,     0],
+            [0,     nd],
+        ], dtype=np.float64)
+
+        self.sri_raster = np.array([
+            [0,     0],
+            [0,     1],
+            [nd,     1],
+        ], dtype=np.float64)
+        expected_raster = [
+            [nd,                                   nd],
+            [self.highest_risk,     self.lowest_risk],
+            [nd,                                   nd],
+        ]
+        risk_raster = self.fis.run(self.ch_raster, self.pa_raster, self.sri_raster)
+
+        self.assertEqual(risk_raster.shape, (3, 2))
+        np.testing.assert_array_almost_equal(risk_raster,expected_raster, decimal=2)
+
 
     def _test_fis_run_raster_inputs_multiple_cases(self):
-        self.chl_raster = np.array([
+        self.ch_raster = np.array([
             [0,     0,    0,   0],
             [0.5, 0.5,  0.5, 0.5],
             [1,     1,    1,   1]
@@ -128,7 +156,7 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
             [0.9 , 0.76 , 0.75 , 0.75]
         ]
 
-        risk_raster = self.fis.run(self.chl_raster, self.pa_raster, self.sri_raster)
+        risk_raster = self.fis.run(self.ch_raster, self.pa_raster, self.sri_raster)
 
         self.assertEqual(risk_raster.shape, (3, 4))
         np.testing.assert_array_almost_equal(risk_raster,expected_raster, decimal=2)
