@@ -144,7 +144,7 @@ class CurrentBiodiversityRiskIndexRequest(BaseScoreIndexRequest):
 
 
 
-
+# need to add xai data here
 class BiodiversityRiskIndexResponse(BaseClimateRasterScoreIndexResponse):
     """Main response schema for BiodiversityRiskIndexResponse:
     """

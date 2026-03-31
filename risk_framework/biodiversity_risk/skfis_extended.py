@@ -105,10 +105,9 @@ class ExplainableControlSystemSimulation(ctrl.ControlSystemSimulation):
     def get_all_rules_id_components_map(self):
         rules_id_str = {}
         for rule_idx, rule in enumerate(self.ctrl.rules):
-            rules_id_str[rule_idx] = {
-                'antecedents': [str(a) for a in rule.antecedent],
-                'consequents': [str(c) for c in rule.consequent],
-            }
+
+            rule_str = f'IF {rule.antecedent} THEN {",".join([str(c) for c in rule.consequent])}'
+            rules_id_str[rule_idx] = rule_str
         return rules_id_str
 
     def get_computation_explainability_data(self):

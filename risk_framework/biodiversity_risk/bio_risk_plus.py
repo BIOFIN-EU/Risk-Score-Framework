@@ -135,8 +135,9 @@ class BioRiskPlusFIS(object):
 
     def get_cache_id_for_input(self, ch, pa, si):
         si_rounded = np.round(si, decimals=self.sri_rounding)
+        ch_rounded = np.round(ch, decimals=self.sri_rounding)
         # Create cache key
-        cache_key = f"{ch}_{pa}_{si_rounded:.4f}"
+        cache_key = f"{ch_rounded:.4f}_{pa}_{si_rounded:.4f}"
         return cache_key
 
     def setup_cache_db(self):
@@ -505,6 +506,12 @@ class BioRiskPlusFIS(object):
         top_5_rules_activated = rule_counter.most_common(5)
         self.explainable_data = self.fis_sim.get_rules_string_by_id_list(top_5_rules_activated)
 
+    def get_risk_ling_thresholds(self):
+        centroid_thresholds = {}
+        for term_label, term  in self.risk_var.terms.items():
+            centroid_thresholds[term_label] = float(fuzz.defuzz(self.risk_var.universe, term.mf, 'centroid'))
+        return centroid_thresholds
+
     def get_xai_humam_text(self):
         # fix this, too confusing...
         # explainable data should just be the ids, not the at this point
@@ -513,9 +520,7 @@ class BioRiskPlusFIS(object):
 
     def get_explainability_info(self):
         expl_info = {
-            'xai_raster_data': {
-                'raster': self.explainable_data_rule_raster,
-            },
+            'xai_raster': self.explainable_data_rule_raster,
             'xai_summary_json': {
                 'xai_rules_meta': self.fis_sim.get_all_rules_id_components_map(),
                 'xai_humam_text': self.get_xai_humam_text()
@@ -525,6 +530,7 @@ class BioRiskPlusFIS(object):
 
     def run(self, ch_raster, pa_raster, sri_raster):
         self.failed = []
+        print('Preprocessing..')
         self.pre_process(ch_raster, pa_raster, sri_raster)
         # Create empty risk raster with same shape as input (only using one raster, all should be equal)
         risk_raster = np.full_like(self.ch_raster, self.raster_nodata, dtype=np.float64)
@@ -541,7 +547,7 @@ class BioRiskPlusFIS(object):
         # print(f"Valid pixels: {valid_pixels:,} ({valid_pixels/total_pixels*100:.1f}%)")
         # print("Processing...")
 
-
+        print('Running each pixel..')
         # Iterate through each pixel position
         for i in range(rows):
             for j in range(cols):
@@ -590,6 +596,7 @@ class BioRiskPlusFIS(object):
             output = self.loaded_cache_db[cache_id]['output']
             explainable_data = self.loaded_cache_db[cache_id]['explainable_data']
             return output, explainable_data
+        print(f'Not cached {cache_id}')
         self.fis_sim.input['ch'] = ch
         self.fis_sim.input['pa'] = pa
         self.fis_sim.input['si'] = si
@@ -699,12 +706,21 @@ if __name__ == '__main__':
     # fis = BioRiskPlusFIS(cache=True, sri_rounding=4)
     # fis.prepare_risk_cache_db()
     import pickle
-    # with open(RISK_FUZZY_CACHED_FILE, 'r') as f:
-    #     data = json.load(f)
+    # with open(RISK_FUZZY_CACHED_FILE, 'rb') as f:
+    #     data = pickle.load(f)
+    # import ipdb; ipdb.set_trace()
+    # fixed_data = {}
+    # for k, v in data.items():
+    #     chs, pa, si = k.split('_')
+    #     ch = np.float64(chs)
+    #     ch_rounded = np.round(ch, decimals=4)
+    #     # Create cache key
+    #     cache_key = f"{ch_rounded:.4f}_{pa}_{si}"
+    #     fixed_data[cache_key] = v
     # with open(RISK_FUZZY_CACHED_FILE.replace('.json','.pkl'), 'wb') as f:
-    #     pickle.dump(data, f)
+    #     pickle.dump(fixed_data, f)
 
-    with open(RISK_FUZZY_CACHED_FILE.replace('.json','.pkl'), 'rb') as f:
-        data = pickle.load(f)
+    # with open(RISK_FUZZY_CACHED_FILE.replace('.json','.pkl'), 'rb') as f:
+    #     data = pickle.load(f)
 
-    print(len(data.keys()))
+    # print(len(data.keys()))

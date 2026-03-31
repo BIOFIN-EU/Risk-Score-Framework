@@ -134,14 +134,16 @@ def retrieve_or_calculate_risk(
 
     return BiodiversityRiskIndexResponse(
         id=existing_record.id,
-        species_list=existing_record.species_list,
         country_code=existing_record.country_code,
         geometry=existing_record.geometry,
         scenario=existing_record.climate_scenario,
         climate_model=existing_record.climate_scenario,
         period=existing_record.period,
-        correction_method=existing_record.correction_method,
-        logic_type=existing_record.logic_type,
+        crop_to_polygon=existing_record.crop_to_polygon,
+        risk_model=existing_record.risk_model,
+        sri_species_list=existing_record.sri_species_list,
+        sri_correction_method=existing_record.sri_correction_method,
+        sri_logic_type=existing_record.sri_logic_type,
         raster_data=RasterDataResponse(
             raster=existing_raster_value,
             summary_stats=RasterSummaryStats(
@@ -170,8 +172,8 @@ def run_and_create_new_risk_record(
         wkt_polygon = get_country_wkt(country_code)
 
 
-    ch_retrieval_method = retrieve_or_calculate_ch,
-    pa_retrieval_method = retrieve_or_calculate_pa,
+    ch_retrieval_method = retrieve_or_calculate_ch
+    pa_retrieval_method = retrieve_or_calculate_pa
     sri_retrieval_method = retrieve_or_calculate_sri_future_or_current
     risk_model = BiofinBiodiversityRiskModelWrapper(
         geo_id,
@@ -190,23 +192,39 @@ def run_and_create_new_risk_record(
     return scenario_record
 
 def create_risk_and_raster_records(geo_id, result, db):
-    sri_species_list = ','.join(result['species_list'])
+    # country_code
+    # wkt_polygon
+    # climate_scenario
+    # climate_models
+    # period
+    # raster_data
+    # sri_species_list
+    # sri_logic_type
+    # sri_correction_method
+    # crop_to_polygon
+    # risk_model
+    # meta
+    # xai_data
+
+
     country_code = result['country_code']
     wkt_polygon = result['wkt_polygon']
     climate_scenario = result['climate_scenario']
     climate_models = result['climate_models']
     period = result['period']
-    correction_method = result['correction_method']
-    logic_type = result['logic_type']
+    sri_species_list = result['sri_species_list']
+    logic_type = result['sri_logic_type']
+    correction_method = result['sri_correction_method']
 
-    xai_summary = result['xai_summary']
+    xai_data = result['xai_data']
+    xai_summary = xai_data['xai_summary_json']
     risk_model = result['risk_model']
     crop_to_polygon = result['crop_to_polygon']
     risk_ling_thresholds = result['risk_ling_thresholds']
 
-    chi_id = result['meta']['chi_id']
-    pai_id = result['meta']['pai_id']
-    sri_id = result['meta']['sri_id']
+    chi_reg_id = result['meta']['ch_reg_id']
+    pai_reg_id = result['meta']['pa_reg_id']
+    sri_reg_id = result['meta']['sri_reg_id']
 
     # chi_instance = db.query(CriticalHabitatIndexDB).filter(
     #     CriticalHabitatIndexDB.id == chi_id
@@ -231,12 +249,11 @@ def create_risk_and_raster_records(geo_id, result, db):
     db.add(new_raster_data)
     db.flush()
 
-    xai_raster_data = result['xai_raster_data']
-    xai_raster_values = xai_raster_data['raster']
-    xai_raster_meta = xai_raster_data['meta']
-    xai_raster_summary = xai_raster_data['summary_stats']
-    xai_mean_value = xai_raster_summary['mean_raster_value']
-    xai_mean_std = xai_raster_summary['std_raster_value']
+    xai_raster_values = xai_data['xai_raster']
+    xai_raster_meta = raster_data['meta']
+    # replace with none:
+    xai_mean_value = -1
+    xai_mean_std = -1
     new_xai_raster_data = create_raster_record(geo_id, xai_raster_values, xai_raster_meta, xai_mean_value, xai_mean_std)
     db.add(new_xai_raster_data)
     db.flush()
@@ -259,14 +276,14 @@ def create_risk_and_raster_records(geo_id, result, db):
         sri_species_list=sri_species_list,
         sri_correction_method=correction_method,
         sri_logic_type=logic_type,
-        chi_related_id=chi_id,
-        pai_related_id=pai_id,
-        sri_related_id=sri_id,
+        chi_related_id=chi_reg_id,
+        pai_related_id=pai_reg_id,
+        sri_related_id=sri_reg_id,
     )
 
 
     db.add(new_record)
-    db.commit()
+    # db.commit()
     new_record.value_raster = new_raster_data
     new_record.xai_raster = new_xai_raster_data
     return new_record

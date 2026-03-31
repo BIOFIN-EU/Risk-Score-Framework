@@ -82,6 +82,7 @@ class BiofinBiodiversityRiskModelWrapper(object):
             self.db,
             future=future
         )
+        self.sri_species_list = reg_index_response.species_list
         meta = reg_index_response.raster_data.meta
         meta_dtype = np.dtype(meta['dtype'])
 
@@ -143,11 +144,15 @@ class BiofinBiodiversityRiskModelWrapper(object):
             period = climate_scenario
             future = False
 
+        print('retrieve CH..')
         ch_reg, ch_raster, ch_meta = self.get_raster_and_meta_from_ch_response_object()
-
+        print('retrieve PA..')
         pa_reg, pa_raster, pa_meta = self.get_raster_and_meta_from_ch_response_object()
+        print('retrieve SRI..')
         sri_reg, sri_raster, sri_meta = self.get_raster_and_meta_from_sri_response_object(
             climate_model, climate_model, period, future)
+
+        print('Cropping to polygon..')
         if self.crop_to_polygon:
             polygon_gdf = load_poligon_gdf(self.wkt_polygon)
             ch_raster, ch_meta = apply_geometry_mask_to_raster(polygon_gdf, ch_raster, ch_meta, crop=True, nodata=self.raster_nodata)
@@ -162,13 +167,16 @@ class BiofinBiodiversityRiskModelWrapper(object):
         # maybe just do a mask crop using the polygon
         # create a validation_mask and pass it to the internal model as well.
         # (only do operations when its valid vask for all component rasters)
+        print('Aligning rasters..')
         sri_raster, ch_raster, pa_raster = self.align_rasters(rasters_list, meta_list)
 
         valid_mask = (sri_raster >= 0) & (ch_raster >= 0) & (pa_raster >= 0)
 
-        import ipdb; ipdb.set_trace()
+        print('Running risk model..')
         risk_raster = self.risk_model.run(ch_raster=ch_raster, pa_raster=pa_raster, sri_raster=sri_raster)
         xai_data = self.risk_model.get_explainability_info()
+        risk_ling_thresholds = self.risk_model.get_risk_ling_thresholds()
+        print('Done...')
 
         mean_raster_value = float(np.mean(risk_raster[valid_mask]))
         std_raster_value =  float(np.std(risk_raster[valid_mask]))
@@ -193,11 +201,12 @@ class BiofinBiodiversityRiskModelWrapper(object):
             'crop_to_polygon': self.crop_to_polygon,
             'risk_model': self.risk_model_name,
             'meta': {
-                'ch_registry': ch_reg,
-                'pa_registry': pa_reg,
-                'sri_registry': sri_reg,
+                'ch_reg_id': ch_reg.id,
+                'pa_reg_id': pa_reg.id,
+                'sri_reg_id': sri_reg.id,
             },
             'xai_data': xai_data,
+            'risk_ling_thresholds': risk_ling_thresholds,
         }
 
 
