@@ -1,5 +1,6 @@
 import uuid
 import pickle
+import json
 
 from sqlalchemy.orm import joinedload
 
@@ -217,10 +218,10 @@ def create_risk_and_raster_records(geo_id, result, db):
     correction_method = result['sri_correction_method']
 
     xai_data = result['xai_data']
-    xai_summary = xai_data['xai_summary_json']
+    xai_summary = json.dumps(xai_data['xai_summary_json'])
     risk_model = result['risk_model']
     crop_to_polygon = result['crop_to_polygon']
-    risk_ling_thresholds = result['risk_ling_thresholds']
+    risk_ling_thresholds = json.dumps(result['risk_ling_thresholds'])
 
     chi_reg_id = result['meta']['ch_reg_id']
     pai_reg_id = result['meta']['pa_reg_id']
@@ -241,6 +242,7 @@ def create_risk_and_raster_records(geo_id, result, db):
     raster_data = result['raster_data']
     raster_values = raster_data['raster']
     raster_meta = raster_data['meta']
+    raster_meta['crs'] = str(raster_meta['crs'])
     raster_summary = raster_data['summary_stats']
     mean_value = raster_summary['mean_raster_value']
     mean_std = raster_summary['std_raster_value']
@@ -281,9 +283,8 @@ def create_risk_and_raster_records(geo_id, result, db):
         sri_related_id=sri_reg_id,
     )
 
-
     db.add(new_record)
-    # db.commit()
+    db.commit()
     new_record.value_raster = new_raster_data
     new_record.xai_raster = new_xai_raster_data
     return new_record

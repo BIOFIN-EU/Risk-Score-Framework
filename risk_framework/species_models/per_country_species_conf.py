@@ -84,16 +84,16 @@ INDICATOR_SP_PER_COUNTRY = {
 
     'NL': [  # Netherlands
         'Accipiter nisus', 'Aegithalos caudatus',
-        'Anthus trivialis', 'Buteo buteo',
-        'Certhia brachydactyla',
-        'Coccothraustes coccothraustes',
-        'Dendrocopos major', 'Dendrocopos minor',
-        'Garrulus glandarius', 'Lullula arborea',
-        'Luscinia megarhynchos', 'Oriolus oriolus',
-        'Periparus ater', 'Phoenicurus phoenicurus',
-        'Phylloscopus sibilatrix', 'Picus viridis',
-        'Regulus regulus', 'Streptopelia turtur',
-        'Sylvia borin',
+        # 'Anthus trivialis', 'Buteo buteo',
+        # 'Certhia brachydactyla',
+        # 'Coccothraustes coccothraustes',
+        # 'Dendrocopos major', 'Dendrocopos minor',
+        # 'Garrulus glandarius', 'Lullula arborea',
+        # 'Luscinia megarhynchos', 'Oriolus oriolus',
+        # 'Periparus ater', 'Phoenicurus phoenicurus',
+        # 'Phylloscopus sibilatrix', 'Picus viridis',
+        # 'Regulus regulus', 'Streptopelia turtur',
+        # 'Sylvia borin',
     ],
 
     'CH': [  # Switzerland

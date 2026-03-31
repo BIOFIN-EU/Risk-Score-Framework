@@ -61,17 +61,15 @@ class BiofinBiodiversityRiskModelWrapper(object):
         #     is_future = False
         reg_index_response = self.ch_retrieval_method(self.country_code, self.wkt_polygon, self.geo_id, self.db)
         meta = reg_index_response.raster_data.meta
-        meta_dtype = np.dtype(meta['dtype'])
 
-        raster_array = np.array(reg_index_response.raster_data.raster, dtype=meta_dtype)
+        raster_array = np.array(reg_index_response.raster_data.raster, dtype=np.float64)
         return reg_index_response, raster_array, meta
 
     def get_raster_and_meta_from_pa_response_object(self):
         reg_index_response = self.pa_retrieval_method(self.country_code, self.wkt_polygon, self.geo_id, self.db)
         meta = reg_index_response.raster_data.meta
-        meta_dtype = np.dtype(meta['dtype'])
 
-        raster_array = np.array(reg_index_response.raster_data.raster, dtype=meta_dtype)
+        raster_array = np.array(reg_index_response.raster_data.raster, dtype=np.float64)
         return reg_index_response, raster_array, meta
 
     def get_raster_and_meta_from_sri_response_object(self, climate_scenario, climate_model, period, future):
@@ -84,9 +82,8 @@ class BiofinBiodiversityRiskModelWrapper(object):
         )
         self.sri_species_list = reg_index_response.species_list
         meta = reg_index_response.raster_data.meta
-        meta_dtype = np.dtype(meta['dtype'])
 
-        raster_array = np.array(reg_index_response.raster_data.raster, dtype=meta_dtype)
+        raster_array = np.array(reg_index_response.raster_data.raster, dtype=np.float64)
         return reg_index_response, raster_array, meta
 
     def align_rasters(self, rasters_list, metas_list):
@@ -147,7 +144,7 @@ class BiofinBiodiversityRiskModelWrapper(object):
         print('retrieve CH..')
         ch_reg, ch_raster, ch_meta = self.get_raster_and_meta_from_ch_response_object()
         print('retrieve PA..')
-        pa_reg, pa_raster, pa_meta = self.get_raster_and_meta_from_ch_response_object()
+        pa_reg, pa_raster, pa_meta = self.get_raster_and_meta_from_pa_response_object()
         print('retrieve SRI..')
         sri_reg, sri_raster, sri_meta = self.get_raster_and_meta_from_sri_response_object(
             climate_model, climate_model, period, future)

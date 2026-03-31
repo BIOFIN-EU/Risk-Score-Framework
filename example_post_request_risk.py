@@ -107,3 +107,4 @@ with rasterio.open(
 
 
 
+import ipdb; ipdb.set_trace()
