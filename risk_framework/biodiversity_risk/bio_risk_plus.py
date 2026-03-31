@@ -1,6 +1,6 @@
 from functools import lru_cache
 from collections import Counter
-import json
+import pickle
 
 import numpy as np
 import skfuzzy as fuzz
@@ -62,6 +62,7 @@ class BioRiskPlusFIS(object):
         self.explainable_data = None
         self.explainable_data_rule_raster = None
         self.loaded_cache_db = None
+        self.setup_cache_db()
 
     def prepare_risk_cache_db(self):
         """Precompute all possible combinations and save to cache file"""
@@ -95,11 +96,8 @@ class BioRiskPlusFIS(object):
         for ch in ch_values:
             for pa in pa_values:
                 for si in si_values:
-                    # Round si to ensure consistency
-                    si_rounded = np.round(si, decimals=self.sri_rounding)
-
                     # Create cache key
-                    cache_key = f"{ch}_{pa}_{si_rounded:.4f}"
+                    cache_key = self.get_cache_id_for_input(ch, pa, si)
 
                     # Run the model
                     output, explainable_data = self.run_single_cached(
@@ -123,31 +121,28 @@ class BioRiskPlusFIS(object):
                     if processed % 1000 == 0 or processed == total_combinations:
                         percent = (processed / total_combinations) * 100
                         print(f"Progress: {processed:,}/{total_combinations:,} ({percent:.1f}%)")
-            #         if processed == 1000:
-            #             break
 
-            #     if processed == 1000:
-            #         break
-
-            # if processed == 1000:
-                # break
-
-
-        # Save to JSON file
+        # Save to Pickled bin file
         print(f"\nSaving cache to {RISK_FUZZY_CACHED_FILE}...")
         try:
-            with open(RISK_FUZZY_CACHED_FILE, 'w') as f:
-                json.dump(cache_db, f, indent=2)
+            with open(RISK_FUZZY_CACHED_FILE, 'wr') as f:
+                pickle.dump(cache_db, f)
             print(f"Successfully saved {len(cache_db):,} entries to cache file")
         except Exception as e:
             print(f"Error saving cache: {e}")
 
         return cache_db
 
+    def get_cache_id_for_input(self, ch, pa, si):
+        si_rounded = np.round(si, decimals=self.sri_rounding)
+        # Create cache key
+        cache_key = f"{ch}_{pa}_{si_rounded:.4f}"
+        return cache_key
+
     def setup_cache_db(self):
         if self.cache:
-            with open(RISK_FUZZY_CACHED_FILE, 'r') as f:
-                self.loaded_cache_db = json.load(f)
+            with open(RISK_FUZZY_CACHED_FILE, 'rb') as f:
+                self.loaded_cache_db = pickle.load(f)
 
 
     def setup_vars_and_mfs(self):
@@ -462,15 +457,34 @@ class BioRiskPlusFIS(object):
     def map_ch_fuzzy_label_to_crisp(self, chl_raster):
         # defz_method =  'som' if label == 'likely' else 'centroid'
         # Create mapping dictionary
-        label_map = {
-            0: fuzz.defuzz(self.ch_var.universe, self.ch_var['unknown'].mf, 'centroid'), #unknown
-            # 0.5: fuzz.defuzz(self.ch_var.universe, self.ch_var['potential'].mf, 'centroid'), # potential
-            0.5: 0.5, # avoid rounding errors, the centroid is 0.5 in any case
-            1: fuzz.defuzz(self.ch_var.universe, self.ch_var['likely'].mf, 'lom'), #likely
-            self.raster_nodata: self.raster_nodata
-        }
+        # label_map = {
+        #     np.float64(0): fuzz.defuzz(self.ch_var.universe, self.ch_var['unknown'].mf, 'centroid'), #unknown
+        #     # 0.5: fuzz.defuzz(self.ch_var.universe, self.ch_var['potential'].mf, 'centroid'), # potential
+        #     np.float64(0.5): np.float64(0.5), # avoid rounding errors, the centroid is 0.5 in any case
+        #     np.float64(1): fuzz.defuzz(self.ch_var.universe, self.ch_var['likely'].mf, 'lom'), #likely
+        #     self.raster_nodata: self.raster_nodata
+        # }
 
-        mapped_raster = np.vectorize(label_map.get)(chl_raster)
+        # mapped_raster = np.vectorize(label_map.get)(chl_raster)
+
+        mapped_raster = np.full_like(chl_raster, self.raster_nodata)
+        # Get defuzzified values
+        unknown_val = fuzz.defuzz(self.ch_var.universe, self.ch_var['unknown'].mf, 'centroid')
+        likely_val = fuzz.defuzz(self.ch_var.universe, self.ch_var['likely'].mf, 'lom')
+        # Apply threshold-based mapping ,
+        # putting here intervals to stop flot point messing up the mappign
+        # mapping 0:
+        mask_unknown = (chl_raster >= 0) & (chl_raster < 0.3)
+        mapped_raster[mask_unknown] = unknown_val
+
+        # mapping 0.5:
+        mask_potential = (chl_raster >= 0.3) & (chl_raster <= 0.7)
+        mapped_raster[mask_potential] = 0.5
+
+        # mapping 1.0:
+        mask_likely = (chl_raster > 0.7) & (chl_raster <= 1)
+        mapped_raster[mask_likely] = likely_val
+
         return mapped_raster
 
     def pre_process(self, ch_raster, pa_raster, sri_raster):
@@ -518,68 +532,64 @@ class BioRiskPlusFIS(object):
         self.explainable_data_rule_raster = np.full_like(self.ch_raster, self.raster_nodata, dtype=np.int16)
         # Get shape for iteration
         rows, cols = self.ch_raster.shape
-        total_pixels = rows * cols
-        valid_pixels = np.sum(self.valid_mask)
-        processed_pixels = 0
-        last_percent = 0
 
-        print(f"Total pixels: {total_pixels:,}")
-        print(f"Valid pixels: {valid_pixels:,} ({valid_pixels/total_pixels*100:.1f}%)")
-        print("Processing...")
+        # total_pixels = rows * cols
+        # valid_pixels = np.sum(self.valid_mask)
+        # processed_pixels = 0
+        # last_percent = 0
+        # print(f"Total pixels: {total_pixels:,}")
+        # print(f"Valid pixels: {valid_pixels:,} ({valid_pixels/total_pixels*100:.1f}%)")
+        # print("Processing...")
 
 
         # Iterate through each pixel position
         for i in range(rows):
             for j in range(cols):
                 if self.valid_mask[i, j]:
-                    # pixel_result = self.run_single(
-                    #     ch=self.ch_raster[i, j],
-                    #     pa=self.pa_raster[i, j],
-                    #     si=self.sri_raster[i, j]
-                    # )
-                    pixel_result, last_explainable_data = self.run_single_cached(
+                    pixel_result, last_explainable_data = self.run_single_preprocessed(
                         ch=self.ch_raster[i, j],
                         pa=self.pa_raster[i, j],
                         si=self.sri_raster[i, j]
                     )
                     risk_raster[i, j] = pixel_result
-                    # if self.last_explainable_data:
                     if last_explainable_data:
                         # retrieve only top activated rule id that
-                        # top_activated_rule_data = list(self.last_explainable_data['activated_rules'].values())[0]
                         top_activated_rule_data = list(last_explainable_data['activated_rules'].values())[0]
                         rule_id = top_activated_rule_data['rule_id']
                         self.explainable_data_rule_raster[i, j] = rule_id
-                    processed_pixels += 1
 
-                    # Print progress every 1%
-                    current_percent = int(processed_pixels / valid_pixels * 100)
-                    if current_percent > last_percent:
-                        last_percent = current_percent
-                        print(f"Progress: {current_percent}% ({processed_pixels:,}/{valid_pixels:,} pixels)")
+                    # processed_pixels += 1
+                    # # Print progress every 1%
+                    # current_percent = int(processed_pixels / valid_pixels * 100)
+                    # if current_percent > last_percent:
+                    #     last_percent = current_percent
+                    #     print(f"Progress: {current_percent}% ({processed_pixels:,}/{valid_pixels:,} pixels)")
 
-        print(f"Processing complete: {processed_pixels:,}/{valid_pixels:,} pixels (100%)")
+        # print(f"Processing complete: {processed_pixels:,}/{valid_pixels:,} pixels (100%)")
         self.post_processing()
         return risk_raster
 
-    def run_single(self, **input_kwargs):
-        for key, value in input_kwargs.items():
-            value = np.float64(value)
-            self.fis_sim.input[key] = value
-        self.fis_sim.compute()
-        output = self.raster_nodata
-        self.last_explainable_data = None
-        if 'risk' not in self.fis_sim.output:
-            self.failed.append((input_kwargs, ))
-        else:
-            output = self.fis_sim.output['risk']
-            self.last_explainable_data = self.fis_sim.last_explainable_data
-        return output
+    # def run_single(self, **input_kwargs):
+    #     for key, value in input_kwargs.items():
+    #         value = np.float64(value)
+    #         self.fis_sim.input[key] = value
+    #     self.fis_sim.compute()
+    #     output = self.raster_nodata
+    #     self.last_explainable_data = None
+    #     if 'risk' not in self.fis_sim.output:
+    #         self.failed.append((input_kwargs, ))
+    #     else:
+    #         output = self.fis_sim.output['risk']
+    #         self.last_explainable_data = self.fis_sim.last_explainable_data
+    #     return output
 
 
-    @lru_cache(maxsize=100000)
-    def run_single_cached(self, ch, pa, si):
-        """Cached version that takes primitive arguments"""
+    def run_single_preprocessed(self, ch, pa, si):
+        cache_id = self.get_cache_id_for_input(ch, pa, si)
+        if self.cache and cache_id in self.loaded_cache_db.keys():
+            output = self.loaded_cache_db[cache_id]['output']
+            explainable_data = self.loaded_cache_db[cache_id]['explainable_data']
+            return output, explainable_data
         self.fis_sim.input['ch'] = ch
         self.fis_sim.input['pa'] = pa
         self.fis_sim.input['si'] = si
@@ -592,12 +602,6 @@ class BioRiskPlusFIS(object):
             output = self.fis_sim.output['risk']
             self.last_explainable_data = self.fis_sim.last_explainable_data
         return output, self.last_explainable_data.copy()
-
-
-    def run_from_cached_db(self, ch, pa, si):
-        si_round = np.round(si, decimals=self.si_rounding)
-        input_hash = (ch, pa, si_round)
-
 
 
 # class BioRiskPlusExtendedFIS(object):
@@ -692,5 +696,15 @@ if __name__ == '__main__':
 #     ], dtype=np.float32)
 #     np.testing.assert_array_almost_equal(fis.ch_raster,expected_ch_raster, decimal=2)
 
-    fis = BioRiskPlusFIS(cache=True, sri_rounding=4)
-    fis.prepare_risk_cache_db()
+    # fis = BioRiskPlusFIS(cache=True, sri_rounding=4)
+    # fis.prepare_risk_cache_db()
+    import pickle
+    # with open(RISK_FUZZY_CACHED_FILE, 'r') as f:
+    #     data = json.load(f)
+    # with open(RISK_FUZZY_CACHED_FILE.replace('.json','.pkl'), 'wb') as f:
+    #     pickle.dump(data, f)
+
+    with open(RISK_FUZZY_CACHED_FILE.replace('.json','.pkl'), 'rb') as f:
+        data = pickle.load(f)
+
+    print(len(data.keys()))

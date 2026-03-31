@@ -50,7 +50,7 @@ PA_PARTS_DATASET_PATH = os.path.join(
 PA_REPROJ_DATASET_PATH = os.path.join(BASE_DATA_DIR, 'WDPA_Mar2026_Public_shp_rep.tif')
 PA_TEMP_FILE_FORMAT = os.path.join(BASE_DATA_DIR, 'country_{country_code}', 'pa_reproj.tif')
 
-RISK_FUZZY_CACHED_FILE = os.path.join(BASE_DATA_DIR, 'risk_fuzzy_cached.json')
+RISK_FUZZY_CACHED_FILE = os.path.join(BASE_DATA_DIR, 'risk_fuzzy_4f_cached.pkl')
 
 BASE_RESOLUTION = 1000
 
