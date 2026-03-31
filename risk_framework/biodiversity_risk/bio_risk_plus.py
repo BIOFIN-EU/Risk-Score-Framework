@@ -100,7 +100,7 @@ class BioRiskPlusFIS(object):
                     cache_key = self.get_cache_id_for_input(ch, pa, si)
 
                     # Run the model
-                    output, explainable_data = self.run_single_cached(
+                    output, explainable_data = self.run_single_preprocessed(
                         ch=ch,
                         pa=pa,
                         si=si
