@@ -108,8 +108,8 @@ for raster_key, raster_group in [('raster_data', 'green'), ('raster_data_urban',
 #     dst.write(raster, 1)
 
 
-# print(json.dumps(result['xai_summary']))
-# print(json.dumps(result['risk_ling_thresholds']))
+print(json.dumps(result['xai_summary'], indent=4))
+print(json.dumps(result['risk_ling_thresholds'], indent=4))
 
 
 import ipdb; ipdb.set_trace()

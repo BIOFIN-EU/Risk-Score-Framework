@@ -1,7 +1,7 @@
 from typing import Optional
 
 from pydantic import Field
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from risk_framework.web_api.schemas.base import (
     BaseScoreIndexRequest,
@@ -154,9 +154,19 @@ class BiodiversityRiskIndexResponse(BaseClimateRasterScoreIndexResponse):
     xai_raster: RasterDataResponse
 
 
-    # xai_summary = Column(JSON, nullable=False)  # General Explainability data as JSON
+    xai_summary: Dict[str, Any] = Field(
+        ...,
+        description=(
+            "General Explainability data as a flexible JSON/dict structure. "
+            "Can contain any keys and values "
+            "(e.g., xai_rules_meta, xai_humam_text, or other future structures)"
+        )
+    )
 
-    # risk_ling_thresholds = Column(String, nullable=False) #comma separated values for thresholds
+    risk_ling_thresholds: Dict[str, float] = Field(
+        ...,
+        description="Dictionary mapping linguistic risk categories to their numeric threshold values (e.g., {'low': 0.0929, 'medium-low': 0.25, 'medium': 0.5, 'medium-high': 0.75, 'high': 0.9458})"
+    )
 
     sri_species_list: str = Field(..., description="Comma-separated list of Indicator Species used during SRI calculation (e.g., 'Anthus trivialis,Columba palumbus')")
     sri_logic_type: str = Field(
