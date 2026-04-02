@@ -131,7 +131,7 @@ def apply_geometry_mask_to_raster(polygon_gdf, raster_array, raster_meta, crop=F
             })
             return final_raster, cliped_raster_meta
 
-def reproject_to_crs(rasterio_src, dst_crs='EPSG:4326', dst_nodata=None, dst_dtype=None):
+def reproject_to_crs(rasterio_src, dst_crs='EPSG:4326', dst_nodata=None, dst_dtype=None, resampling=Resampling.bilinear):
     # Calculate transform for EPSG:4326
     transform, width, height = calculate_default_transform(
         rasterio_src.crs, dst_crs, rasterio_src.width, rasterio_src.height, *rasterio_src.bounds
@@ -156,7 +156,7 @@ def reproject_to_crs(rasterio_src, dst_crs='EPSG:4326', dst_nodata=None, dst_dty
         dst_transform=transform,
         dst_crs=dst_crs,
         dst_nodata=dst_nodata,
-        resampling=Resampling.bilinear
+        resampling=resampling
     )
 
     metadata = rasterio_src.profile.copy()

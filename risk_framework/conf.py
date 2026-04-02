@@ -51,6 +51,8 @@ PA_REPROJ_DATASET_PATH = os.path.join(BASE_DATA_DIR, 'WDPA_Mar2026_Public_shp_re
 PA_TEMP_FILE_FORMAT = os.path.join(BASE_DATA_DIR, 'country_{country_code}', 'pa_reproj.tif')
 
 RISK_FUZZY_CACHED_FILE = os.path.join(BASE_DATA_DIR, 'risk_fuzzy_4f_cached.pkl')
+GLC_YEAR = 2020
+GLC_FILE_FORMAT = os.path.join(BASE_DATA_DIR, 'country_{country_code}', 'GLC_FCS_{year}_clsgroups_0to2.tif')
 
 BASE_RESOLUTION = 1000
 

@@ -37,6 +37,8 @@ from joblib import dump, load
 import requests
 
 
+from .glc_retrieve import GLCModel
+
 from risk_framework.conf import (
     _silence_out,
     _silence_err,
@@ -1195,9 +1197,11 @@ class SpeciesHabitatSuitabilityUtils():
         if np.any(valid_mask):
             probs_all[valid_mask] = self._predict_proba_safe(mdl, flat_df.iloc[valid_mask])
         prob_raster = probs_all.reshape(H, W)
-
         prob_meta = meta.copy()
         prob_meta.update(count=1, dtype="float32", nodata=-1, compress="DEFLATE", predictor=3)
+        glc_model = GLCModel(self.config.COUNTRY_CODE)
+        prob_raster, prob_meta = glc_model.add_mask_to_reference(reference_raster=prob_raster, reference_meta=prob_meta)
+
         prob_json_output = self.export_meta_and_raster_to_json_dict(prob_raster, prob_meta)
         return prob_json_output
 

@@ -41,6 +41,8 @@ async def calculate_current_biodiversity_risk_index(request: CurrentBiodiversity
     sri_logic_type = request.sri_logic_type
     sri_correction_method = request.sri_correction_method
     sri_override_species_list = request.sri_override_species_list
+    if sri_override_species_list:
+        sri_override_species_list = sri_override_species_list.split(',')
     crop_to_polygon = request.crop_to_polygon
     risk_model = request.risk_model
     geo_id = generate_geo_uuid(

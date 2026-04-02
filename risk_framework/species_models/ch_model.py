@@ -35,7 +35,7 @@ class CHModel(object):
             dst_crs='EPSG:4326'
             dst_dtype = np.float32
             print('Reprojecting CH Full dataset...')
-            ch_raster_rep, ch_rep_meta = reproject_to_crs(ch_src, dst_crs, dst_nodata=self.final_nodata, dst_dtype=dst_dtype)
+            ch_raster_rep, ch_rep_meta = reproject_to_crs(ch_src, dst_crs, dst_nodata=self.final_nodata, dst_dtype=dst_dtype, resampling=Resampling.nearest)
             print('Reprojecting CH Full dataset... Done.')
 
             with rasterio.open(
@@ -96,19 +96,19 @@ class CHModel(object):
 
             ch_cropped = ch_cropped[0]
 
-            with rasterio.open(
-                f'raster_ch_crop.tif',
-                'w',
-                driver='GTiff',
-                height=ch_cropped.shape[0],
-                width=ch_cropped.shape[1],
-                count=1,
-                nodata=ch_src.nodata,
-                dtype=np.float32,
-                crs=ch_src.crs,
-                transform=ch_cropped_transform,
-            ) as dst:
-                dst.write(ch_cropped, 1)
+            # with rasterio.open(
+            #     f'raster_ch_crop.tif',
+            #     'w',
+            #     driver='GTiff',
+            #     height=ch_cropped.shape[0],
+            #     width=ch_cropped.shape[1],
+            #     count=1,
+            #     nodata=ch_src.nodata,
+            #     dtype=np.float32,
+            #     crs=ch_src.crs,
+            #     transform=ch_cropped_transform,
+            # ) as dst:
+            #     dst.write(ch_cropped, 1)
 
             ch_meta = dict(ch_src.profile).copy()
             ch_meta.update({
@@ -154,8 +154,8 @@ if __name__ == '__main__':
 
     model = CHModel(country_code, wkt_polygon=None, db=db)
 
-    # model._reproject_ch(CH_DATASET_PATH)
-    result = model.run()
-    result['raster_data']['meta']['crs'] = str(result['raster_data']['meta']['crs'])
-    print(json.dumps(result, indent=4))
+    model._reproject_ch(CH_DATASET_PATH)
+    # result = model.run()
+    # result['raster_data']['meta']['crs'] = str(result['raster_data']['meta']['crs'])
+    # print(json.dumps(result, indent=4))
 

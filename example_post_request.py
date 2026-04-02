@@ -13,9 +13,9 @@ from rasterio.transform import from_origin
 from rasterio.io import MemoryFile
 from rasterio.transform import from_origin
 
-# raster_name = 'hsi'
+raster_name = 'hsi'
 # raster_name = 'sri'
-raster_name = 'chi'
+# raster_name = 'chi'
 prediction_type = 'current'
 # prediction_type = 'future'
 
@@ -40,22 +40,22 @@ url = f"http://localhost:8000/api/v1/{raster_name}/{prediction_type}/"
 
 # HSI
 # # Prepare the data
-# data = {
-#     "species": "Lullula arborea",
-#     # "species": "Accipiter nisus",
-#     # "species": "Aegithalos caudatus",
+data = {
+    "species": "Lullula arborea",
+    # "species": "Accipiter nisus",
+    # "species": "Aegithalos caudatus",
 
-#     # "species": "Streptopelia turtur",
-#     "country_code": "LU",
-#     # "country_code": "NL",
-#     "climate_scenario": "ssp245",
-#     # "climate_scenario": "ssp585",
-#     "climate_model": "EC-Earth3-Veg",
-#     "period": "2021-2040",
-#     # "period": "2041-2060",
+    # "species": "Streptopelia turtur",
+    # "country_code": "LU",
+    "country_code": "NL",
+    "climate_scenario": "ssp245",
+    # "climate_scenario": "ssp585",
+    "climate_model": "EC-Earth3-Veg",
+    "period": "2021-2040",
+    # "period": "2041-2060",
 
-#     # "wkt_polygon": wkt_polygon
-# }
+    # "wkt_polygon": wkt_polygon
+}
 
 
 
@@ -84,11 +84,11 @@ url = f"http://localhost:8000/api/v1/{raster_name}/{prediction_type}/"
 
 
 # CHI:
-data = {
-    # "country_code": "LU",
-    "country_code": "NL",
-    # "wkt_polygon": wkt_polygon
-}
+# data = {
+#     # "country_code": "LU",
+#     "country_code": "NL",
+#     # "wkt_polygon": wkt_polygon
+# }
 
 
 # Make the POST request
@@ -234,7 +234,7 @@ with rasterio.open(
     dtype=dtype,
     crs=meta['crs'],
     transform=meta['transform'],  # rasterio accepts the affine directly
-    nodata=-1
+    nodata=meta['nodata']
 ) as dst:
     dst.write(raster, 1)
 

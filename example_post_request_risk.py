@@ -39,7 +39,7 @@ data = {
 
     "sri_logic_type": "fuzzy",
     "sri_correction_method": "HFI",
-    # 'sri_override_species_list': ''
+    'sri_override_species_list': "Accipiter nisus,Aegithalos caudatus"
     # "climate_scenario": "ssp245",
     # "climate_scenario": "ssp585",
     # "climate_model": "EC-Earth3-Veg",
