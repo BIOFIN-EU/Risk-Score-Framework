@@ -1,10 +1,10 @@
 from pydantic import BaseModel, Field
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 class RasterSummaryStats(BaseModel):
     """Summary statistics for the raster data"""
-    mean_raster_value: float
-    std_raster_value: float
+    mean_raster_value: Optional[float]
+    std_raster_value: Optional[float]
 
     class Config:
         schema_extra = {

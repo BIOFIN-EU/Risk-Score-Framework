@@ -161,12 +161,22 @@ class GLCModel(object):
         glc_raster, glc_meta = self.load_glc_raster_and_meta()
         return self.reproject_to_base(reference_meta, glc_raster, glc_meta)
 
-    def add_mask_to_reference(self, reference_raster, reference_meta):
-        glc_raster, glc_meta = self.get_reproj_to_reference(reference_meta)
-        # import ipdb; ipdb.set_trace()
-        glc_mask = glc_raster == glc_meta['nodata']
-        reference_raster[glc_mask] = reference_meta['nodata']
-        return reference_raster, reference_meta
+    def add_mask_to_reference(self, reference_raster, ori_reference_meta, glc_raster=None, glc_meta=None, glc_mask_value=None):
+        """
+        returns copy of reference raster, but removes from it raster values from positions that are in
+         the glc mask value (-1 by default)
+        GLC values are:
+            -1 is to ignore/remove, 0 is green (and ice) 1 is urban
+        """
+        reference_meta = ori_reference_meta.copy()
+        if glc_raster is None or glc_meta is None:
+            glc_raster, glc_meta = self.get_reproj_to_reference(reference_meta)
+        if glc_mask_value is None:
+            glc_mask_value = glc_meta['nodata']
+        glc_mask = glc_raster == glc_mask_value
+        mask_raster = reference_raster.copy()
+        mask_raster[glc_mask] = reference_meta['nodata']
+        return mask_raster
 
     def run(self, reference_raster, reference_meta):
         print('Running GLC model.')

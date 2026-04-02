@@ -31,6 +31,7 @@ dependencies = [
     "lightgbm==4.6.0",
     "catboost==1.2.8",
     "scikit-fuzzy==0.5.0",
+    "pycountry==26.2.16",
 ]
 
 [project.optional-dependencies]

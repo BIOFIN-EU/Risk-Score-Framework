@@ -71,30 +71,34 @@ except Exception:
     exit
 
 
-meta = result['raster_data']['meta']
-dtype = meta['dtype']
-# dtype = 'float64'
-# predictor = meta['predictor']
-# compress = meta['compress']
-raster_value = result['raster_data']['raster']
-# raster_value = out_image[0]  # Remove the band dimension
-raster = np.array(raster_value, dtype=np.dtype(dtype))
 
-rasterio_kwargs = meta
-# # Save as GeoTIFF - rasterio handles the transform directly
-with rasterio.open(
-    f'raster_{raster_name}_{prediction_type}.tif',
-    'w',
-    driver='GTiff',
-    height=raster.shape[0],
-    width=raster.shape[1],
-    count=1,
-    dtype=dtype,
-    crs=meta['crs'],
-    transform=meta['transform'],  # rasterio accepts the affine directly
-    nodata=meta['nodata']
-) as dst:
-    dst.write(raster, 1)
+
+for raster_key, raster_group in [('raster_data', 'green'), ('raster_data_urban', 'urban'), ('xai_raster', 'xai')]:
+
+    meta = result[raster_key]['meta']
+    dtype = meta['dtype']
+    # dtype = 'float64'
+    # predictor = meta['predictor']
+    # compress = meta['compress']
+    raster_value = result[raster_key]['raster']
+    # raster_value = out_image[0]  # Remove the band dimension
+    raster = np.array(raster_value, dtype=np.dtype(dtype))
+
+    rasterio_kwargs = meta
+    # # Save as GeoTIFF - rasterio handles the transform directly
+    with rasterio.open(
+        f'raster_{raster_name}_{prediction_type}_{raster_group}.tif',
+        'w',
+        driver='GTiff',
+        height=raster.shape[0],
+        width=raster.shape[1],
+        count=1,
+        dtype=dtype,
+        crs=meta['crs'],
+        transform=meta['transform'],  # rasterio accepts the affine directly
+        nodata=meta['nodata']
+    ) as dst:
+        dst.write(raster, 1)
 
 # with rasterio.open(
 #     'probability_raster.tif',
@@ -104,7 +108,8 @@ with rasterio.open(
 #     dst.write(raster, 1)
 
 
-
+# print(json.dumps(result['xai_summary']))
+# print(json.dumps(result['risk_ling_thresholds']))
 
 
 import ipdb; ipdb.set_trace()

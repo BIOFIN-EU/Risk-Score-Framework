@@ -238,6 +238,7 @@ with rasterio.open(
 ) as dst:
     dst.write(raster, 1)
 
+print(meta['nodata'])
 # with rasterio.open(
 #     'probability_raster.tif',
 #     'w',

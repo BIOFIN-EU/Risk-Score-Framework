@@ -1193,15 +1193,15 @@ class SpeciesHabitatSuitabilityUtils():
         name = model_name
         mdl = model
         print("Predicting:", name)
-        probs_all = np.full(flat_df.shape[0], np.nan, dtype="float32")
+        probs_all = np.full(flat_df.shape[0], self.config.NODATA, dtype="float32")
         if np.any(valid_mask):
             probs_all[valid_mask] = self._predict_proba_safe(mdl, flat_df.iloc[valid_mask])
         prob_raster = probs_all.reshape(H, W)
         prob_meta = meta.copy()
-        prob_meta.update(count=1, dtype="float32", nodata=-1, compress="DEFLATE", predictor=3)
+        prob_meta.update(count=1, dtype="float32", nodata=self.config.NODATA, compress="DEFLATE", predictor=3)
         glc_model = GLCModel(self.config.COUNTRY_CODE)
-        prob_raster, prob_meta = glc_model.add_mask_to_reference(reference_raster=prob_raster, reference_meta=prob_meta)
-
+        prob_raster = glc_model.add_mask_to_reference(reference_raster=prob_raster, ori_reference_meta=prob_meta)
+        # prob_meta.update(count=1, dtype="float32", nodata=-1, compress="DEFLATE", predictor=3)
         prob_json_output = self.export_meta_and_raster_to_json_dict(prob_raster, prob_meta)
         return prob_json_output
 

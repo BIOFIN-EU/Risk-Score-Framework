@@ -28,18 +28,24 @@ risk_sri_link = Table(
 )
 
 
+
+
 class BiodiversityRiskIndexDB(BaseClimateSpatialIndexScoreDB):
     __tablename__ = "biodiversity_risk_index"
 
     # Foreign keys to RasterData
-    value_raster_id = Column(String, ForeignKey('raster_data.id'), nullable=False)
-    value_raster = relationship("RasterDataDB", foreign_keys=[value_raster_id])
+    green_value_raster_id = Column(String, ForeignKey('raster_data.id'), nullable=False)
+    green_value_raster = relationship("RasterDataDB", foreign_keys=[green_value_raster_id])
+
+    urban_value_raster_id = Column(String, ForeignKey('raster_data.id'), nullable=False)
+    urban_value_raster = relationship("RasterDataDB", foreign_keys=[urban_value_raster_id])
+
     xai_raster_id = Column(String, ForeignKey('raster_data.id'), nullable=False)
     xai_raster = relationship("RasterDataDB", foreign_keys=[xai_raster_id])
     xai_summary_json = Column(JSON, nullable=False)  # General Explainability data as JSON
 
     risk_model = Column(String, nullable=False) #(YangEtAl2021/SihamEtAl2026/PontesEtAl2026)?
-    risk_ling_thresholds = Column(String, nullable=False) #comma separated values for thresholds
+    risk_ling_thresholds_json = Column(JSON, nullable=False)
     crop_to_polygon = Column(Boolean, nullable=False)
 
 

@@ -6,6 +6,7 @@ from rasterio.transform import from_origin
 from rasterio.mask import mask
 from shapely.geometry import mapping
 
+from risk_framework.species_models.glc_retrieve import GLCModel
 
 from risk_framework.web_api.utils import apply_geometry_mask_to_raster
 
@@ -132,9 +133,19 @@ class BiofinBiodiversityRiskModelWrapper(object):
 
         return aligned_rasters
 
-    def run(self, climate_scenario, climate_model, period):
-        print('Running RISK model.')
-        # if current prediction
+    def separate_risk_raster_based_on_glc_group(self, risk_raster, risk_meta):
+        glc_model = GLCModel(self.country_code)
+        glc_raster, glc_meta = glc_model.get_reproj_to_reference(risk_meta)
+        green_risk_raster_g0 = glc_model.add_mask_to_reference(
+            reference_raster=risk_raster, ori_reference_meta=risk_meta,
+            glc_raster=glc_raster, glc_meta=glc_meta, glc_mask_value=1)
+        urban_risk_raster_g1 = glc_model.add_mask_to_reference(
+            reference_raster=risk_raster, ori_reference_meta=risk_meta,
+            glc_raster=glc_raster, glc_meta=glc_meta, glc_mask_value=0)
+        return green_risk_raster_g0, urban_risk_raster_g1
+
+
+    def calculate_risk_raster_and_meta(self, climate_scenario, climate_model, period):
         future = True
         if climate_scenario is None:
             climate_scenario = 'current'
@@ -167,29 +178,47 @@ class BiofinBiodiversityRiskModelWrapper(object):
         print('Aligning rasters..')
         sri_raster, ch_raster, pa_raster = self.align_rasters(rasters_list, meta_list)
 
-        valid_mask = (sri_raster >= 0) & (ch_raster >= 0) & (pa_raster >= 0)
-
         print('Running risk model..')
         risk_raster = self.risk_model.run(ch_raster=ch_raster, pa_raster=pa_raster, sri_raster=sri_raster)
+        print('Done...')
+        return risk_raster, default_meta, ch_reg, pa_reg, sri_reg
+
+    def run(self, climate_scenario, climate_model, period):
+        base_risk_raster, risk_meta, ch_reg, pa_reg, sri_reg = self.calculate_risk_raster_and_meta(
+            climate_scenario, climate_model, period)
+
+        green_risk_raster, urban_risk_raster = self.separate_risk_raster_based_on_glc_group(base_risk_raster, risk_meta)
+
+        green_valid_mask = green_risk_raster >= 0
+        green_mean_raster_value = float(np.mean(green_risk_raster[green_valid_mask]))
+        green_std_raster_value =  float(np.std(green_risk_raster[green_valid_mask]))
+
+        urban_valid_mask = urban_risk_raster >= 0
+        urban_mean_raster_value = float(np.mean(urban_risk_raster[urban_valid_mask]))
+        urban_std_raster_value =  float(np.std(urban_risk_raster[urban_valid_mask]))
+
         xai_data = self.risk_model.get_explainability_info()
         risk_ling_thresholds = self.risk_model.get_risk_ling_thresholds()
-        print('Done...')
-
-        mean_raster_value = float(np.mean(risk_raster[valid_mask]))
-        std_raster_value =  float(np.std(risk_raster[valid_mask]))
-
         return {
             "country_code": self.country_code,
             "wkt_polygon": self.wkt_polygon,
             "climate_scenario": climate_scenario,
             "climate_models": [climate_model],
             "period": period,
-            "raster_data": {
-                "raster": risk_raster.tolist(),
-                "meta": default_meta,
+            "green_raster_data": {
+                "raster": green_risk_raster.tolist(),
+                "meta": risk_meta,
                 'summary_stats': {
-                    'mean_raster_value': mean_raster_value,
-                    'std_raster_value': std_raster_value
+                    'mean_raster_value': green_mean_raster_value,
+                    'std_raster_value': green_std_raster_value
+                },
+            },
+            "urban_raster_data": {
+                "raster": urban_risk_raster.tolist(),
+                "meta": risk_meta,
+                'summary_stats': {
+                    'mean_raster_value': urban_mean_raster_value,
+                    'std_raster_value': urban_std_raster_value
                 },
             },
             "sri_species_list": self.sri_species_list,

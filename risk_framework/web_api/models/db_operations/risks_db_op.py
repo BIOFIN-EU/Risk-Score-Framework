@@ -57,7 +57,9 @@ def retrieve_or_calculate_risk_future_or_current(
         period = climate_scenario
 
     query = db.query(BiodiversityRiskIndexDB).options(
-        joinedload(BiodiversityRiskIndexDB.value_raster)
+        joinedload(BiodiversityRiskIndexDB.green_value_raster),
+        joinedload(BiodiversityRiskIndexDB.urban_value_raster),
+    joinedload(BiodiversityRiskIndexDB.xai_raster),
     )
     sri_species_list = sri_override_species_list
     if sri_override_species_list is None:
@@ -81,7 +83,7 @@ def retrieve_or_calculate_risk_future_or_current(
         BiodiversityRiskIndexDB.period == period,
     )
 
-    existing_hsi_record = query.first()
+    existing_record = query.first()
     return retrieve_or_calculate_risk(
         country_code,
         wkt_polygon,
@@ -92,7 +94,7 @@ def retrieve_or_calculate_risk_future_or_current(
         sri_logic_type,
         sri_correction_method,
         sri_override_species_list,
-        existing_hsi_record,
+        existing_record,
         crop_to_polygon,
         risk_model,
         db
@@ -131,7 +133,9 @@ def retrieve_or_calculate_risk(
             db
         )
 
-    existing_raster_value = pickle.loads(existing_record.value_raster.raster_bin)
+    existing_green_raster_value = pickle.loads(existing_record.green_value_raster.raster_bin)
+    existing_urban_raster_value = pickle.loads(existing_record.urban_value_raster.raster_bin)
+    existing_xai_raster_value = pickle.loads(existing_record.xai_raster.raster_bin)
 
     return BiodiversityRiskIndexResponse(
         id=existing_record.id,
@@ -142,17 +146,35 @@ def retrieve_or_calculate_risk(
         period=existing_record.period,
         crop_to_polygon=existing_record.crop_to_polygon,
         risk_model=existing_record.risk_model,
+        # xai_summary=existing_record.xai_summary_json,
+        # risk_ling_thresholds=existing_record.risk_ling_thresholds_json,
         sri_species_list=existing_record.sri_species_list,
         sri_correction_method=existing_record.sri_correction_method,
         sri_logic_type=existing_record.sri_logic_type,
         raster_data=RasterDataResponse(
-            raster=existing_raster_value,
+            raster=existing_green_raster_value,
             summary_stats=RasterSummaryStats(
-                mean_raster_value=float(existing_record.value_raster.mean_value),
-                std_raster_value=float(existing_record.value_raster.mean_std)
+                mean_raster_value=float(existing_record.green_value_raster.mean_value),
+                std_raster_value=float(existing_record.green_value_raster.mean_std)
             ),
-            meta=existing_record.value_raster.raster_meta
-        )
+            meta=existing_record.green_value_raster.raster_meta
+        ),
+        raster_data_urban=RasterDataResponse(
+            raster=existing_urban_raster_value,
+            summary_stats=RasterSummaryStats(
+                mean_raster_value=float(existing_record.urban_value_raster.mean_value),
+                std_raster_value=float(existing_record.urban_value_raster.mean_std)
+            ),
+            meta=existing_record.urban_value_raster.raster_meta
+        ),
+        xai_raster=RasterDataResponse(
+            raster=existing_xai_raster_value,
+            summary_stats=RasterSummaryStats(
+                mean_raster_value=float(existing_record.xai_raster.mean_value),
+                std_raster_value=float(existing_record.xai_raster.mean_std)
+            ),
+            meta=existing_record.xai_raster.raster_meta
+        ),
     )
 
 def run_and_create_new_risk_record(
@@ -193,20 +215,6 @@ def run_and_create_new_risk_record(
     return scenario_record
 
 def create_risk_and_raster_records(geo_id, result, db):
-    # country_code
-    # wkt_polygon
-    # climate_scenario
-    # climate_models
-    # period
-    # raster_data
-    # sri_species_list
-    # sri_logic_type
-    # sri_correction_method
-    # crop_to_polygon
-    # risk_model
-    # meta
-    # xai_data
-
 
     country_code = result['country_code']
     wkt_polygon = result['wkt_polygon']
@@ -218,41 +226,43 @@ def create_risk_and_raster_records(geo_id, result, db):
     correction_method = result['sri_correction_method']
 
     xai_data = result['xai_data']
-    xai_summary = json.dumps(xai_data['xai_summary_json'])
+    xai_summary = xai_data['xai_summary_json']
     risk_model = result['risk_model']
     crop_to_polygon = result['crop_to_polygon']
-    risk_ling_thresholds = json.dumps(result['risk_ling_thresholds'])
+    risk_ling_thresholds = result['risk_ling_thresholds']
+
 
     chi_reg_id = result['meta']['ch_reg_id']
     pai_reg_id = result['meta']['pa_reg_id']
     sri_reg_id = result['meta']['sri_reg_id']
 
-    # chi_instance = db.query(CriticalHabitatIndexDB).filter(
-    #     CriticalHabitatIndexDB.id == chi_id
-    # ).first()
-    # pai_instance = db.query(ProtectedAreaIndexDB).filter(
-    #     ProtectedAreaIndexDB.id == pai_id
-    # ).first()
-    # sri_instance = db.query(SpeciesRichnessIndexDB).filter(
-    #     SpeciesRichnessIndexDB.id == sri_id
-    # ).first()
-
     if climate_scenario == 'current':
         climate_models = ''
-    raster_data = result['raster_data']
-    raster_values = raster_data['raster']
-    raster_meta = raster_data['meta']
+    green_raster_data = result['green_raster_data']
+    green_raster_values = green_raster_data['raster']
+    raster_meta = green_raster_data['meta']
     raster_meta['crs'] = str(raster_meta['crs'])
-    raster_summary = raster_data['summary_stats']
-    mean_value = raster_summary['mean_raster_value']
-    mean_std = raster_summary['std_raster_value']
+    green_raster_summary = green_raster_data['summary_stats']
+    green_mean_value = green_raster_summary['mean_raster_value']
+    green_mean_std = green_raster_summary['std_raster_value']
 
-    new_raster_data = create_raster_record(geo_id, raster_values, raster_meta, mean_value, mean_std)
-    db.add(new_raster_data)
+    new_green_raster_data = create_raster_record(geo_id, green_raster_values, raster_meta, green_mean_value, green_mean_std)
+    db.add(new_green_raster_data)
+    db.flush()
+
+    urban_raster_data = result['urban_raster_data']
+    urban_raster_values = urban_raster_data['raster']
+    urban_raster_summary = urban_raster_data['summary_stats']
+    urban_mean_value = urban_raster_summary['mean_raster_value']
+    urban_mean_std = urban_raster_summary['std_raster_value']
+
+
+    new_urban_raster_data = create_raster_record(geo_id, urban_raster_values, raster_meta, urban_mean_value, urban_mean_std)
+    db.add(new_urban_raster_data)
     db.flush()
 
     xai_raster_values = xai_data['xai_raster']
-    xai_raster_meta = raster_data['meta']
+    xai_raster_meta = raster_meta
     # replace with none:
     xai_mean_value = -1
     xai_mean_std = -1
@@ -266,11 +276,12 @@ def create_risk_and_raster_records(geo_id, result, db):
         geo_id=geo_id,
         country_code=country_code,
         geometry=wkt_polygon,
-        value_raster_id=new_raster_data.id,
+        green_value_raster_id=new_green_raster_data.id,
+        urban_value_raster_id=new_urban_raster_data.id,
         xai_raster_id=new_xai_raster_data.id,
         xai_summary_json=xai_summary,
         risk_model=risk_model,
-        risk_ling_thresholds=risk_ling_thresholds,
+        risk_ling_thresholds_json=risk_ling_thresholds,
         crop_to_polygon=crop_to_polygon,
         climate_scenario=climate_scenario,
         climate_model=str(climate_models),
@@ -285,7 +296,8 @@ def create_risk_and_raster_records(geo_id, result, db):
 
     db.add(new_record)
     db.commit()
-    new_record.value_raster = new_raster_data
+    new_record.green_value_raster = new_green_raster_data
+    new_record.urban_value_raster = new_urban_raster_data
     new_record.xai_raster = new_xai_raster_data
     return new_record
 

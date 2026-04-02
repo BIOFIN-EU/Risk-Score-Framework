@@ -56,9 +56,11 @@ GLC_FILE_FORMAT = os.path.join(BASE_DATA_DIR, 'country_{country_code}', 'GLC_FCS
 
 BASE_RESOLUTION = 1000
 
+DEFAULT_NODATA = -9999.0
 
 class SpeciesHabitatSuitabilityConfig():
     def __init__(self, **kwargs):
+        self.NODATA = kwargs.get('NODATA', DEFAULT_NODATA)
         self.BASE_DATA_DIR = kwargs.get('BASE_DATA_DIR', BASE_DATA_DIR)
         self.COUNTRY_CODE = kwargs.get('COUNTRY_CODE', "LU")
         self.WKT_POLYGON = kwargs.get('WKT_POLYGON', "")

@@ -9,6 +9,8 @@ from risk_framework.web_api.schemas.base import (
     BaseClimateRasterScoreIndexResponse,
 )
 
+from risk_framework.web_api.schemas.rasters import RasterDataResponse
+
 
 
 
@@ -148,6 +150,14 @@ class CurrentBiodiversityRiskIndexRequest(BaseScoreIndexRequest):
 class BiodiversityRiskIndexResponse(BaseClimateRasterScoreIndexResponse):
     """Main response schema for BiodiversityRiskIndexResponse:
     """
+    raster_data_urban: RasterDataResponse
+    xai_raster: RasterDataResponse
+
+
+    # xai_summary = Column(JSON, nullable=False)  # General Explainability data as JSON
+
+    # risk_ling_thresholds = Column(String, nullable=False) #comma separated values for thresholds
+
     sri_species_list: str = Field(..., description="Comma-separated list of Indicator Species used during SRI calculation (e.g., 'Anthus trivialis,Columba palumbus')")
     sri_logic_type: str = Field(
         ...,
@@ -165,9 +175,12 @@ class BiodiversityRiskIndexResponse(BaseClimateRasterScoreIndexResponse):
         ...,
         description="The type of risk model used for this calculation."
     )
+
+
     class Config(BaseClimateRasterScoreIndexResponse.Config):
         schema_extra = BaseClimateRasterScoreIndexResponse.Config.schema_extra.copy()
         schema_extra['example'].update({
+            "raster_data_urban": RasterDataResponse.Config.schema_extra['example'],
             "sri_species_list": "Anthus trivialis,Columba palumbus",
             "sri_logic_type": "fuzzy",
             "sri_correction_method": "HFI",
