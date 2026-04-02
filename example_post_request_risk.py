@@ -18,6 +18,7 @@ prediction_type = 'current'
 # prediction_type = 'future'
 
 url = f"http://localhost:8000/api/v1/{raster_name}/{prediction_type}/"
+url_id = f"http://localhost:8000/api/v1/{raster_name}/get/"
 
 
 # # each raster need to have their own meta... they are all different u.u....
@@ -52,21 +53,21 @@ data = {
 
 # Make the POST request
 try:
-    response = requests.post(url, json=data)
+    responsea = requests.post(url, json=data)
     # Check if request was successful
-    response.raise_for_status()
+    responsea.raise_for_status()
 
     # Parse and print the JSON response
+    resulta = responsea.json()
+    record_url = url_id + resulta['id'] + "/"
+    response = requests.get(record_url)
     result = response.json()
-    print(json.dumps(result, indent=2))
+    # print(json.dumps(result, indent=2))
 
 except requests.exceptions.RequestException as e:
     print(f"Error making request: {e}")
     result = response.json()
     print(json.dumps(result, indent=2))
-except json.JSONDecodeError as e:
-    print(f"Error parsing response JSON: {e}")
-
 except Exception:
     exit
 
@@ -75,12 +76,13 @@ except Exception:
 
 for raster_key, raster_group in [('raster_data', 'green'), ('raster_data_urban', 'urban'), ('xai_raster', 'xai')]:
 
-    meta = result[raster_key]['meta']
+    raster_data = result.pop(raster_key)
+    meta = raster_data['meta']
     dtype = meta['dtype']
     # dtype = 'float64'
     # predictor = meta['predictor']
     # compress = meta['compress']
-    raster_value = result[raster_key]['raster']
+    raster_value = raster_data['raster']
     # raster_value = out_image[0]  # Remove the band dimension
     raster = np.array(raster_value, dtype=np.dtype(dtype))
 
@@ -107,9 +109,10 @@ for raster_key, raster_group in [('raster_data', 'green'), ('raster_data_urban',
 # ) as dst:
 #     dst.write(raster, 1)
 
-
-print(json.dumps(result['xai_summary'], indent=4))
-print(json.dumps(result['risk_ling_thresholds'], indent=4))
-
-
 import ipdb; ipdb.set_trace()
+result.pop('geometry')
+print(json.dumps(result, indent=4))
+# print(json.dumps(result['xai_summary'], indent=4))
+# print(json.dumps(result['risk_ling_thresholds'], indent=4))
+
+

@@ -27,6 +27,31 @@ from risk_framework.species_models.per_country_species_conf import (
 from .hsi_db_op import retrieve_or_calculate_hsi_future_or_current
 
 
+def retrieve_sri_by_id(record_id, db):
+    query = db.query(SpeciesRichnessIndexDB).options(
+        joinedload(SpeciesRichnessIndexDB.value_raster)
+    )
+    existing_record = query.filter(
+        SpeciesRichnessIndexDB.id == record_id
+    ).first()
+
+    if not existing_record:
+        raise RuntimeError(f"Species Richness Index  record with id {record_id} not found")
+
+    return retrieve_or_calculate_sri(
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        existing_record,
+        db
+    )
+
 
 def retrieve_or_calculate_sri_future_or_current(override_species_list, country_code, wkt_polygon, geo_id, climate_scenario, climate_model, period, logic_type, correction_method, db, future=False):
     country_code = country_code.upper()

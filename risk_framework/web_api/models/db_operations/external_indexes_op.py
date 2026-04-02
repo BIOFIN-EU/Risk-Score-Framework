@@ -22,6 +22,39 @@ from risk_framework.species_models.pa_model import PAModel
 
 
 
+def ch_response_from_db(existing_record):
+
+    existing_raster_value = pickle.loads(existing_record.value_raster.raster_bin)
+
+    return CriticalHabitatIndexResponse(
+        id=existing_record.id,
+        country_code=existing_record.country_code,
+        geometry=existing_record.geometry,
+        raster_data=RasterDataResponse(
+            raster=existing_raster_value,
+            summary_stats=RasterSummaryStats(
+                mean_raster_value=float(existing_record.value_raster.mean_value),
+                std_raster_value=float(existing_record.value_raster.mean_std)
+            ),
+            meta=existing_record.value_raster.raster_meta
+        )
+    )
+
+def retrieve_ch_by_id(record_id, db):
+    query = db.query(CriticalHabitatIndexDB).options(
+        joinedload(CriticalHabitatIndexDB.value_raster)
+    )
+    existing_record = query.filter(
+        CriticalHabitatIndexDB.id == record_id
+    ).first()
+
+    if not existing_record:
+        raise RuntimeError(f"Species Richness Index  record with id {record_id} not found")
+
+
+    return ch_response_from_db(existing_record)
+
+
 def retrieve_or_calculate_ch(country_code, wkt_polygon, geo_id, db):
     country_code = country_code.upper()
 
@@ -43,21 +76,8 @@ def retrieve_or_calculate_ch(country_code, wkt_polygon, geo_id, db):
             db
         )
 
-    existing_raster_value = pickle.loads(existing_record.value_raster.raster_bin)
+    return ch_response_from_db(existing_record)
 
-    return CriticalHabitatIndexResponse(
-        id=existing_record.id,
-        country_code=existing_record.country_code,
-        geometry=existing_record.geometry,
-        raster_data=RasterDataResponse(
-            raster=existing_raster_value,
-            summary_stats=RasterSummaryStats(
-                mean_raster_value=float(existing_record.value_raster.mean_value),
-                std_raster_value=float(existing_record.value_raster.mean_std)
-            ),
-            meta=existing_record.value_raster.raster_meta
-        )
-    )
 
 def run_and_create_new_ch_record(geo_id, country_code, wkt_polygon, db):
     if wkt_polygon == "" or wkt_polygon is None:
@@ -110,6 +130,39 @@ def create_ch_and_raster_records(geo_id, result, db):
 
 ## PA:
 
+def retrieve_pa_by_id(record_id, db):
+    query = db.query(ProtectedAreaIndexDB).options(
+        joinedload(ProtectedAreaIndexDB.value_raster)
+    )
+    existing_record = query.filter(
+        ProtectedAreaIndexDB.id == record_id
+    ).first()
+
+    if not existing_record:
+        raise RuntimeError(f"Species Richness Index  record with id {record_id} not found")
+
+
+    return pa_response_from_db(existing_record)
+
+
+def pa_response_from_db(existing_record):
+
+    existing_raster_value = pickle.loads(existing_record.value_raster.raster_bin)
+
+    return ProtectedAreaIndexResponse(
+        id=existing_record.id,
+        country_code=existing_record.country_code,
+        geometry=existing_record.geometry,
+        raster_data=RasterDataResponse(
+            raster=existing_raster_value,
+            summary_stats=RasterSummaryStats(
+                mean_raster_value=float(existing_record.value_raster.mean_value),
+                std_raster_value=float(existing_record.value_raster.mean_std)
+            ),
+            meta=existing_record.value_raster.raster_meta
+        )
+    )
+
 def retrieve_or_calculate_pa(country_code, wkt_polygon, geo_id, db):
     country_code = country_code.upper()
 
@@ -131,21 +184,7 @@ def retrieve_or_calculate_pa(country_code, wkt_polygon, geo_id, db):
             db
         )
 
-    existing_raster_value = pickle.loads(existing_record.value_raster.raster_bin)
-
-    return ProtectedAreaIndexResponse(
-        id=existing_record.id,
-        country_code=existing_record.country_code,
-        geometry=existing_record.geometry,
-        raster_data=RasterDataResponse(
-            raster=existing_raster_value,
-            summary_stats=RasterSummaryStats(
-                mean_raster_value=float(existing_record.value_raster.mean_value),
-                std_raster_value=float(existing_record.value_raster.mean_std)
-            ),
-            meta=existing_record.value_raster.raster_meta
-        )
-    )
+    return pa_response_from_db(existing_record)
 
 
 def run_and_create_new_pa_record(geo_id, country_code, wkt_polygon, db):

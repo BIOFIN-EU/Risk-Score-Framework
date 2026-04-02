@@ -1,6 +1,7 @@
 import uuid
 import pickle
 import json
+from urllib.parse import urlparse
 
 from sqlalchemy.orm import joinedload
 
@@ -36,6 +37,38 @@ from .external_indexes_op import (
     retrieve_or_calculate_pa,
 )
 
+
+def retrieve_risk_by_id(request, record_id, db):
+    query = db.query(BiodiversityRiskIndexDB).options(
+        joinedload(BiodiversityRiskIndexDB.green_value_raster),
+        joinedload(BiodiversityRiskIndexDB.urban_value_raster),
+        joinedload(BiodiversityRiskIndexDB.xai_raster),
+    )
+    existing_record = query.filter(
+        BiodiversityRiskIndexDB.id == record_id
+    ).first()
+
+    if not existing_record:
+        raise RuntimeError(f"Biodiversity Risk Index record with id {record_id} not found")
+
+    return retrieve_or_calculate_risk(
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        existing_record,
+        None,
+        None,
+        db,
+        request
+    )
+
+
 def retrieve_or_calculate_risk_future_or_current(
         country_code,
         wkt_polygon,
@@ -59,7 +92,7 @@ def retrieve_or_calculate_risk_future_or_current(
     query = db.query(BiodiversityRiskIndexDB).options(
         joinedload(BiodiversityRiskIndexDB.green_value_raster),
         joinedload(BiodiversityRiskIndexDB.urban_value_raster),
-    joinedload(BiodiversityRiskIndexDB.xai_raster),
+        joinedload(BiodiversityRiskIndexDB.xai_raster),
     )
     sri_species_list = sri_override_species_list
     if sri_override_species_list is None:
@@ -114,7 +147,8 @@ def retrieve_or_calculate_risk(
         existing_record,
         crop_to_polygon,
         risk_model,
-        db
+        db,
+        request=None
     ):
     # If record exists, retrieve it and return cached result
     if not existing_record:
@@ -137,7 +171,16 @@ def retrieve_or_calculate_risk(
     existing_urban_raster_value = pickle.loads(existing_record.urban_value_raster.raster_bin)
     existing_xai_raster_value = pickle.loads(existing_record.xai_raster.raster_bin)
 
-    return BiodiversityRiskIndexResponse(
+    if request:
+        chi_url = urlparse(str(request.url_for("get_chi_record", record_id=existing_record.chi_related_id))).path
+        pai_url = urlparse(str(request.url_for("get_pai_record", record_id=existing_record.pai_related_id))).path
+        sri_url = urlparse(str(request.url_for("get_sri_record", record_id=existing_record.sri_related_id))).path
+    else:
+        chi_url=existing_record.chi_related_id
+        pai_url=existing_record.pai_related_id
+        sri_url=existing_record.sri_related_id
+
+    response = BiodiversityRiskIndexResponse(
         id=existing_record.id,
         country_code=existing_record.country_code,
         geometry=existing_record.geometry,
@@ -175,7 +218,14 @@ def retrieve_or_calculate_risk(
             ),
             meta=existing_record.xai_raster.raster_meta
         ),
+        # chi_id=existing_record.chi_related_id,
+        # pai_id=existing_record.pai_related_id,
+        # sri_id=existing_record.sri_related_id
+        chi=chi_url,
+        pai=pai_url,
+        sri=sri_url
     )
+    return response
 
 def run_and_create_new_risk_record(
         geo_id,

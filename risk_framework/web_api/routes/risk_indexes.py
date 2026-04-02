@@ -1,5 +1,5 @@
-from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session, joinedload
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from risk_framework.web_api.schemas import (
     CurrentBiodiversityRiskIndexRequest,
@@ -11,6 +11,7 @@ from risk_framework.web_api.utils import (
 )
 from risk_framework.web_api.models.db_operations import (
     retrieve_or_calculate_risk_future_or_current,
+    retrieve_risk_by_id
 )
 
 
@@ -108,3 +109,24 @@ async def calculate_current_biodiversity_risk_index(request: CurrentBiodiversity
 #         future=False
 #     )
 
+@risk_router.get("/get/{record_id}/", response_model=BiodiversityRiskIndexResponse)
+async def get_biodiversity_risk_index_by_id(
+    record_id: str,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieve a specific Biodiversity Risk Index record by its ID.
+
+    Args:
+        record_id: UUID of the record to retrieve (e.g. '1234-567...-910')
+
+    Returns:
+        Single Biodiversity Risk Index record
+    """
+    try:
+        record_output = retrieve_risk_by_id(request, record_id, db)
+    except RuntimeError:
+        raise HTTPException(status_code=404, detail=f"Record with id {record_id} not found")
+
+    return record_output

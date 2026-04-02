@@ -187,6 +187,23 @@ class BiodiversityRiskIndexResponse(BaseClimateRasterScoreIndexResponse):
     )
 
 
+    # Relationship URLs (required)
+    chi: str = Field(
+        ...,
+        description="URL to retrieve the related CHI (Critical Habitat Index) record"
+    )
+
+    pai: str = Field(
+        ...,
+        description="URL to retrieve the related PAI (Protected Area Index) record"
+    )
+
+    sri: str = Field(
+        ...,
+        description="URL to retrieve the related SRI (Species Richness Index) record"
+    )
+
+
     class Config(BaseClimateRasterScoreIndexResponse.Config):
         schema_extra = BaseClimateRasterScoreIndexResponse.Config.schema_extra.copy()
         schema_extra['example'].update({
@@ -196,6 +213,24 @@ class BiodiversityRiskIndexResponse(BaseClimateRasterScoreIndexResponse):
             "sri_correction_method": "HFI",
             'crop_to_polygon': True,
             'risk_model': 'PontesEtAl2026',
+            "risk_ling_thresholds": {
+                "low": 0.09285714285714287,
+                "medium-low": 0.25000000000000006,
+                "medium": 0.5,
+                "medium-high": 0.7500000000000001,
+                "high": 0.9458333333333333
+            },
+            "xai_raster": RasterDataResponse.Config.schema_extra['example'],
+            "xai_summary": {
+                "xai_rules_meta": {
+                    "0": "IF (ch[unknown] AND pa[unprotected]) AND si[high] THEN risk[low]",
+                    "1": "IF (ch[unknown] AND pa[unprotected]) AND si[medium-high] THEN risk[medium-low]"
+                },
+                "xai_humam_text": []
+            },
+            "chi": "/api/v1/chi/get/550e8400-e29b-41d4-a716-446655440000/",
+            "pai": "/api/v1/pai/get/550e8400-e29b-41d4-a716-446655440001/",
+            "sri": "/api/v1/sri/get/550e8400-e29b-41d4-a716-446655440002/",
         })
 
     #probably will want to add here and in SRI the URI reference to related resources (in here would be SRI, CHI and PAI)

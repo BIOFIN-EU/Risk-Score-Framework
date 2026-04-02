@@ -16,6 +16,7 @@ from risk_framework.web_api.utils import (
 from risk_framework.web_api.models.db_operations import (
     retrieve_or_calculate_hsi_future_or_current,
     retrieve_or_calculate_sri_future_or_current,
+    retrieve_sri_by_id,
 )
 
 
@@ -156,3 +157,27 @@ async def predict_future_species_richness_index(request: FutureSpeciesRichnessIn
         future=False
     )
 
+
+
+@sri_router.get("/get/{record_id}/",
+                response_model=SpeciesRichnessIndexResponse,
+                name="get_sri_record")
+async def get_species_richness_index_by_id(
+    record_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieve a specific Record by its ID.
+
+    Args:
+        record_id: UUID of the record to retrieve (e.g., 1234-567...-910)
+
+    Returns:
+        A Single Index record or 404
+    """
+    try:
+        record_output = retrieve_sri_by_id(record_id, db)
+    except RuntimeError:
+        raise HTTPException(status_code=404, detail=f"Record with id {record_id} not found")
+
+    return record_output
