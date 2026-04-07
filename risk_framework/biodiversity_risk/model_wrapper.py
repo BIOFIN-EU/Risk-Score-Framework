@@ -8,7 +8,7 @@ from shapely.geometry import mapping
 
 from risk_framework.species_models.glc_retrieve import GLCModel
 
-from risk_framework.web_api.utils import apply_geometry_mask_to_raster
+from risk_framework.web_api.utils import apply_geometry_mask_to_raster, generate_geo_uuid
 
 
 
@@ -28,8 +28,9 @@ class BiofinBiodiversityRiskModelWrapper(object):
         risk_model,
         db,
     ):
-        self.geo_id = geo_id
         self.country_code = country_code
+        self.geo_id = geo_id
+        self.country_only_geo_id = generate_geo_uuid(self.country_code)
         self.wkt_polygon = wkt_polygon
         if wkt_polygon is None or wkt_polygon == "":
             self.wkt_polygon = get_country_wkt(country_code)
@@ -60,14 +61,14 @@ class BiofinBiodiversityRiskModelWrapper(object):
         # is_future = True
         # if period.lower() == "current":
         #     is_future = False
-        reg_index_response = self.ch_retrieval_method(self.country_code, self.wkt_polygon, self.geo_id, self.db)
+        reg_index_response = self.ch_retrieval_method(self.country_code, self.wkt_polygon, self.country_only_geo_id, self.db)
         meta = reg_index_response.raster_data.meta
 
         raster_array = np.array(reg_index_response.raster_data.raster, dtype=np.float64)
         return reg_index_response, raster_array, meta
 
     def get_raster_and_meta_from_pa_response_object(self):
-        reg_index_response = self.pa_retrieval_method(self.country_code, self.wkt_polygon, self.geo_id, self.db)
+        reg_index_response = self.pa_retrieval_method(self.country_code, self.wkt_polygon, self.country_only_geo_id, self.db)
         meta = reg_index_response.raster_data.meta
 
         raster_array = np.array(reg_index_response.raster_data.raster, dtype=np.float64)
@@ -75,7 +76,7 @@ class BiofinBiodiversityRiskModelWrapper(object):
 
     def get_raster_and_meta_from_sri_response_object(self, climate_scenario, climate_model, period, future):
         reg_index_response = self.sri_retrieval_method(
-            self.sri_species_list, self.country_code, self.wkt_polygon, self.geo_id,
+            self.sri_species_list, self.country_code, self.wkt_polygon, self.country_only_geo_id,
             climate_scenario, climate_model, period,
             self.sri_logic_type, self.sri_correction_method,
             self.db,
@@ -247,7 +248,6 @@ if __name__ == '__main__':
         retrieve_or_calculate_ch,
         retrieve_or_calculate_pa,
     )
-    from risk_framework.web_api.utils import get_db, generate_geo_uuid
     country_code = 'NL'
     db = list(get_db())[0]
 
