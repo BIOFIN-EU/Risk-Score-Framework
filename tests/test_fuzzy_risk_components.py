@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 
-from risk_framework.biodiversity_risk.bio_risk_plus import BioRiskPlusFIS
+from risk_framework.biodiversity_risk.bio_risk_fuzzy import BioRiskPlusFIS
 
 
 class TestBioRiskPlusFISComponents(unittest.TestCase):
@@ -268,6 +268,32 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
         self.assertAlmostEqual(output1, output3, places=4)
         self.assertNotAlmostEqual(output1, output4, places=4)
 
+
+    def test_ok_only_non_pa(self):
+        self.fis = BioRiskPlusFIS(cache=False, include_pa=False)
+        nd = self.fis.raster_nodata
+        self.ch_raster = np.array([
+            [1,     1],
+            [0,     1],
+        ], dtype=np.float64)
+        self.pa_raster = np.array([
+            [1,     1],
+            [0,     0],
+        ], dtype=np.float64)
+
+        self.sri_raster = np.array([
+            [0,     0],
+            [1,     0],
+        ], dtype=np.float64)
+        expected_raster = [
+            [nd,     nd],
+            [self.lowest_risk,     self.highest_risk],
+        ]
+
+        risk_raster = self.fis.run(self.ch_raster, self.pa_raster, self.sri_raster)
+
+        self.assertEqual(risk_raster.shape, (2, 2))
+        np.testing.assert_array_almost_equal(risk_raster,expected_raster, decimal=2)
 
     # def test_fis_evaluate_exec_time_all_cached(self):
     #     self.fis = BioRiskPlusFIS()

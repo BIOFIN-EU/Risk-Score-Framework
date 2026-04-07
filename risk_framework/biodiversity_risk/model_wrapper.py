@@ -47,11 +47,12 @@ class BiofinBiodiversityRiskModelWrapper(object):
         self.setup_risk_model()
 
     def setup_risk_model(self):
-        from risk_framework.biodiversity_risk.bio_risk_plus import BioRiskPlusFIS
+        from risk_framework.biodiversity_risk.bio_risk_fuzzy import BioRiskPlusFIS
+        from risk_framework.biodiversity_risk.base_risk_model import BioRiskBasic
         # replacces these once we have a proper name and impl for all models
         models_map = {
-            'YangEtAl2021': BioRiskPlusFIS,
-            'SihamEtAl2026': BioRiskPlusFIS,
+            'YangEtAl2021': BioRiskBasic,
+            'SihamEtAl2026': BioRiskBasic,
             'PontesEtAl2026': BioRiskPlusFIS,
         }
         self.risk_model = models_map[self.risk_model_name]()
