@@ -42,7 +42,7 @@ class SRIBaseModel(object):
         self.sri_no_data = -9999.0
 
     def get_species_list(self):
-        species_list = INDICATOR_SP_PER_COUNTRY.get(self.country_code, [])
+        species_list = INDICATOR_SP_PER_COUNTRY.get(self.country_code, INDICATOR_SP_PER_COUNTRY['DEFAULT-EU'])
         species_list.sort()
         return species_list
 

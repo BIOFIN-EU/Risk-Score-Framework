@@ -176,7 +176,7 @@ INDICATOR_SP_PER_COUNTRY = {
         'Phylloscopus collybita', 'Sturnus vulgaris',
         'Sylvia atricapilla',
     ],
-    'DEFAULT': [  # Europe (All)
+    'DEFAULT-EU': [  # Europe (All)
         'Accipiter nisus',
         'Anthus trivialis',
         'Buteo buteo',
