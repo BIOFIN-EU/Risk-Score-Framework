@@ -494,7 +494,9 @@ class BioRiskPlusFIS(object):
         self.pa_raster = pa_raster
         self.sri_raster = np.round(sri_raster, decimals=self.sri_rounding)
         self.ch_raster = self.map_ch_fuzzy_label_to_crisp(self.chl_raster)
-        self.valid_mask = (self.sri_raster >= 0) & (self.ch_raster >= 0) & (self.pa_raster >= 0)
+        # self.valid_mask = (self.sri_raster >= 0) & (self.ch_raster >= 0) & (self.pa_raster >= 0)
+        # forcing only non-pa input for now
+        self.valid_mask = (self.sri_raster >= 0) & (self.ch_raster >= 0) & (self.pa_raster == 0)
 
     def post_processing(self):
         valid_rules = self.explainable_data_rule_raster[
