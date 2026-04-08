@@ -64,7 +64,7 @@ def retrieve_or_calculate_sri_future_or_current(override_species_list, country_c
     )
     species_list = override_species_list
     if override_species_list is None:
-        species_list = INDICATOR_SP_PER_COUNTRY.get(country_code, [])
+        species_list = INDICATOR_SP_PER_COUNTRY.get(country_code, INDICATOR_SP_PER_COUNTRY['DEFAULT-EU'])
 
     species_list.sort()
 

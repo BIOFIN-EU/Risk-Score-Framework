@@ -54,6 +54,7 @@ RISK_FUZZY_CACHED_FILE = os.path.join(BASE_DATA_DIR, 'risk_fuzzy_4f_cached.pkl')
 GLC_YEAR = 2020
 GLC_FILE_FORMAT = os.path.join(BASE_DATA_DIR, 'country_{country_code}', 'GLC_FCS_{year}_clsgroups_0to2.tif')
 
+CACHED_EU_WKT_POLYGONS = os.path.join(BASE_DATA_DIR, 'cached_eu_polygons.json')
 BASE_RESOLUTION = 1000
 
 DEFAULT_NODATA = -9999.0

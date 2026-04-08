@@ -96,8 +96,7 @@ def retrieve_or_calculate_risk_future_or_current(
     )
     sri_species_list = sri_override_species_list
     if sri_override_species_list is None:
-        sri_species_list = INDICATOR_SP_PER_COUNTRY.get(country_code, [])
-
+        sri_species_list = INDICATOR_SP_PER_COUNTRY.get(country_code, INDICATOR_SP_PER_COUNTRY['DEFAULT-EU'])
     sri_species_list.sort()
 
     sri_species_list_str = ','.join(sri_species_list)

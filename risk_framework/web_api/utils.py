@@ -1,3 +1,5 @@
+import os
+import json
 import uuid
 from typing import Optional, List
 
@@ -15,7 +17,7 @@ import rasterio
 
 import requests
 
-from risk_framework.conf import SessionLocal, NOMINATIM_API, NOMINATIM_REVERSE_API
+from risk_framework.conf import SessionLocal, NOMINATIM_API, NOMINATIM_REVERSE_API, CACHED_EU_WKT_POLYGONS
 
 
 def get_db():
@@ -43,6 +45,12 @@ def generate_geo_uuid(country_code: str, wkt_polygon: Optional[str] = None) -> s
     return cache_uuid
 
 def get_country_wkt(country_code):
+    if os.path.exists(CACHED_EU_WKT_POLYGONS):
+        with open(CACHED_EU_WKT_POLYGONS, 'r') as f:
+            cached_polygons = json.load(f)
+            wkt_pol = cached_polygons.get(country_code)
+            if wkt_pol is not None:
+                return wkt_pol
     params = {
         'country': country_code,
         'countrycodes': country_code,

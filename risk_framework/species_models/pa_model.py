@@ -33,6 +33,9 @@ class PAModel(object):
 
         self.pa_parts_path_regexp = PA_PARTS_DATASET_PATH
         self.temp_pa_path = PA_TEMP_FILE_FORMAT.format(country_code=self.country_code)
+        country_dir = os.path.dirname(self.temp_pa_path)
+        if not os.path.exists(country_dir):
+            os.makedirs(country_dir, exist_ok=True)
         self.db = db
 
     def load_country_geometries_from_part(self, shp_path, iso3_code):

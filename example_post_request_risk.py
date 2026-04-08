@@ -1,4 +1,5 @@
 
+import time
 import requests
 import json
 import numpy as np
@@ -33,14 +34,14 @@ url_id = f"http://localhost:8000/api/v1/{raster_name}/get/"
 # Risk:
 
 data = {
-    # "country_code": "LU",
-    "country_code": "NL",
+    "country_code": "LU",
+    # "country_code": "NL",
     'risk_model': 'PontesEtAl2026',
     'crop_to_polygon': True,
 
     "sri_logic_type": "fuzzy",
     "sri_correction_method": "HFI",
-    'sri_override_species_list': "Accipiter nisus,Aegithalos caudatus"
+    # 'sri_override_species_list': "Accipiter nisus,Aegithalos caudatus"
     # "climate_scenario": "ssp245",
     # "climate_scenario": "ssp585",
     # "climate_model": "EC-Earth3-Veg",
@@ -51,9 +52,10 @@ data = {
 }
 
 
+start_time = time.perf_counter()
 # Make the POST request
 try:
-    responsea = requests.post(url, json=data)
+    responsea = requests.post(url, json=data, timeout=30*60)
     # Check if request was successful
     responsea.raise_for_status()
 
@@ -71,8 +73,9 @@ except requests.exceptions.RequestException as e:
 except Exception:
     exit
 
-
-
+end_time = time.perf_counter()
+elapsed_time = end_time - start_time
+print(f"\nExecution completed in: {elapsed_time:.4f} seconds")
 
 for raster_key, raster_group in [('raster_data', 'green'), ('raster_data_urban', 'urban'), ('xai_raster', 'xai')]:
 
@@ -109,7 +112,7 @@ for raster_key, raster_group in [('raster_data', 'green'), ('raster_data_urban',
 # ) as dst:
 #     dst.write(raster, 1)
 
-import ipdb; ipdb.set_trace()
+# import ipdb; ipdb.set_trace()
 result.pop('geometry')
 print(json.dumps(result, indent=4))
 # print(json.dumps(result['xai_summary'], indent=4))

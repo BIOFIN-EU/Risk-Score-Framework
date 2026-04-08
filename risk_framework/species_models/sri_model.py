@@ -33,7 +33,7 @@ class SRIBaseModel(object):
             self.wkt_polygon = get_country_wkt(country_code)
 
         self.hfp_dataset_raster_path = HFP_DATASET_PATH
-        if species_list is None:
+        if species_list is None or species_list == []:
             self.species_list = self.get_species_list()
         else:
             self.species_list = species_list
@@ -68,7 +68,7 @@ class SRIBaseModel(object):
         raster_array = np.array(species_hsi.raster_data.raster, dtype=meta_dtype)
         return species_hsi, raster_array, meta
 
-    def species_hsi_aggregation_method(self, list_of_species_hsi):
+    def species_hsi_aggregation_method(self, list_of_species_hsi, num_missing_species):
         raise NotImplementedError()
 
     def align_rasters(self, species_rasters, species_metas):
@@ -228,16 +228,26 @@ class SRIBaseModel(object):
         hsi_registry_list = []
         list_of_species_hsi = []
         list_of_species_meta = []
+        # clean_species_list = []
+        num_missing_species = 0
         for species_name in self.species_list:
-            species_hsi_reg, species_hsi_raster, meta = self.get_hsi_and_meta_for_one_species(species_name, climate_scenario, climate_model, period)
-            hsi_registry_list.append(species_hsi_reg.id)
-            list_of_species_hsi.append(species_hsi_raster)
-            list_of_species_meta.append(meta)
+            try:
+                species_hsi_reg, species_hsi_raster, meta = self.get_hsi_and_meta_for_one_species(species_name, climate_scenario, climate_model, period)
+            except Exception as e:
+                print(f'Error processing HSI of "{species_name}" for {self.country_code}')
+                num_missing_species += 1
+            else:
+                hsi_registry_list.append(species_hsi_reg.id)
+                list_of_species_hsi.append(species_hsi_raster)
+                list_of_species_meta.append(meta)
+                # clean_species_list[species_name]
+
+        # self.species_list = clean_species_list
 
         default_meta = list_of_species_meta[0]
         list_of_species_hsi_aligned = self.align_rasters(list_of_species_hsi, list_of_species_meta)
 
-        non_corrected_sri_raster = self.species_hsi_aggregation_method(list_of_species_hsi_aligned)
+        non_corrected_sri_raster = self.species_hsi_aggregation_method(list_of_species_hsi_aligned, num_missing_species)
 
         sri_raster = self.apply_correction_method(non_corrected_sri_raster, default_meta)
 
@@ -271,8 +281,10 @@ class SRIBaseModel(object):
 
 
 class FuzzySRIModel(SRIBaseModel):
-    def species_hsi_aggregation_method(self, list_of_species_hsi):
-        stacked = np.stack(list_of_species_hsi)
+    def species_hsi_aggregation_method(self, list_of_species_hsi, num_missing_species):
+        missing_species_hsi = [np.zeros_like(list_of_species_hsi[0]) for _ in range(num_missing_species)]
+        clean_list_of_species_hsi = list_of_species_hsi + missing_species_hsi
+        stacked = np.stack(clean_list_of_species_hsi)
         # Calculate fuzzy mean (mean across species axis)
         fuzzy_mean = np.mean(stacked, axis=0)
 

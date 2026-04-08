@@ -58,6 +58,8 @@ class SpeciesHabitatSuitabilityUtils():
         try:
             r = requests.get(self.config.GBIF_API_BASE, params=params); r.raise_for_status()
             data = r.json().get("results", [])
+            if len(data) <= 0:
+                raise RuntimeError(f"No data for {species_name} in {country_code}")
             return pd.json_normalize(data) if data else pd.DataFrame()
         except requests.RequestException as e:
             print(f"Request failed: {e}"); return pd.DataFrame()
