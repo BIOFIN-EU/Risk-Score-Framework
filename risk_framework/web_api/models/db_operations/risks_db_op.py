@@ -64,6 +64,7 @@ def retrieve_risk_by_id(request, record_id, db):
         existing_record,
         None,
         None,
+        None,
         db,
         request
     )
@@ -81,6 +82,7 @@ def retrieve_or_calculate_risk_future_or_current(
         sri_override_species_list,
         crop_to_polygon,
         risk_model,
+        risk_type,
         db,
         future=False,
     ):
@@ -108,6 +110,7 @@ def retrieve_or_calculate_risk_future_or_current(
         BiodiversityRiskIndexDB.sri_species_list == sri_species_list_str,
         BiodiversityRiskIndexDB.crop_to_polygon == crop_to_polygon,
         BiodiversityRiskIndexDB.risk_model == risk_model,
+        BiodiversityRiskIndexDB.risk_type == risk_type,
     )
     if future:
         query.filter(
@@ -129,6 +132,7 @@ def retrieve_or_calculate_risk_future_or_current(
         existing_record,
         crop_to_polygon,
         risk_model,
+        risk_type,
         db
     )
 
@@ -146,6 +150,7 @@ def retrieve_or_calculate_risk(
         existing_record,
         crop_to_polygon,
         risk_model,
+        risk_type,
         db,
         request=None
     ):
@@ -163,6 +168,7 @@ def retrieve_or_calculate_risk(
             sri_species_list,
             crop_to_polygon,
             risk_model,
+            risk_type,
             db
         )
 
@@ -188,6 +194,7 @@ def retrieve_or_calculate_risk(
         period=existing_record.period,
         crop_to_polygon=existing_record.crop_to_polygon,
         risk_model=existing_record.risk_model,
+        risk_type=existing_record.risk_type,
         xai_summary=existing_record.xai_summary_json,
         risk_ling_thresholds=existing_record.risk_ling_thresholds_json,
         sri_species_list=existing_record.sri_species_list,
@@ -238,6 +245,7 @@ def run_and_create_new_risk_record(
         sri_species_list,
         crop_to_polygon,
         risk_model,
+        risk_type,
         db
     ):
     if wkt_polygon == "" or wkt_polygon is None:
@@ -256,7 +264,7 @@ def run_and_create_new_risk_record(
         crop_to_polygon=crop_to_polygon, risk_model=risk_model, db=db
     )
 
-    result = risk_model.run(climate_scenario=climate_scenario, climate_model=climate_model, period=period)
+    result = risk_model.run(climate_scenario=climate_scenario, climate_model=climate_model, period=period, risk_type=risk_type)
 
     scenario_record = create_risk_and_raster_records(
         geo_id, result, db)
@@ -277,6 +285,7 @@ def create_risk_and_raster_records(geo_id, result, db):
     xai_data = result['xai_data']
     xai_summary = xai_data['xai_summary_json']
     risk_model = result['risk_model']
+    risk_type = result['risk_type']
     crop_to_polygon = result['crop_to_polygon']
     risk_ling_thresholds = result['risk_ling_thresholds']
 
@@ -330,6 +339,7 @@ def create_risk_and_raster_records(geo_id, result, db):
         xai_raster_id=new_xai_raster_data.id,
         xai_summary_json=xai_summary,
         risk_model=risk_model,
+        risk_type=risk_type,
         risk_ling_thresholds_json=risk_ling_thresholds,
         crop_to_polygon=crop_to_polygon,
         climate_scenario=climate_scenario,

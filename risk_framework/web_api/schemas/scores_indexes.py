@@ -134,6 +134,10 @@ class CurrentBiodiversityRiskIndexRequest(BaseScoreIndexRequest):
         ...,
         description="The type of risk model used for this calculation. Options are: 'YangEtAl2021', 'SihamEtAl2026', 'PontesEtAl2026'"
     )
+    risk_type: str = Field(
+        ...,
+        description="The type of risk outputed by this calculation. ('NonPA' or 'IsPA')"
+    )
     class Config(BaseFutureScoreIndexRequest.Config):
         schema_extra = BaseFutureScoreIndexRequest.Config.schema_extra.copy()
         schema_extra['example'].update({
@@ -142,6 +146,7 @@ class CurrentBiodiversityRiskIndexRequest(BaseScoreIndexRequest):
             "sri_correction_method": "HFI",
             'crop_to_polygon': True,
             'risk_model': 'PontesEtAl2026',
+            'risk_type': 'NonPA',
         })
 
 
@@ -186,6 +191,11 @@ class BiodiversityRiskIndexResponse(BaseClimateRasterScoreIndexResponse):
         description="The type of risk model used for this calculation."
     )
 
+    risk_type: str = Field(
+        ...,
+        description="The type of risk outputed by this calculation. ('NonPA' or 'IsPA')"
+    )
+
 
     # Relationship URLs (required)
     chi: str = Field(
@@ -213,6 +223,7 @@ class BiodiversityRiskIndexResponse(BaseClimateRasterScoreIndexResponse):
             "sri_correction_method": "HFI",
             'crop_to_polygon': True,
             'risk_model': 'PontesEtAl2026',
+            'risk_type': 'NonPA',
             "risk_ling_thresholds": {
                 "low": 0.09285714285714287,
                 "medium-low": 0.25000000000000006,

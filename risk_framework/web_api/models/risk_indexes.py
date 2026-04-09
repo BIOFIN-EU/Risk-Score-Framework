@@ -33,6 +33,8 @@ risk_sri_link = Table(
 class BiodiversityRiskIndexDB(BaseClimateSpatialIndexScoreDB):
     __tablename__ = "biodiversity_risk_index"
 
+    risk_type  = Column(String, nullable=False)
+
     # Foreign keys to RasterData
     green_value_raster_id = Column(String, ForeignKey('raster_data.id'), nullable=False)
     green_value_raster = relationship("RasterDataDB", foreign_keys=[green_value_raster_id])

@@ -37,6 +37,8 @@ data = {
     "country_code": "LU",
     # "country_code": "NL",
     'risk_model': 'PontesEtAl2026',
+    # 'risk_type': 'NonPA',
+    'risk_type': 'IsPA',
     'crop_to_polygon': True,
 
     "sri_logic_type": "fuzzy",

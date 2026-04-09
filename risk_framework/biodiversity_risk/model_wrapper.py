@@ -55,7 +55,7 @@ class BiofinBiodiversityRiskModelWrapper(object):
             'SihamEtAl2026': BioRiskBasic,
             'PontesEtAl2026': BioRiskPlusFIS,
         }
-        self.risk_model = models_map[self.risk_model_name]()
+        self.risk_model = models_map[self.risk_model_name](include_pa=True)
 
 
     def get_raster_and_meta_from_ch_response_object(self):
@@ -147,7 +147,9 @@ class BiofinBiodiversityRiskModelWrapper(object):
         return green_risk_raster_g0, urban_risk_raster_g1
 
 
-    def calculate_risk_raster_and_meta(self, climate_scenario, climate_model, period):
+    def calculate_risk_raster_and_meta(self, climate_scenario, climate_model, period, risk_type):
+
+
         future = True
         if climate_scenario is None:
             climate_scenario = 'current'
@@ -180,14 +182,22 @@ class BiofinBiodiversityRiskModelWrapper(object):
         print('Aligning rasters..')
         sri_raster, ch_raster, pa_raster = self.align_rasters(rasters_list, meta_list)
 
+
+        if risk_type.upper() == 'NonPA'.upper():
+            risk_type_pa_mask = (pa_raster == 1)
+        else: #'IsPA'
+            risk_type_pa_mask = (pa_raster == 0)
+
+        pa_raster[risk_type_pa_mask] = self.raster_nodata
+
         print('Running risk model..')
         risk_raster = self.risk_model.run(ch_raster=ch_raster, pa_raster=pa_raster, sri_raster=sri_raster)
         print('Done...')
         return risk_raster, default_meta, ch_reg, pa_reg, sri_reg
 
-    def run(self, climate_scenario, climate_model, period):
+    def run(self, climate_scenario, climate_model, period, risk_type):
         base_risk_raster, risk_meta, ch_reg, pa_reg, sri_reg = self.calculate_risk_raster_and_meta(
-            climate_scenario, climate_model, period)
+            climate_scenario, climate_model, period, risk_type)
 
         green_risk_raster, urban_risk_raster = self.separate_risk_raster_based_on_glc_group(base_risk_raster, risk_meta)
 
@@ -228,6 +238,7 @@ class BiofinBiodiversityRiskModelWrapper(object):
             'sri_correction_method': self.sri_correction_method,
             'crop_to_polygon': self.crop_to_polygon,
             'risk_model': self.risk_model_name,
+            'risk_type': risk_type,
             'meta': {
                 'ch_reg_id': ch_reg.id,
                 'pa_reg_id': pa_reg.id,
