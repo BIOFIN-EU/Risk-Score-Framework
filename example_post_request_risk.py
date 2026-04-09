@@ -29,16 +29,16 @@ url_id = f"http://localhost:8000/api/v1/{raster_name}/get/"
 # """
 
 
-
-
+risk_type = 'NonPA'
+# risk_type = 'IsPA'
+country_code = 'NL'
+# country_code = 'LU'
 # Risk:
 
 data = {
-    "country_code": "LU",
-    # "country_code": "NL",
+    "country_code": country_code,
     'risk_model': 'PontesEtAl2026',
-    # 'risk_type': 'NonPA',
-    'risk_type': 'IsPA',
+    'risk_type': risk_type,
     'crop_to_polygon': True,
 
     "sri_logic_type": "fuzzy",
@@ -74,7 +74,6 @@ except requests.exceptions.RequestException as e:
     print(json.dumps(result, indent=2))
 except Exception:
     exit
-
 end_time = time.perf_counter()
 elapsed_time = end_time - start_time
 print(f"\nExecution completed in: {elapsed_time:.4f} seconds")
@@ -94,7 +93,7 @@ for raster_key, raster_group in [('raster_data', 'green'), ('raster_data_urban',
     rasterio_kwargs = meta
     # # Save as GeoTIFF - rasterio handles the transform directly
     with rasterio.open(
-        f'raster_{raster_name}_{prediction_type}_{raster_group}.tif',
+        f'raster_{country_code}_{risk_type}_{raster_name}_{prediction_type}_{raster_group}.tif',
         'w',
         driver='GTiff',
         height=raster.shape[0],

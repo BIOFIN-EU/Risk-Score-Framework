@@ -13,7 +13,7 @@ from rasterio.mask import mask
 from shapely.geometry import mapping
 
 
-from risk_framework.conf import HFP_DATASET_PATH
+from risk_framework.conf import HFP_DATASET_PATH, HFP_REPROJ_DATASET_PATH
 
 from risk_framework.species_models.per_country_species_conf import (
     INDICATOR_SP_PER_COUNTRY
@@ -32,7 +32,7 @@ class SRIBaseModel(object):
         if wkt_polygon is None or wkt_polygon == "":
             self.wkt_polygon = get_country_wkt(country_code)
 
-        self.hfp_dataset_raster_path = HFP_DATASET_PATH
+        self.hfp_dataset_raster_path = HFP_REPROJ_DATASET_PATH
         if species_list is None or species_list == []:
             self.species_list = self.get_species_list()
         else:
@@ -128,6 +128,35 @@ class SRIBaseModel(object):
         # norm_hfi_raster[valid_raster] = (23 * hfi_raster[valid_raster]) / (100 + (21 * hfi_raster[valid_raster]))
 
         return norm_hfi_raster
+
+    def _reproject_hfi(self, hfp_origin_path):
+        print('Loading HFI Full dataset...')
+        with rasterio.open(hfp_origin_path) as hfi_src:
+            dst_crs = 'EPSG:4326'
+            dst_dtype = np.float32
+            print('Reprojecting HFI Full dataset...')
+            hfi_raster_rep, hfi_rep_meta = reproject_to_crs(
+                hfi_src,
+                dst_crs,
+                dst_nodata=self.sri_no_data,
+                dst_dtype=dst_dtype,
+                resampling=Resampling.nearest
+            )
+            print('Reprojecting HFI Full dataset... Done.')
+
+            with rasterio.open(
+                self.hfp_dataset_raster_path,
+                'w',
+                driver='GTiff',
+                height=hfi_raster_rep.shape[0],
+                width=hfi_raster_rep.shape[1],
+                nodata=hfi_rep_meta['nodata'],
+                count=1,
+                dtype=dst_dtype,
+                crs=hfi_rep_meta['crs'],
+                transform=hfi_rep_meta['transform'],
+            ) as dst:
+                dst.write(hfi_raster_rep, 1)
 
     def load_hfp_raster_and_transform(self):
         # Open HF raster
@@ -303,38 +332,43 @@ if __name__ == '__main__':
     from risk_framework.web_api.utils import get_db
     country_code = 'NL'
     db = list(get_db())[0]
-    fsri = FuzzySRIModel(country_code, wkt_polygon=None, db=db)
 
-    result = fsri.run(climate_scenario='ssp245', climate_model='EC-Earth3-Veg', period='2021-2040')
+    # result = fsri.run(climate_scenario='ssp245', climate_model='EC-Earth3-Veg', period='2021-2040')
 
 
-    meta = result['raster_data']['meta']
-    dtype = meta['dtype']
-    # predictor = meta['predictor']
-    compress = meta['compress']
-    raster_value = result['raster_data']['raster']
-    # raster_value = out_image[0]  # Remove the band dimension
-    raster = np.array(raster_value, dtype=np.dtype(dtype))
-    # Create transform object for rasterio
-    # transform = from_origin(
-    #     meta['transform'][2],  # top-left x
-    #     meta['transform'][5],  # top-left y
-    #     meta['transform'][0],  # pixel width
-    #     # abs(meta['transform'][4])  # pixel height (make positive)
-    #     abs(meta['transform'][4])  # pixel height (make positive)
-    # )
-    # # Save as GeoTIFF - rasterio handles the transform directly
-    with rasterio.open(
-        'probability_raster_fsriall.tif',
-        'w',
-        driver='GTiff',
-        height=raster.shape[0],
-        width=raster.shape[1],
-        count=1,
-        dtype=raster.dtype,
-        crs=meta['crs'],
-        transform=meta['transform'],  # rasterio accepts the affine directly
-        nodata=-1
-    ) as dst:
-        dst.write(raster, 1)
-    print(json.dumps(result, indent=4))
+    # meta = result['raster_data']['meta']
+    # dtype = meta['dtype']
+    # # predictor = meta['predictor']
+    # compress = meta['compress']
+    # raster_value = result['raster_data']['raster']
+    # # raster_value = out_image[0]  # Remove the band dimension
+    # raster = np.array(raster_value, dtype=np.dtype(dtype))
+    # # Create transform object for rasterio
+    # # transform = from_origin(
+    # #     meta['transform'][2],  # top-left x
+    # #     meta['transform'][5],  # top-left y
+    # #     meta['transform'][0],  # pixel width
+    # #     # abs(meta['transform'][4])  # pixel height (make positive)
+    # #     abs(meta['transform'][4])  # pixel height (make positive)
+    # # )
+    # # # Save as GeoTIFF - rasterio handles the transform directly
+    # with rasterio.open(
+    #     'probability_raster_fsriall.tif',
+    #     'w',
+    #     driver='GTiff',
+    #     height=raster.shape[0],
+    #     width=raster.shape[1],
+    #     count=1,
+    #     dtype=raster.dtype,
+    #     crs=meta['crs'],
+    #     transform=meta['transform'],  # rasterio accepts the affine directly
+    #     nodata=-1
+    # ) as dst:
+    #     dst.write(raster, 1)
+    # print(json.dumps(result, indent=4))
+
+
+    model = FuzzySRIModel('geo_id', lambda x: x, 'correction_method', 'country_code', 'wkt_polygon', db, species_list=['None'])
+
+    model._reproject_hfi(HFP_DATASET_PATH)
+
