@@ -1,0 +1,7 @@
+.env
+catboost_info/*
+data/*
+docs/*
+notebooks/*
+*.json
+*.tif
