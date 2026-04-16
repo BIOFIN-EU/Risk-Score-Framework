@@ -14,31 +14,25 @@ services:
       retries: 3
       start_period: 10s
 
-  # service:
-  #   image: ghcr.io/biofin-eu/biofin-mvp:mvp-uc1-v3
-  #   build: .
-  #   environment:
-  #     SECRET_KEY: ${SECRET_KEY}
-  #     DEBUG: ${DEBUG}
-  #     DATABASE_HOST: db
-  #     DATABASE_PORT: ${DATABASE_PORT}
-  #     DATABASE_NAME: ${DATABASE_NAME}
-  #     DATABASE_USER: ${DATABASE_USER}
-  #     DATABASE_PASS: ${DATABASE_PASS}
-  #     EXTRA_ALLOWED_HOSTS: ${EXTRA_ALLOWED_HOSTS}
-  #     APP_HOST: ${APP_HOST}
-  #     APP_PORT: ${APP_PORT}
-  #     VIRTUAL_HOST: ${VIRTUAL_HOST}
-  #     VIRTUAL_PORT: ${APP_PORT}
-  #     HTTP_PROXY: ${HTTP_PROXY}
-  #     HTTPS_PROXY: ${HTTPS_PROXY}
-  #     http_proxy: ${HTTP_PROXY}
-  #     https_proxy: ${HTTPS_PROXY}
-  #     NO_PROXY: ${DEFAULT_NO_PROXY},db
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #   # volumes:
-  #   #   - .:/service
-  #   ports:
-  #     - "${APP_PORT}:${APP_PORT}"
+  service:
+    image: ghcr.io/biofin-eu/risk-score-framework:v1.0.0
+    build:
+      context: .
+      args:
+        SOURCE_REPO: ${SOURCE_REPO}
+
+    # environment:
+    #   SECRET_KEY: ${SECRET_KEY}
+    #   DEBUG: ${DEBUG}
+    #   DATABASE_HOST: db
+    #   DATABASE_PORT: ${DATABASE_PORT}
+    #   DATABASE_NAME: ${DATABASE_NAME}
+    #   DATABASE_USER: ${DATABASE_USER}
+    #   DATABASE_PASS: ${DATABASE_PASS}
+    depends_on:
+      db:
+        condition: service_healthy
+    # volumes:
+    #   - .:/service
+    ports:
+      - "${APP_PORT}:${APP_PORT}"

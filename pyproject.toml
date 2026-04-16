@@ -20,6 +20,7 @@ dependencies = [
 #    "scipy==1.16.3",
     "fastapi==0.129.0",
     "uvicorn[standard]==0.41.0",
+    "gunicorn==25.3.0",
     "SQLAlchemy==2.0.46",
     "psycopg2==2.9.11",
     "geemap==0.36.6",
