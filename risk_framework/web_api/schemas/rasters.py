@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field
+import math
+
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Dict, Any, List, Optional
 
 class RasterSummaryStats(BaseModel):
@@ -14,6 +16,8 @@ class RasterSummaryStats(BaseModel):
             }
         }
 
+
+
 class RasterDataResponse(BaseModel):
     """Raster data as a 2D list of floats"""
     raster: List[List[float]] = Field(..., description="2D array of raster values")
@@ -21,10 +25,11 @@ class RasterDataResponse(BaseModel):
     meta: Dict[str, Any] = Field(..., description="Raster metadata")
 
     class Config:
+        # import ipdb; ipdb.set_trace()
         schema_extra = {
             "example": {
                 "raster": [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]],
-                "summary_stats": RasterSummaryStats.Config.schema_extra['example'],
+                "summary_stats": RasterSummaryStats.model_config['schema_extra']['example'],
                 "meta": {
                     "driver": "GTiff",
                     "dtype": "float32",

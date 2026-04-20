@@ -33,6 +33,7 @@ dependencies = [
     "catboost==1.2.8",
     "scikit-fuzzy==0.5.0",
     "pycountry==26.2.16",
+    "orjson==3.11.8",
 ]
 
 [project.optional-dependencies]

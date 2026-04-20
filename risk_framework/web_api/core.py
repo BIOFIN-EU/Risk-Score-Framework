@@ -4,6 +4,7 @@ import uuid
 from typing import Optional
 
 from fastapi import FastAPI
+from fastapi.responses import ORJSONResponse
 from fastapi.routing import APIRoute
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -71,4 +72,5 @@ app = Application(
     title="Risk Framework API",
     description="API for biodiversity risk assessment",
     version="0.1.0",
+    default_response_class=ORJSONResponse
 )
