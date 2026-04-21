@@ -2,6 +2,7 @@ import numpy as np
 
 from skfuzzy import control as ctrl
 from skfuzzy.control.controlsystem import CrispValueCalculator
+from skfuzzy.control.term import TermAggregate, Term
 
 
 class ExplainableControlSystemSimulation(ctrl.ControlSystemSimulation):
@@ -90,8 +91,56 @@ class ExplainableControlSystemSimulation(ctrl.ControlSystemSimulation):
             self._reset_simulation()
 
 
+    def get_term_human_text(self, term):
+        """Convert a fuzzy term (antecedent or consequent) to human readable text"""
+        var_label = term.parent.label
+        value_label = term.label
 
+        # Map variable labels to human readable names
+        var_name_map = {
+            'ch': 'Critical Habitat',
+            'pa': 'Protected Area',
+            'si': 'Species Richness',
+            'risk': 'Risk'
+        }
 
+        # Special handling for Protected Area
+        if var_label == 'pa':
+            if value_label == 'protected':
+                return 'it is a Protected Area'
+            elif value_label == 'unprotected':
+                return 'it is Not a Protected Area'
+
+        # For other variables, capitalize the value label
+        human_value = value_label.capitalize()
+        human_var = var_name_map.get(var_label, var_label)
+
+        return f'{human_var} is "{human_value}"'
+
+    def get_antecedent_human_text(self, antecedent):
+        """Recursively convert antecedent to human readable text"""
+        if isinstance(antecedent, Term):
+            # Base case: reached a Term
+            return self.get_term_human_text(antecedent)
+        elif isinstance(antecedent, TermAggregate):
+            # Recursive case: combine left and right parts
+            left_text = self.get_antecedent_human_text(antecedent.term1)
+            right_text = self.get_antecedent_human_text(antecedent.term2)
+
+            is_pa_on_right = isinstance(antecedent.term2, Term) and antecedent.term2.parent.label == 'pa'
+            # Check if term2 is PA (Protected Area) and swap if needed
+            if is_pa_on_right:
+                left_text, right_text = right_text, left_text
+
+            # Combine based on the kind (AND/OR)
+            kind_text = str(antecedent.kind).upper()
+            return f'{left_text} {kind_text} {right_text}'
+
+    def get_consequent_human_text(self, consequent):
+        """Convert consequent to human readable text"""
+        # consequent is a list, but should have only one item for our model
+        term = consequent[0].term
+        return self.get_term_human_text(term)
 
     def get_rules_string_by_id_list(self, rule_ids):
         rules_str_list = []
@@ -105,9 +154,23 @@ class ExplainableControlSystemSimulation(ctrl.ControlSystemSimulation):
     def get_all_rules_id_components_map(self):
         rules_id_str = {}
         for rule_idx, rule in enumerate(self.ctrl.rules):
-
             rule_str = f'IF {rule.antecedent} THEN {",".join([str(c) for c in rule.consequent])}'
             rules_id_str[rule_idx] = rule_str
+
+        return rules_id_str
+
+    def get_all_rules_id_components_map_humam(self):
+        rules_id_str = {}
+        for rule_idx, rule in enumerate(self.ctrl.rules):
+
+            ant_text = self.get_antecedent_human_text(rule.antecedent)
+            # Get human readable consequent text
+            cons_text = self.get_consequent_human_text(rule.consequent)
+
+            # rule_str = f'IF {rule.antecedent} THEN {",".join([str(c) for c in rule.consequent])}'
+            rule_str = f'IF {ant_text} THEN {cons_text}'
+            rules_id_str[rule_idx] = rule_str
+
         return rules_id_str
 
     def get_computation_explainability_data(self):

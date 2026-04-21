@@ -26,11 +26,11 @@ class BioRiskPlusFIS(object):
     Original Biodiversity Risk Components:
         * CH: Critical Habitat: 0???;0.5;1
         * PA: Protected Area: 0;1
-        * SI: Threatened Species Reachness:
+        * SI: Threatened Species Richness:
     Proposed Biodiversity Risk Components:
         * CH: Critical Habitat: (0: Unknown, 1: Potential, 10: Likelly)
         * PA: Protected Area: 0-1 ??? Possibily make it % of area inside protected area?
-        * (Inverted ^-1) UCC-SRI: Urbanisation and Climate Change Influenced Species Reachness Index: 0-1
+        * (Inverted ^-1) UCC-SRI: Urbanisation and Climate Change Influenced Species Richness Index: 0-1
     FIS:
      - Antecedents: CH, PA, SRI (this is the one with HFI already applied to it)
      - Consequents: (Biodiversity)Risk
@@ -520,7 +520,7 @@ class BioRiskPlusFIS(object):
         # fix this, too confusing...
         # explainable data should just be the ids, not the at this point
         # this method should instead transform this into a humam readable text.
-        return self.explainable_data
+        return self.fis_sim.get_all_rules_id_components_map_humam()
 
     def get_explainability_info(self):
         expl_info = {
