@@ -162,7 +162,7 @@ class BiofinBiodiversityRiskModelWrapper(object):
         pa_reg, pa_raster, pa_meta = self.get_raster_and_meta_from_pa_response_object()
         print('retrieve SRI..')
         sri_reg, sri_raster, sri_meta = self.get_raster_and_meta_from_sri_response_object(
-            climate_model, climate_model, period, future)
+            climate_scenario, climate_model, period, future)
 
         print('Cropping to polygon..')
         if self.crop_to_polygon:
