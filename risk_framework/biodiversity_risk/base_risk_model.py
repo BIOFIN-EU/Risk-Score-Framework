@@ -1,6 +1,7 @@
 import numpy as np
 
 
+
 class BioRiskBasic(object):
     """
     Basic risk model using simple average of three components CH, PA, and SI (inverted).
@@ -39,7 +40,7 @@ class BioRiskBasic(object):
         # fix this, too confusing...
         # explainable data should just be the ids, not the at this point
         # this method should instead transform this into a humam readable text.
-        return "some explanation"
+        return "Not Available"
 
     def get_explainability_info(self):
         expl_info = {
@@ -53,7 +54,7 @@ class BioRiskBasic(object):
 
     def run(self, ch_raster, pa_raster, sri_raster):
         self.failed = []
-        print('Preprocessing..')
+        # print('Preprocessing..')
         self.pre_process(ch_raster, pa_raster, sri_raster)
         # Create empty risk raster with same shape as input (only using one raster, all should be equal)
         risk_raster = np.full_like(self.ch_raster, self.raster_nodata, dtype=np.float64)

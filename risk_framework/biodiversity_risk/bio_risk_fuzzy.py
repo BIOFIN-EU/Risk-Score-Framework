@@ -534,7 +534,7 @@ class BioRiskPlusFIS(object):
 
     def run(self, ch_raster, pa_raster, sri_raster):
         self.failed = []
-        print('Preprocessing..')
+        # print('Preprocessing..')
         self.pre_process(ch_raster, pa_raster, sri_raster)
         # Create empty risk raster with same shape as input (only using one raster, all should be equal)
         risk_raster = np.full_like(self.ch_raster, self.raster_nodata, dtype=np.float64)
@@ -551,7 +551,7 @@ class BioRiskPlusFIS(object):
         # print(f"Valid pixels: {valid_pixels:,} ({valid_pixels/total_pixels*100:.1f}%)")
         # print("Processing...")
 
-        print('Running each pixel..')
+        # print('Running each pixel..')
         # Iterate through each pixel position
         for i in range(rows):
             for j in range(cols):
@@ -600,7 +600,7 @@ class BioRiskPlusFIS(object):
             output = self.loaded_cache_db[cache_id]['output']
             explainable_data = self.loaded_cache_db[cache_id]['explainable_data']
             return output, explainable_data
-        print(f'Not cached {cache_id}')
+        # print(f'Not cached {cache_id}')
         self.fis_sim.input['ch'] = ch
         self.fis_sim.input['pa'] = pa
         self.fis_sim.input['si'] = si
