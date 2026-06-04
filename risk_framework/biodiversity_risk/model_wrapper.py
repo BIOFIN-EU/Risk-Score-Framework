@@ -53,6 +53,7 @@ class BiofinBiodiversityRiskModelWrapper(object):
         models_map = {
             'YangEtAl2021': BioRiskBasic,
             'SihamEtAl2026': BioRiskBasic,
+            'EddamiriEtAl2026': BioRiskBasic, #same, just adding with another name
             'PontesEtAl2026': BioRiskPlusFIS,
         }
         self.risk_model = models_map[self.risk_model_name](include_pa=True)
@@ -185,8 +186,10 @@ class BiofinBiodiversityRiskModelWrapper(object):
 
         if risk_type.upper() == 'NonPA'.upper():
             risk_type_pa_mask = (pa_raster == 1)
-        else: #'IsPA'
+        elif risk_type.upper() == 'IsPA'.upper():
             risk_type_pa_mask = (pa_raster == 0)
+        else: #All
+            risk_type_pa_mask = (pa_raster == self.raster_nodata)
 
         pa_raster[risk_type_pa_mask] = self.raster_nodata
 
@@ -198,9 +201,9 @@ class BiofinBiodiversityRiskModelWrapper(object):
     def run(self, climate_scenario, climate_model, period, risk_type):
         base_risk_raster, risk_meta, ch_reg, pa_reg, sri_reg = self.calculate_risk_raster_and_meta(
             climate_scenario, climate_model, period, risk_type)
-
         green_risk_raster, urban_risk_raster = self.separate_risk_raster_based_on_glc_group(base_risk_raster, risk_meta)
-
+        if risk_type.upper() == 'Full'.upper():
+            green_risk_raster = base_risk_raster
         green_valid_mask = green_risk_raster >= 0
         green_mean_raster_value = float(np.mean(green_risk_raster[green_valid_mask]))
         green_std_raster_value =  float(np.std(green_risk_raster[green_valid_mask]))

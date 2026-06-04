@@ -4,8 +4,9 @@ import rasterio
 from rasterio.warp import reproject, Resampling, calculate_default_transform
 from rasterio.transform import from_origin
 from rasterio.mask import mask
-from shapely.geometry import mapping
-
+from shapely.geometry import mapping, shape, Polygon, MultiPolygon
+from rasterio import features
+import numpy as np
 from risk_framework.species_models.glc_retrieve import GLCModel
 
 from risk_framework.climate_resilience.base_cr_model import BaseCRModel
@@ -46,16 +47,12 @@ class BiofinMAPriorityModelWrapper(object):
         self.risk_type = risk_type
         self.raster_nodata = -9999.0
         self.db = db
-        self.setup_risk_model()
+        self.setup_models()
 
     def setup_models(self):
         self.cr_model = BaseCRModel()
         self.ma_model = MAPriorityModel(
-            risk_thresholds={
-                'low': 0.33,
-                'medium': 0.66,
-                'high': 1.0,
-            },
+            risk_thresholds=None, # will be override by model info, once the model is executed
             resilience_thresholds=self.cr_model.get_ling_thresholds()
         )
 
@@ -67,7 +64,6 @@ class BiofinMAPriorityModelWrapper(object):
             self.db,
             future=future
         )
-        self.sri_species_list = reg_index_response.species_list
         meta = reg_index_response.raster_data.meta
 
         raster_array = np.array(reg_index_response.raster_data.raster, dtype=np.float64)
@@ -170,6 +166,7 @@ class BiofinMAPriorityModelWrapper(object):
         for climate_scenario in ["ssp245", "ssp585"]:
             for period in ["2021-2040", "2041-2060"]:
                 print(f'retrieve SRI using scenario {climate_scenario}, and perido {period}')
+
                 fut_sri_reg, fut_sri_raster, fut_sri_meta = self.get_raster_and_meta_from_sri_response_object(
                 climate_scenario, climate_model, period, future)
 
@@ -181,6 +178,7 @@ class BiofinMAPriorityModelWrapper(object):
         sri_key_list = list(sri_rasters.keys())
         for a_rasters_i, sri_key in enumerate(sri_key_list):
             sri_rasters[sri_key] = aligned_rasters[a_rasters_i]
+        return sri_regs, sri_rasters, sri_metas
 
 
     def calculate_resilience_raster_and_meta(self, climate_model):
@@ -217,6 +215,7 @@ class BiofinMAPriorityModelWrapper(object):
         metas_list = [cr_meta, risk_meta]
         default_meta = metas_list[0]
         cr_raster, risk_raster = self.align_rasters(rasters_list, metas_list)
+        self.cr_raster = cr_raster
 
         # update some settings to proper formatting and threshodls
         self.sri_species_list = risk_reg.sri_species_list
@@ -226,14 +225,71 @@ class BiofinMAPriorityModelWrapper(object):
         print('Done...')
         return priority_raster, default_meta
 
+    def calculate_categories_percentages(self, priority_raster):
+        valid = priority_raster[priority_raster != self.raster_nodata]
+
+        # Count occurrences of each category
+        categories, counts = np.unique(valid, return_counts=True)
+
+        percentages = {
+            int(cat): {
+                "count": int(count),
+                "percentage": float(count / counts.sum() * 100)
+            }
+            for cat, count in zip(categories, counts)
+        }
+        return percentages
+
+    def generate_polygons(self, priority_raster, priority_meta):
+        """
+        Generate polygons for each priority category from the priority raster.
+        Returns:
+            Dictionary mapping priority category to WKT polygon(s)
+        """
+        priority_categories = self.ma_model.get_category_info()
+        result_polygons = {}
+
+        # Get unique priority values (excluding nodata)
+        unique_values = np.unique(priority_raster)
+        unique_values = unique_values[unique_values != self.raster_nodata]
+
+        for value in unique_values:
+            if value in priority_categories:
+                # Create binary mask for this priority value
+                mask = (priority_raster == value).astype(np.uint8)
+
+                # Extract polygons using rasterio features
+                shapes = list(features.shapes(mask, mask=mask, transform=priority_meta['transform']))
+
+                # Collect polygons for this category
+                polygons = []
+                for polygon_shape, polygon_value in shapes:
+                    if polygon_value == 1:
+                        geom = shape(polygon_shape)
+                        if geom.is_valid and not geom.is_empty:
+                            polygons.append(geom)
+
+                # Convert to MultiPolygon if multiple polygons exist
+                # if len(polygons) == 1:
+                #     result_polygons[value] = polygons[0].wkt
+                # elif len(polygons) > 1:
+                multipolygon = MultiPolygon(polygons)
+                result_polygons[value] = multipolygon.wkt
+                # else:
+                    # result_polygons[value] = None
+
+        return result_polygons
+
     def run(self, climate_model):
-        priority_raster, priorit_meta = self.calculate_priority_raster_and_meta(climate_model)
+        priority_raster, priority_meta = self.calculate_priority_raster_and_meta(climate_model)
+        perc_cat = self.calculate_categories_percentages(priority_raster)
         # cats_polygons here
-        priority_polygons = {
+        priority_polygons = self.generate_polygons(priority_raster, priority_meta)
+        # {
             # all polygons for each priority management action on the rasters
             # eg:
             # 0: "POLYGON((4.598488763140015 52.39690261469849,4.59894780280675 52.387830068910404,4.609625654246968 52.382524758083576,4.6129675938634565 52.40769458650479,4.598488763140015 52.39690261469849))",
-        }
+        # }
         return {
             "country_code": self.country_code,
             "wkt_polygon": self.wkt_polygon,
@@ -244,7 +300,10 @@ class BiofinMAPriorityModelWrapper(object):
             'crop_to_polygon': self.crop_to_polygon,
             'risk_model': self.risk_model,
             'risk_type': self.risk_type,
+            'resilience_raster': self.cr_raster,
+            'raster_meta': priority_meta,
             'recommendations_polygons': priority_polygons,
+            'recommendations_totals': perc_cat,
             'meta': {
                 'recommendations_meta': self.ma_model.get_category_info()
             },
@@ -257,34 +316,50 @@ if __name__ == '__main__':
     import json
     import rasterio
 
-    # from risk_framework.web_api.models.db_operations import (
-    #     retrieve_or_calculate_sri_future_or_current,
-    #     retrieve_or_calculate_ch,
-    #     retrieve_or_calculate_pa,
-    # )
-    # country_code = 'NL'
-    # db = list(get_db())[0]
+    from risk_framework.web_api.utils import get_db
+    from risk_framework.web_api.models.db_operations import (
+        retrieve_or_calculate_sri_future_or_current,
+        retrieve_or_calculate_risk_future_or_current
+    )
+    country_code = 'NL'
+    db = list(get_db())[0]
 
 
-    # geo_id = generate_geo_uuid(country_code)
-    # wkt_polygon=None
-    # ch_retrieval_method = retrieve_or_calculate_ch
-    # pa_retrieval_method = retrieve_or_calculate_pa
-    # sri_retrieval_method = retrieve_or_calculate_sri_future_or_current
-    # sri_logic_type = 'fuzzy'
-    # sri_correction_method = 'HFI'
-    # sri_species_list = None
-    # crop_to_polygon = True
-    # risk_model = 'PontesEtAl2026'
-    # risk_model = BiofinBiodiversityRiskModelWrapper(
-    #     geo_id,
-    #     country_code,
-    #     wkt_polygon,
-    #     ch_retrieval_method, pa_retrieval_method, sri_retrieval_method,
-    #     sri_logic_type, sri_correction_method, sri_species_list,
-    #     crop_to_polygon=crop_to_polygon, risk_model=risk_model, db=db
-    # )
-    # climate_scenario = 'current'
-    # climate_model = None
-    # period = 'current'
-    # result = risk_model.run(climate_scenario, climate_model, period)
+    geo_id = generate_geo_uuid(country_code)
+    wkt_polygon=None
+    sri_retrieval_method = retrieve_or_calculate_sri_future_or_current
+    risk_retrieval_method = retrieve_or_calculate_risk_future_or_current
+    sri_logic_type = 'fuzzy'
+    sri_correction_method = 'HFI'
+    sri_species_list = None
+    crop_to_polygon = True
+    risk_model = 'EddamiriEtAl2026'
+    risk_type = 'Full'
+    climate_model = 'EC-Earth3-Veg'
+    import ipdb; ipdb.set_trace()
+    priority_model = BiofinMAPriorityModelWrapper(
+        geo_id,
+        country_code,
+        wkt_polygon,
+        risk_retrieval_method,
+        sri_retrieval_method,
+        sri_logic_type, sri_correction_method, sri_species_list,
+        crop_to_polygon=crop_to_polygon, risk_model=risk_model, risk_type=risk_type, db=db
+    )
+    result = priority_model.run(climate_model=climate_model)
+    import ipdb; ipdb.set_trace()
+
+    from shapely import wkt
+    # Add this helper method to your class:
+    def simplify_polygon(wkt_polygon, tolerance=0.01):
+        """Simplify a WKT polygon with given tolerance"""
+        geom = wkt.loads(wkt_polygon)
+        simplified = geom.simplify(tolerance, preserve_topology=True)
+        return simplified.wkt
+
+
+    json_fix = {int(k) : v for k, v in result['recommendations_polygons'].items()}
+    json_fix['geometry'] = simplify_polygon(result['wkt_polygon'])
+    json_fix['totals'] = result['recommendations_totals']
+    with open('pl.json', 'w') as f:
+        json.dump(json_fix, f, indent=4)

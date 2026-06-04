@@ -74,13 +74,15 @@ class MAPriorityModel(object):
                 "label": "Low Priority - Deferred Action",
                 "label_short": "Low Priority",
                 "description": "Low resilience areas where conservation resources should be allocated last, but deserve restoration when resources are abundant, especially in key locations for species migration.",
-                "color": "#374151"
+                "color": "#374151",
+                "reasoning": "Low resilience"
             },
             1: {
                 "label": "Active Protection Zones I (AP I)",
                 "label_short": "AP I",
                 "description": "Region with high resilience and high risk. Highest priority for active protection due to elevated risk levels.",
-                "color": "#135d18"
+                "color": "#135d18",
+                "reasoning": "Low resilience"
             },
             2: {
                 "label": "Active Protection Zones II (AP II)",

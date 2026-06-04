@@ -1,4 +1,5 @@
 import unittest
+import random
 import time
 
 import numpy as np
@@ -294,6 +295,28 @@ class TestBioRiskPlusFISComponents(unittest.TestCase):
 
         self.assertEqual(risk_raster.shape, (2, 2))
         np.testing.assert_array_almost_equal(risk_raster,expected_raster, decimal=2)
+
+
+    def test_output_xai_rules_data_in_xai_summary_json(self):
+        output, xai = self.fis.run_single_preprocessed(**{
+            'ch': np.float64(self.fis.map_ch_fuzzy_label_to_crisp(1)),
+            'pa': 0,
+            'si': 1,
+        })
+
+        xai_data = self.fis.get_explainability_info()
+
+        self.assertIn('xai_summary_json', xai_data)
+        xai_summary_json = xai_data['xai_summary_json']
+
+        self.assertIn('xai_meta', xai_summary_json)
+        self.assertIn('xai_humam_text', xai_summary_json)
+        xai_meta = xai_summary_json['xai_meta']
+        xai_humam_text = xai_summary_json['xai_humam_text']
+        self.assertIn(0, xai_meta)
+        self.assertIn(0, xai_humam_text)
+        expected_first_rule = 'IF it is Not a Protected Area AND Critical Habitat is "Unknown" AND Species Richness is "High" THEN Risk is "Low"'
+        self.assertEqual(expected_first_rule, xai_humam_text[0])
 
     # def test_fis_evaluate_exec_time_all_cached(self):
     #     self.fis = BioRiskPlusFIS()

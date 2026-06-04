@@ -53,11 +53,36 @@ class TestBioRiskBasicComponents(unittest.TestCase):
             [0.5,     0.75],
             [0.25,     0],
         ]
+        self.model.include_pa = False
 
         risk_raster = self.model.run(self.ch_raster, self.pa_raster, self.sri_raster)
         self.assertEqual(risk_raster.shape, (2, 2))
         np.testing.assert_array_almost_equal(risk_raster,expected_raster, decimal=2)
 
+
+    def test_model_run_raster_inputs_multiple_cases_simple_with_pa(self):
+        self.ch_raster = np.array([
+            [1,     0.75],
+            [0.25,     0],
+        ], dtype=np.float64)
+        self.pa_raster = np.array([
+            [0,     0],
+            [1,     0],
+        ], dtype=np.float64)
+
+        self.sri_raster = np.array([
+            [1,     0.25],
+            [0.75,     1],
+        ], dtype=np.float64)
+        expected_raster = [
+            [0.33,     0.5],
+            [0.5,     0],
+        ]
+        self.model.include_pa = True
+
+        risk_raster = self.model.run(self.ch_raster, self.pa_raster, self.sri_raster)
+        self.assertEqual(risk_raster.shape, (2, 2))
+        np.testing.assert_array_almost_equal(risk_raster,expected_raster, decimal=2)
 
     def test_model_returns_correct_xai_data(self):
         self.ch_raster = np.array([
