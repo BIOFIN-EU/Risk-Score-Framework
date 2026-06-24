@@ -124,6 +124,9 @@ class SRIBaseModel(object):
         norm_hfi_raster = hfi_raster.copy()
         norm_hfi_raster.astype(np.float32)
 
+        # inverted HFI: 4 -> 0.5
+        # 50-> 0
+        # 0 -> 1
         norm_hfi_raster[valid_raster] = (100 - (2 * hfi_raster[valid_raster])) / (100 + (21 * hfi_raster[valid_raster]))
         # norm_hfi_raster[valid_raster] = (23 * hfi_raster[valid_raster]) / (100 + (21 * hfi_raster[valid_raster]))
 
@@ -244,6 +247,9 @@ class SRIBaseModel(object):
             valid_mask = (sri_raster >= 0) & (hfi_resampled >= 0)
 
             # Only multiply where mask is True
+            # inverted HFI
+            # BAD HFI (0 norm value) will reduce the SRI score
+            # GOOD HFI (1 norm value) will keep the SRI score as is
             sri_raster[valid_mask] *= hfi_resampled[valid_mask]
             return sri_raster
 
