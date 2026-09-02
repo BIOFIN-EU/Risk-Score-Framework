@@ -93,7 +93,6 @@ class BiofinMAPriorityModelWrapper(object):
             self.db,
             future=False
         )
-
         meta = reg_index_response.raster_data.meta
 
         raster_array = np.array(reg_index_response.raster_data.raster, dtype=np.float64)
@@ -282,6 +281,9 @@ class BiofinMAPriorityModelWrapper(object):
 
     def run(self, climate_model):
         priority_raster, priority_meta = self.calculate_priority_raster_and_meta(climate_model)
+        valid_mask = priority_raster != self.raster_nodata
+        mean_raster_value = float(np.mean(priority_raster[valid_mask]))
+        std_raster_value =  float(np.std(priority_raster[valid_mask]))
         perc_cat = self.calculate_categories_percentages(priority_raster)
         # cats_polygons here
         priority_polygons = self.generate_polygons(priority_raster, priority_meta)
@@ -301,7 +303,14 @@ class BiofinMAPriorityModelWrapper(object):
             'risk_model': self.risk_model,
             'risk_type': self.risk_type,
             'resilience_raster': self.cr_raster,
-            'raster_meta': priority_meta,
+            "raster_data": {
+                "raster": priority_raster.tolist(),
+                "meta": priority_meta,
+                'summary_stats': {
+                    'mean_raster_value': mean_raster_value,
+                    'std_raster_value': std_raster_value
+                },
+            },
             'recommendations_polygons': priority_polygons,
             'recommendations_totals': perc_cat,
             'meta': {
@@ -349,6 +358,34 @@ if __name__ == '__main__':
     result = priority_model.run(climate_model=climate_model)
     import ipdb; ipdb.set_trace()
 
+    meta = result['raster_data']['meta']
+    dtype = meta['dtype']
+    # dtype = 'float64'
+    # predictor = meta['predictor']
+    # compress = meta['compress']
+    raster_value = result['raster_data']['raster']
+    # raster_value = out_image[0]  # Remove the band dimension
+    raster = np.array(raster_value, dtype=np.dtype(dtype))
+
+    rasterio_kwargs = meta
+    # # Save as GeoTIFF - rasterio handles the transform directly
+    with rasterio.open(
+        f'raster_NL_ma.tif',
+        'w',
+        driver='GTiff',
+        height=raster.shape[0],
+        width=raster.shape[1],
+        count=1,
+        dtype=dtype,
+        crs=meta['crs'],
+        transform=meta['transform'],  # rasterio accepts the affine directly
+        nodata=meta['nodata']
+    ) as dst:
+        dst.write(raster, 1)
+
+    print(meta['nodata'])
+
+    exit()
     from shapely import wkt
     # Add this helper method to your class:
     def simplify_polygon(wkt_polygon, tolerance=0.01):
@@ -361,5 +398,7 @@ if __name__ == '__main__':
     json_fix = {int(k) : v for k, v in result['recommendations_polygons'].items()}
     json_fix['geometry'] = simplify_polygon(result['wkt_polygon'])
     json_fix['totals'] = result['recommendations_totals']
+    json_fix['meta'] = result['meta']['recommendations_meta']
     with open('pl.json', 'w') as f:
         json.dump(json_fix, f, indent=4)
+

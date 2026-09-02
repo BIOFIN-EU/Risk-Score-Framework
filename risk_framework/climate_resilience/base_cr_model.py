@@ -71,7 +71,7 @@ class BaseCRModel(object):
         self.failed = []
         # print('Preprocessing..')
         self.pre_process(current, ssp245_2040, ssp245_2060, ssp585_2040, ssp585_2060)
-        # Create empty raster with same shape as input (only using one raster, all should be equal)
+        # Create empty raster with same shape as input (only using one raster, all should be equal sizes)
         resilience_raster = np.full_like(self.current, self.raster_nodata, dtype=np.float64)
 
         # Calculate average proportional persistence for each scenario
