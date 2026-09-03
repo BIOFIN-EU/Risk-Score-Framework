@@ -59,6 +59,30 @@ class BaseCRModel(object):
         }
         return thresholds
 
+    @classmethod
+    def get_category_info(cls):
+        """Return metadata about each priority category."""
+        return {
+            0: {
+                "label": "low",
+                "label_short": "low",
+                "description": "Low resilience to climate change.",
+                "color": "#ff0000"
+            },
+            1: {
+                "label": "medium",
+                "label_short": "medium",
+                "description": "Medium resilience to climate change.",
+                "color": "#ffdd00",
+            },
+            2: {
+                "label": "high",
+                "label_short": "high",
+                "description": "High resilience to climate change.",
+                "color": "#2EF302",
+            }
+        }
+
     def get_explainability_info(self):
         expl_info = {
         }

@@ -36,6 +36,30 @@ class BioRiskBasic(object):
         }
         return thresholds
 
+    @classmethod
+    def get_category_info(cls):
+        """Return metadata about each priority category."""
+        return {
+            0: {
+                "label": "low",
+                "label_short": "low",
+                "description": "Low risk of loosing biodiversity.",
+                "color": "#2EF302",
+            },
+            1: {
+                "label": "medium",
+                "label_short": "medium",
+                "description": "Medium risk of loosing biodiversity.",
+                "color": "#ff9500",
+            },
+            2: {
+                "label": "high",
+                "label_short": "high",
+                "description": "High risk of loosing biodiversity.",
+                "color": "#ff0000"
+            }
+        }
+
     def get_xai_humam_text(self):
         # fix this, too confusing...
         # explainable data should just be the ids, not the at this point

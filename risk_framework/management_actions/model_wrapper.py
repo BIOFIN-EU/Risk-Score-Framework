@@ -9,6 +9,7 @@ from rasterio import features
 import numpy as np
 from risk_framework.species_models.glc_retrieve import GLCModel
 
+from risk_framework.biodiversity_risk.model_wrapper import BiofinBiodiversityRiskModelWrapper
 from risk_framework.climate_resilience.base_cr_model import BaseCRModel
 from risk_framework.management_actions.priority_models import MAPriorityModel
 from risk_framework.web_api.utils import apply_geometry_mask_to_raster, generate_geo_uuid
@@ -46,6 +47,8 @@ class BiofinMAPriorityModelWrapper(object):
         self.risk_model = risk_model
         self.risk_type = risk_type
         self.raster_nodata = -9999.0
+        # Mapping from string labels to integers
+        self.risk_resilience_class_mapping = {'low': 0, 'medium': 1, 'high': 2}
         self.db = db
         self.setup_models()
 
@@ -197,7 +200,34 @@ class BiofinMAPriorityModelWrapper(object):
         )
         return cr_raster, base_meta
 
-    def calculate_priority_raster_and_meta(self, climate_model):
+    def update_input_rasters_to_categories(self, cr_raster, risk_raster):
+        cr_raster_cls =  self._classify_input_raster(cr_raster, self.ma_model.resilience_thresholds)
+        risk_raster_cls = self._classify_input_raster(risk_raster, self.ma_model.risk_thresholds)
+
+        return cr_raster_cls, risk_raster_cls
+
+
+    def _classify_input_raster(self, array, thresholds):
+        # Output filled with nodata (cast to int8)
+        out = np.full(array.shape, self.raster_nodata, dtype=np.int8)
+
+        # Simple valid mask
+        mask = array != self.raster_nodata
+        valid_vals = array[mask]
+
+        if valid_vals.size == 0:
+            return out
+
+
+        # Reuse _classify_value and immediately map to int
+        classify_and_map = lambda v: self.risk_resilience_class_mapping[self.ma_model._classify_value(v, thresholds)]
+        vec_func = np.vectorize(classify_and_map, otypes=[np.int8])
+
+        out[mask] = vec_func(valid_vals)
+        return out
+
+
+    def calculate_priority_raster_etc_and_meta(self, climate_model):
         cr_raster, cr_meta = self.calculate_resilience_raster_and_meta(climate_model)
 
         risk_reg, risk_raster, risk_meta = self.get_raster_and_meta_from_risk_response_object()
@@ -214,7 +244,6 @@ class BiofinMAPriorityModelWrapper(object):
         metas_list = [cr_meta, risk_meta]
         default_meta = metas_list[0]
         cr_raster, risk_raster = self.align_rasters(rasters_list, metas_list)
-        self.cr_raster = cr_raster
 
         # update some settings to proper formatting and threshodls
         self.sri_species_list = risk_reg.sri_species_list
@@ -222,7 +251,7 @@ class BiofinMAPriorityModelWrapper(object):
         print('Running MA priority model..')
         priority_raster = self.ma_model.run(risk_raster, cr_raster)
         print('Done...')
-        return priority_raster, default_meta
+        return priority_raster, cr_raster, risk_raster, default_meta
 
     def calculate_categories_percentages(self, priority_raster):
         valid = priority_raster[priority_raster != self.raster_nodata]
@@ -239,13 +268,13 @@ class BiofinMAPriorityModelWrapper(object):
         }
         return percentages
 
-    def generate_polygons(self, priority_raster, priority_meta):
+    def generate_polygons(self, priority_raster, priority_meta, categories_dict):
         """
         Generate polygons for each priority category from the priority raster.
         Returns:
             Dictionary mapping priority category to WKT polygon(s)
         """
-        priority_categories = self.ma_model.get_category_info()
+        priority_categories = categories_dict
         result_polygons = {}
 
         # Get unique priority values (excluding nodata)
@@ -273,20 +302,26 @@ class BiofinMAPriorityModelWrapper(object):
                 #     result_polygons[value] = polygons[0].wkt
                 # elif len(polygons) > 1:
                 multipolygon = MultiPolygon(polygons)
-                result_polygons[value] = multipolygon.wkt
+                result_polygons[int(value)] = multipolygon.wkt
                 # else:
                     # result_polygons[value] = None
 
         return result_polygons
 
     def run(self, climate_model):
-        priority_raster, priority_meta = self.calculate_priority_raster_and_meta(climate_model)
-        valid_mask = priority_raster != self.raster_nodata
-        mean_raster_value = float(np.mean(priority_raster[valid_mask]))
-        std_raster_value =  float(np.std(priority_raster[valid_mask]))
+        priority_raster, cr_raster, risk_raster, priority_meta = self.calculate_priority_raster_etc_and_meta(climate_model)
+        cr_raster_cls, risk_raster_cls = self.update_input_rasters_to_categories(cr_raster, risk_raster)
+        # valid_mask = priority_raster != self.raster_nodata
+        # mean_raster_value = float(np.mean(priority_raster[valid_mask]))
+        # std_raster_value =  float(np.std(priority_raster[valid_mask]))
         perc_cat = self.calculate_categories_percentages(priority_raster)
         # cats_polygons here
-        priority_polygons = self.generate_polygons(priority_raster, priority_meta)
+        priority_polygons = self.generate_polygons(priority_raster, priority_meta, self.ma_model.get_category_info())
+
+        cr_polygons = self.generate_polygons(cr_raster_cls, priority_meta, self.cr_model.get_category_info())
+
+        risk_polygons = self.generate_polygons(risk_raster_cls, priority_meta, BiofinBiodiversityRiskModelWrapper.get_category_info(self.risk_model))
+
         # {
             # all polygons for each priority management action on the rasters
             # eg:
@@ -302,19 +337,23 @@ class BiofinMAPriorityModelWrapper(object):
             'crop_to_polygon': self.crop_to_polygon,
             'risk_model': self.risk_model,
             'risk_type': self.risk_type,
-            'resilience_raster': self.cr_raster,
-            "raster_data": {
-                "raster": priority_raster.tolist(),
-                "meta": priority_meta,
-                'summary_stats': {
-                    'mean_raster_value': mean_raster_value,
-                    'std_raster_value': std_raster_value
-                },
-            },
+            # 'resilience_raster': self.cr_raster,
+            # "raster_data": {
+            #     "raster": priority_raster.tolist(),
+            #     "meta": priority_meta,
+            #     'summary_stats': {
+            #         'mean_raster_value': mean_raster_value,
+            #         'std_raster_value': std_raster_value
+            #     },
+            # },
+            'resilience_polygons': cr_polygons,
+            'risk_polygons': risk_polygons,
             'recommendations_polygons': priority_polygons,
             'recommendations_totals': perc_cat,
             'meta': {
-                'recommendations_meta': self.ma_model.get_category_info()
+                'recommendations_meta': self.ma_model.get_category_info(),
+                'resilience_meta': self.cr_model.get_category_info(),
+                'risk_meta': BiofinBiodiversityRiskModelWrapper.get_category_info(self.risk_model),
             },
         }
 
@@ -358,34 +397,34 @@ if __name__ == '__main__':
     result = priority_model.run(climate_model=climate_model)
     import ipdb; ipdb.set_trace()
 
-    meta = result['raster_data']['meta']
-    dtype = meta['dtype']
-    # dtype = 'float64'
-    # predictor = meta['predictor']
-    # compress = meta['compress']
-    raster_value = result['raster_data']['raster']
-    # raster_value = out_image[0]  # Remove the band dimension
-    raster = np.array(raster_value, dtype=np.dtype(dtype))
+    # meta = result['raster_data']['meta']
+    # dtype = meta['dtype']
+    # # dtype = 'float64'
+    # # predictor = meta['predictor']
+    # # compress = meta['compress']
+    # raster_value = result['raster_data']['raster']
+    # # raster_value = out_image[0]  # Remove the band dimension
+    # raster = np.array(raster_value, dtype=np.dtype(dtype))
 
-    rasterio_kwargs = meta
-    # # Save as GeoTIFF - rasterio handles the transform directly
-    with rasterio.open(
-        f'raster_NL_ma.tif',
-        'w',
-        driver='GTiff',
-        height=raster.shape[0],
-        width=raster.shape[1],
-        count=1,
-        dtype=dtype,
-        crs=meta['crs'],
-        transform=meta['transform'],  # rasterio accepts the affine directly
-        nodata=meta['nodata']
-    ) as dst:
-        dst.write(raster, 1)
+    # rasterio_kwargs = meta
+    # # # Save as GeoTIFF - rasterio handles the transform directly
+    # with rasterio.open(
+    #     f'raster_NL_ma.tif',
+    #     'w',
+    #     driver='GTiff',
+    #     height=raster.shape[0],
+    #     width=raster.shape[1],
+    #     count=1,
+    #     dtype=dtype,
+    #     crs=meta['crs'],
+    #     transform=meta['transform'],  # rasterio accepts the affine directly
+    #     nodata=meta['nodata']
+    # ) as dst:
+    #     dst.write(raster, 1)
 
-    print(meta['nodata'])
+    # print(meta['nodata'])
 
-    exit()
+    # exit()
     from shapely import wkt
     # Add this helper method to your class:
     def simplify_polygon(wkt_polygon, tolerance=0.01):
@@ -395,10 +434,11 @@ if __name__ == '__main__':
         return simplified.wkt
 
 
-    json_fix = {int(k) : v for k, v in result['recommendations_polygons'].items()}
-    json_fix['geometry'] = simplify_polygon(result['wkt_polygon'])
-    json_fix['totals'] = result['recommendations_totals']
-    json_fix['meta'] = result['meta']['recommendations_meta']
-    with open('pl.json', 'w') as f:
-        json.dump(json_fix, f, indent=4)
+    # json_fix = {int(k) : v for k, v in result['recommendations_polygons'].items()}
+    result['wkt_polygon'] = simplify_polygon(result['wkt_polygon'])
+    # json_fix['totals'] = result['recommendations_totals']
+    # json_fix['meta'] = result['meta']['recommendations_meta']
+    import ipdb; ipdb.set_trace()
+    with open('example_ma.json', 'w') as f:
+        json.dump(result, f, indent=4)
 

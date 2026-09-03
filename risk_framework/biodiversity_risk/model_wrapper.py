@@ -1,6 +1,5 @@
 import numpy as np
 from risk_framework.web_api.utils import get_country_wkt, load_poligon_gdf
-import rasterio
 from rasterio.warp import reproject, Resampling, calculate_default_transform
 from rasterio.transform import from_origin
 from rasterio.mask import mask
@@ -45,6 +44,20 @@ class BiofinBiodiversityRiskModelWrapper(object):
         self.raster_nodata = -9999.0
         self.db = db
         self.setup_risk_model()
+
+    @classmethod
+    def get_category_info(self, risk_model_name):
+        """Return metadata about each priority category."""
+        from risk_framework.biodiversity_risk.bio_risk_fuzzy import BioRiskPlusFIS
+        from risk_framework.biodiversity_risk.base_risk_model import BioRiskBasic
+        # duplicated code, no time to fix this
+        models_map = {
+            'YangEtAl2021': BioRiskBasic,
+            'SihamEtAl2026': BioRiskBasic,
+            'EddamiriEtAl2026': BioRiskBasic,
+            'PontesEtAl2026': BioRiskPlusFIS,
+        }
+        return models_map[risk_model_name].get_category_info()
 
     def setup_risk_model(self):
         from risk_framework.biodiversity_risk.bio_risk_fuzzy import BioRiskPlusFIS
