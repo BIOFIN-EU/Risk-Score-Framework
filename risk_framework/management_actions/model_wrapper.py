@@ -308,7 +308,7 @@ class BiofinMAPriorityModelWrapper(object):
 
         return result_polygons
 
-    def run(self, climate_model):
+    def run(self, climate_model='EC-Earth3-Veg'):
         priority_raster, cr_raster, risk_raster, priority_meta = self.calculate_priority_raster_etc_and_meta(climate_model)
         cr_raster_cls, risk_raster_cls = self.update_input_rasters_to_categories(cr_raster, risk_raster)
         # valid_mask = priority_raster != self.raster_nodata
@@ -337,6 +337,7 @@ class BiofinMAPriorityModelWrapper(object):
             'crop_to_polygon': self.crop_to_polygon,
             'risk_model': self.risk_model,
             'risk_type': self.risk_type,
+            'periods': ['current', '2021-2060'],
             # 'resilience_raster': self.cr_raster,
             # "raster_data": {
             #     "raster": priority_raster.tolist(),
