@@ -64,3 +64,9 @@ class BiodiversityRiskIndexDB(BaseClimateSpatialIndexScoreDB):
     chi_related = relationship("CriticalHabitatIndexDB", foreign_keys=[chi_related_id])
     pai_related = relationship("ProtectedAreaIndexDB", foreign_keys=[pai_related_id])
     sri_related = relationship("SpeciesRichnessIndexDB", foreign_keys=[sri_related_id])
+
+    priority_management_action = relationship(
+        "PriorityManagementActionsPolygonsDB",
+        uselist=False,
+        back_populates="biodiversity_risk_index"
+    )

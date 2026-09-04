@@ -35,3 +35,13 @@ class PriorityManagementActionsPolygonsDB(DeclarativeBaseModel):
     recommendations_totals = Column(JSON, nullable=False)
     polygons_meta = Column(JSON, nullable=False)
 
+    bio_risk_id = Column(
+        ForeignKey("biodiversity_risk_index.id"),
+        nullable=False
+    )
+
+    bio_risk = relationship(
+        "BiodiversityRiskIndexDB",
+        uselist=False,
+        back_populates="priority_management_action"
+    )

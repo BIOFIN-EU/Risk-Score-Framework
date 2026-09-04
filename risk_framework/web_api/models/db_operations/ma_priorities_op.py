@@ -56,7 +56,7 @@ def retrieve_risk_by_id(request, record_id, db):
     )
 
 
-def retrieve_or_caculate_pririty_management_actions(
+def retrieve_or_caculate_priority_management_actions(
         geo_id,
         country_code,
         wkt_polygon,
@@ -88,7 +88,7 @@ def retrieve_or_caculate_pririty_management_actions(
         PriorityManagementActionsPolygonsDB.risk_type == risk_type,
     )
     existing_record = query.first()
-    return retrieve_or_calculate_priority_management_actions(
+    return calculate_priority_management_actions(
         geo_id,
         country_code,
         wkt_polygon,
@@ -102,8 +102,7 @@ def retrieve_or_caculate_pririty_management_actions(
     )
 
 
-
-def retrieve_or_calculate_priority_management_actions(
+def calculate_priority_management_actions(
         geo_id,
         country_code,
         wkt_polygon,
@@ -130,6 +129,10 @@ def retrieve_or_calculate_priority_management_actions(
             db
         )
 
+    if request:
+        risk_url = urlparse(str(request.url_for("get_risk_record", record_id=existing_record.bio_risk_id))).path
+    else:
+        risk_url = existing_record.bio_risk_id
 
     response = PriorityManagementActionsResponse(
         id=existing_record.id,
@@ -141,6 +144,14 @@ def retrieve_or_calculate_priority_management_actions(
         sri_species_list=existing_record.sri_species_list,
         sri_correction_method=existing_record.sri_correction_method,
         sri_logic_type=existing_record.sri_logic_type,
+        risk=risk_url,
+        recommendations_polygons=existing_record.recommendations_polygons,
+        resilience_polygons=existing_record.resilience_polygons,
+        risk_polygons=existing_record.risk_polygons,
+        recommendations_totals=existing_record.recommendations_totals,
+        recommendations_meta=existing_record.polygons_meta['recommendations_meta'],
+        resilience_meta=existing_record.polygons_meta['resilience_meta'],
+        risk_meta=existing_record.polygons_meta['risk_meta'],
     )
     return response
 
@@ -195,6 +206,7 @@ def create_management_actions_records(geo_id, result, db):
     recommendations_totals = result['recommendations_totals']
     polygons_meta = result['polygons_meta']
 
+    bio_risk_id = result['risk_id']
 
     new_record = PriorityManagementActionsPolygonsDB(
         id=str(uuid.uuid4()),
@@ -213,6 +225,7 @@ def create_management_actions_records(geo_id, result, db):
         recommendations_polygons=recommendations_polygons,
         recommendations_totals=recommendations_totals,
         polygons_meta=polygons_meta,
+        bio_risk_id=bio_risk_id
     )
 
     db.add(new_record)

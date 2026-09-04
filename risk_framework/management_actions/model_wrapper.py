@@ -198,6 +198,7 @@ class BiofinMAPriorityModelWrapper(object):
             ssp585_2040,
             ssp585_2060
         )
+        self.sri_ids = [sri.id for sri in sri_regs]
         return cr_raster, base_meta
 
     def update_input_rasters_to_categories(self, cr_raster, risk_raster):
@@ -248,6 +249,7 @@ class BiofinMAPriorityModelWrapper(object):
         # update some settings to proper formatting and threshodls
         self.sri_species_list = risk_reg.sri_species_list
         self.ma_model.risk_thresholds = risk_reg.risk_ling_thresholds
+        self.risk_reg_id = risk_reg.id
         print('Running MA priority model..')
         priority_raster = self.ma_model.run(risk_raster, cr_raster)
         print('Done...')
@@ -356,6 +358,8 @@ class BiofinMAPriorityModelWrapper(object):
                 'resilience_meta': self.cr_model.get_category_info(),
                 'risk_meta': BiofinBiodiversityRiskModelWrapper.get_category_info(self.risk_model),
             },
+            'risk_id': self.risk_reg_id,
+            'sri_ids': self.sri_ids,
         }
 
 

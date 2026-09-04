@@ -112,7 +112,7 @@ async def calculate_current_biodiversity_risk_index(request: CurrentBiodiversity
 #         future=False
 #     )
 
-@risk_router.get("/get/{record_id}/", response_model=BiodiversityRiskIndexResponse)
+@risk_router.get("/get/{record_id}/", response_model=BiodiversityRiskIndexResponse, name="get_risk_record")
 async def get_biodiversity_risk_index_by_id(
     record_id: str,
     request: Request,

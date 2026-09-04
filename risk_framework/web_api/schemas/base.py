@@ -33,11 +33,10 @@ class BaseFutureScoreIndexRequest(BaseScoreIndexRequest):
 
 
 
-class BaseRasterScoreIndexResponse(BaseModel):
+class BaseScoreIndexResponse(BaseModel):
     id: str
     country_code: str
     geometry: str
-    raster_data: RasterDataResponse
 
     class Config:
         schema_extra = {
@@ -45,9 +44,19 @@ class BaseRasterScoreIndexResponse(BaseModel):
                 "id": 'abc-...-123',
                 "country_code": "LU",
                 "geometry": "POLYGON((34.5 -5.5, 34.5 5.5, 41.5 5.5, 41.5 -5.5, 34.5 -5.5))",
-                "raster_data": RasterDataResponse.Config.schema_extra['example']
             }
         }
+
+
+class BaseRasterScoreIndexResponse(BaseScoreIndexResponse):
+    raster_data: RasterDataResponse
+
+    class Config(BaseScoreIndexResponse.Config):
+        schema_extra = BaseScoreIndexResponse.Config.schema_extra.copy()
+        schema_extra['example'].update({
+                "raster_data": RasterDataResponse.Config.schema_extra['example']
+        })
+
 
 class BaseClimateRasterScoreIndexResponse(BaseRasterScoreIndexResponse):
     climate_scenario: Optional[str] = Field(None, description="The climate scenario (e.g., ssp245)")
