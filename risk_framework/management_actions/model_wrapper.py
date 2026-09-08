@@ -198,7 +198,7 @@ class BiofinMAPriorityModelWrapper(object):
             ssp585_2040,
             ssp585_2060
         )
-        self.sri_ids = [sri.id for sri in sri_regs]
+        self.sri_ids = [sri.id for sri in sri_regs.values()]
         return cr_raster, base_meta
 
     def update_input_rasters_to_categories(self, cr_raster, risk_raster):
@@ -353,7 +353,7 @@ class BiofinMAPriorityModelWrapper(object):
             'risk_polygons': risk_polygons,
             'recommendations_polygons': priority_polygons,
             'recommendations_totals': perc_cat,
-            'meta': {
+            'polygons_meta': {
                 'recommendations_meta': self.ma_model.get_category_info(),
                 'resilience_meta': self.cr_model.get_category_info(),
                 'risk_meta': BiofinBiodiversityRiskModelWrapper.get_category_info(self.risk_model),

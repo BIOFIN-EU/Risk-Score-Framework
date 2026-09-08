@@ -9,7 +9,13 @@ from fastapi.routing import APIRoute
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from risk_framework.conf import engine, SessionLocal, DeclarativeBaseModel
-from risk_framework.web_api.routes import hsi_router, sri_router, others_router, risk_router
+from risk_framework.web_api.routes import (
+    hsi_router,
+    sri_router,
+    others_router,
+    risk_router,
+    ma_priorities_router,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +31,7 @@ class Application(FastAPI):
         self.include_router(sri_router, prefix=f"{self.api_versioned_root_path}/sri")
         self.include_router(others_router, prefix=f"{self.api_versioned_root_path}/others")
         self.include_router(risk_router, prefix=f"{self.api_versioned_root_path}/risk")
+        self.include_router(ma_priorities_router, prefix=f"{self.api_versioned_root_path}/management-actions")
 
     def setup_database(self):
         """Setup database lifecycle handlers"""

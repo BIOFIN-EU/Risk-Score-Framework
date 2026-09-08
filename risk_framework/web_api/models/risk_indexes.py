@@ -68,5 +68,5 @@ class BiodiversityRiskIndexDB(BaseClimateSpatialIndexScoreDB):
     priority_management_action = relationship(
         "PriorityManagementActionsPolygonsDB",
         uselist=False,
-        back_populates="biodiversity_risk_index"
+        back_populates="bio_risk"
     )

@@ -4,10 +4,42 @@ from pydantic import Field
 from typing import Optional, Dict, Any
 
 from risk_framework.web_api.schemas.base import (
+    BaseScoreIndexRequest,
     BaseScoreIndexResponse,
-    BaseClimateRasterScoreIndexResponse,
 )
 
+
+
+class PriorityManagementActionsRequest(BaseScoreIndexRequest):
+    sri_override_species_list: Optional[str] = Field(
+        None,
+        description="Comma-separated list of Indicator Species to be used during SRI calculation instead of the default ones (e.g., 'Anthus trivialis,Columba palumbus')"
+    )
+    sri_logic_type: str = Field(
+        ...,
+        description="The type of logic used for the SRI calculation (i.e., 'fuzzy' or 'crisp')"
+    )
+    sri_correction_method: Optional[str] = Field(
+        None,
+        description="The type of SRI correction method used. Options are HFI or null"
+    )
+    risk_model: str = Field(
+        ...,
+        description="The type of risk model used for this calculation. Options are: 'YangEtAl2021', 'SihamEtAl2026', 'PontesEtAl2026'"
+    )
+    risk_type: str = Field(
+        ...,
+        description="The type of risk used by this calculation. ('NonPA' , 'IsPA', or 'Full')"
+    )
+    class Config(BaseScoreIndexRequest.Config):
+        schema_extra = BaseScoreIndexRequest.Config.schema_extra.copy()
+        schema_extra['example'].update({
+            "sri_override_species_list": "Anthus trivialis,Columba palumbus",
+            "sri_logic_type": "fuzzy",
+            "sri_correction_method": "HFI",
+            'risk_model': 'PontesEtAl2026',
+            'risk_type': 'All',
+        })
 
 
 class PriorityManagementActionsResponse(BaseScoreIndexResponse):

@@ -28,7 +28,7 @@ from risk_framework.web_api.models.db_operations import (
 )
 
 
-def retrieve_risk_by_id(request, record_id, db):
+def retrieve_priority_management_actions_by_id(request, record_id, db):
     query = db.query(PriorityManagementActionsPolygonsDB)
     existing_record = query.filter(
         PriorityManagementActionsPolygonsDB.id == record_id
@@ -37,8 +37,7 @@ def retrieve_risk_by_id(request, record_id, db):
     if not existing_record:
         raise RuntimeError(f"PriorityManagementActionsPolygons record with id {record_id} not found")
 
-    return retrieve_or_calculate_risk(
-        None,
+    return calculate_priority_management_actions(
         None,
         None,
         None,
@@ -48,9 +47,6 @@ def retrieve_risk_by_id(request, record_id, db):
         None,
         None,
         existing_record,
-        None,
-        None,
-        None,
         db,
         request
     )
@@ -130,9 +126,13 @@ def calculate_priority_management_actions(
         )
 
     if request:
+
+
         risk_url = urlparse(str(request.url_for("get_risk_record", record_id=existing_record.bio_risk_id))).path
     else:
-        risk_url = existing_record.bio_risk_id
+        from risk_framework.web_api.core import app
+        risk_url = app.url_path_for("get_risk_record", record_id=existing_record.bio_risk_id)
+        # risk_url = existing_record.bio_risk_id
 
     response = PriorityManagementActionsResponse(
         id=existing_record.id,
