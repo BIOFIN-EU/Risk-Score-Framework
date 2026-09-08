@@ -232,7 +232,7 @@ class BiofinMAPriorityModelWrapper(object):
         cr_raster, cr_meta = self.calculate_resilience_raster_and_meta(climate_model)
 
         risk_reg, risk_raster, risk_meta = self.get_raster_and_meta_from_risk_response_object()
-
+        self.risk_xai = risk_reg.xai_summary.get('xai_humam_text', {})
 
 
         print('Cropping to polygon..')
@@ -310,25 +310,91 @@ class BiofinMAPriorityModelWrapper(object):
 
         return result_polygons
 
+    def get_top_categories(self, percentages, top_n=2):
+
+        reverse_index = top_n * -1
+        top_n_items = [
+            self.ma_model.get_category_info()[k]['label']
+            for k,v in sorted(percentages.items(), key=lambda x: x[1]['count'], reverse=False)[reverse_index:]
+        ]
+        top_n_items.reverse()
+        return top_n_items
+
+
+    def get_climate_res_xai(self):
+
+        climate_resilience_xai = {
+              "template": "Furthermore, based on {{climate_projections}} and {{urban_expansion}} modelling, this area demonstrates a majority of {{climate_resilience}} in the face of a future worst-case scenario for climate-change.",
+              "placeholders": {
+                "climate_projections": {
+                  "text": "future climate projections",
+                  "data_type": "climate_projection_models"
+                },
+                "urban_expansion": {
+                  "text": "projected urban expansion",
+                  "data_type": "urban_expansion_forecast"
+                },
+                "climate_resilience": {
+                  "text": f"{self.cr_dominant_class} climate-resilience",
+                  "data_type": "climate_resilience_metrics"
+                }
+              }
+        }
+        return climate_resilience_xai
+
+    def prepare_xai_humam_text_dict(self, perc_cat):
+        ma_template_start = "Given these converging factors of overall ({{biodiversity_loss_factors}} and {{climate_resilience_factor}}), we suggest that the following {{management_actions}} should be prioritised: "
+        top_priority = ', '.join(self.get_top_categories(perc_cat))
+        ma_template_end = ". Capital allocation toward nature-positive activities within these intervention types should improve biodiversity outcomes while strengthening long-term resilience against future climate and urbanisation pressures."
+        ma_template = ma_template_start + top_priority + ma_template_end
+        ma_priority_xai = {
+            "template": ma_template,
+            "placeholders": {
+            "biodiversity_loss_factors": {
+                "text": f"{self.risk_dominant_class} biodiversity vulnerability",
+                "data_type": "biodiversity_loss_assessment"
+            },
+            "climate_resilience_factor": {
+                "text": f"{self.cr_dominant_class} climate-resilience",
+                "data_type": "climate_resilience_metrics"
+            },
+            "management_actions": {
+                "text": "Management Actions Categories",
+                "data_type": "climate_resilience_metrics"
+            }
+            }
+        }
+        xai_humam_text = {
+            'detailed_explanation': [
+                self.risk_xai,
+                self.get_climate_res_xai(),
+                ma_priority_xai,
+            ]
+        }
+        return xai_humam_text
+
     def run(self, climate_model='EC-Earth3-Veg'):
         priority_raster, cr_raster, risk_raster, priority_meta = self.calculate_priority_raster_etc_and_meta(climate_model)
         cr_raster_cls, risk_raster_cls = self.update_input_rasters_to_categories(cr_raster, risk_raster)
-        # valid_mask = priority_raster != self.raster_nodata
         # mean_raster_value = float(np.mean(priority_raster[valid_mask]))
         # std_raster_value =  float(np.std(priority_raster[valid_mask]))
+        cr_category_info = self.cr_model.get_category_info()
+        valid_mask = priority_raster != self.raster_nodata
+        cr_classes, cr_counts = np.unique(cr_raster_cls[valid_mask], return_counts=True)
+        self.cr_dominant_class = cr_category_info[cr_classes[np.argmax(cr_counts)]]['label']
+
+        risk_category_info = BiofinBiodiversityRiskModelWrapper.get_category_info(self.risk_model)
+        risk_classes, risk_counts = np.unique(cr_raster_cls[valid_mask], return_counts=True)
+        self.risk_dominant_class = risk_category_info[risk_classes[np.argmax(risk_counts)]]['label']
+
         perc_cat = self.calculate_categories_percentages(priority_raster)
         # cats_polygons here
         priority_polygons = self.generate_polygons(priority_raster, priority_meta, self.ma_model.get_category_info())
 
-        cr_polygons = self.generate_polygons(cr_raster_cls, priority_meta, self.cr_model.get_category_info())
+        cr_polygons = self.generate_polygons(cr_raster_cls, priority_meta, cr_category_info)
 
-        risk_polygons = self.generate_polygons(risk_raster_cls, priority_meta, BiofinBiodiversityRiskModelWrapper.get_category_info(self.risk_model))
+        risk_polygons = self.generate_polygons(risk_raster_cls, priority_meta, risk_category_info)
 
-        # {
-            # all polygons for each priority management action on the rasters
-            # eg:
-            # 0: "POLYGON((4.598488763140015 52.39690261469849,4.59894780280675 52.387830068910404,4.609625654246968 52.382524758083576,4.6129675938634565 52.40769458650479,4.598488763140015 52.39690261469849))",
-        # }
         return {
             "country_code": self.country_code,
             "wkt_polygon": self.wkt_polygon,
@@ -355,11 +421,12 @@ class BiofinMAPriorityModelWrapper(object):
             'recommendations_totals': perc_cat,
             'polygons_meta': {
                 'recommendations_meta': self.ma_model.get_category_info(),
-                'resilience_meta': self.cr_model.get_category_info(),
-                'risk_meta': BiofinBiodiversityRiskModelWrapper.get_category_info(self.risk_model),
+                'resilience_meta': cr_category_info,
+                'risk_meta': risk_category_info,
             },
             'risk_id': self.risk_reg_id,
             'sri_ids': self.sri_ids,
+            'xai_humam_text_json': self.prepare_xai_humam_text_dict(perc_cat),
         }
 
 

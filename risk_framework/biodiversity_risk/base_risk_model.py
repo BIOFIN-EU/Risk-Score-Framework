@@ -61,10 +61,35 @@ class BioRiskBasic(object):
         }
 
     def get_xai_humam_text(self):
-        # fix this, too confusing...
-        # explainable data should just be the ids, not the at this point
-        # this method should instead transform this into a humam readable text.
-        return "Not Available"
+
+        # base_template = 'This region {pa_text} with {critical_text} exhibits a {sri_text}. These characteristics collectively indicate a {risk_text}.'
+
+        base_template = "This region {{protected_area}} with {{critical_habitat}} status and exhibits a {{species_richness}}. These characteristics collectively indicate a {{biodiversity_loss}} in the overall region."
+
+        pa_text = "is within a Protected Area" if self.has_pa else "is not within a Protected Area"
+
+        risk_xai = {
+            "template": base_template,
+            "placeholders": {
+                "protected_area": {
+                    "text": pa_text,
+                    "data_type": "protected_area_assessment"
+                },
+                "critical_habitat": {
+                    "text": f"{self.avg_ch_score_text} Critical Habitat",
+                    "data_type": "critical_habitat_status"
+                },
+                "species_richness": {
+                    "text": "low Species Richness Index",
+                    "data_type": "species_richness_metrics"
+                },
+                "biodiversity_loss": {
+                    "text": f"{self.avg_risk_score_text} vulnerability and likelihood of Biodiversity Loss",
+                    "data_type": "biodiversity_loss_assessment"
+                }
+            }
+        }
+        return risk_xai
 
     def get_explainability_info(self):
         expl_info = {
@@ -76,6 +101,14 @@ class BioRiskBasic(object):
         }
         return expl_info
 
+    def _class_from_value_and_thresholds(self, value):
+        class_text = None
+        for k, v in self.get_risk_ling_thresholds().items():
+            if value < v:
+                class_text = k
+                break
+        return class_text
+
     def run(self, ch_raster, pa_raster, sri_raster):
         self.failed = []
         # print('Preprocessing..')
@@ -84,6 +117,19 @@ class BioRiskBasic(object):
         risk_raster = np.full_like(self.ch_raster, self.raster_nodata, dtype=np.float64)
 
         self.explainable_data_rule_raster = np.full_like(self.ch_raster, self.raster_nodata, dtype=np.int16)
+
+        self.has_pa = np.any(self.pa_raster[self.valid_mask] == 1)
+
+        self.avg_ch_score = np.mean(self.ch_raster[self.valid_mask])
+        self.avg_risk_score = np.mean(risk_raster[self.valid_mask])
+        self.avg_risk_score_text = self._class_from_value_and_thresholds(self.avg_risk_score)
+
+        if self.avg_ch_score > 0.65:
+            self.avg_ch_score_text = 'Likely'
+        elif self.avg_ch_score > 0.25:
+            self.avg_ch_score_text = 'Potential'
+        else:
+            self.avg_ch_score_text = 'Unknown'
 
         # Apply the operation on the valid mask
         if self.include_pa:

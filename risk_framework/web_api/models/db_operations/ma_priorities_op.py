@@ -152,7 +152,9 @@ def calculate_priority_management_actions(
         recommendations_meta=existing_record.polygons_meta['recommendations_meta'],
         resilience_meta=existing_record.polygons_meta['resilience_meta'],
         risk_meta=existing_record.polygons_meta['risk_meta'],
+        xai_summary=existing_record.xai_humam_text_json
     )
+
     return response
 
 def run_and_create_new_management_action_record(
@@ -207,6 +209,7 @@ def create_management_actions_records(geo_id, result, db):
     polygons_meta = result['polygons_meta']
 
     bio_risk_id = result['risk_id']
+    xai_humam_text_json = result['xai_humam_text_json']
 
     new_record = PriorityManagementActionsPolygonsDB(
         id=str(uuid.uuid4()),
@@ -225,7 +228,8 @@ def create_management_actions_records(geo_id, result, db):
         recommendations_polygons=recommendations_polygons,
         recommendations_totals=recommendations_totals,
         polygons_meta=polygons_meta,
-        bio_risk_id=bio_risk_id
+        bio_risk_id=bio_risk_id,
+        xai_humam_text_json=xai_humam_text_json
     )
 
     db.add(new_record)

@@ -27,6 +27,7 @@ class PriorityManagementActionsPolygonsDB(DeclarativeBaseModel):
     sri_correction_method = Column(String, nullable=True)
     sri_logic_type = Column(String, nullable=False)
 
+    xai_humam_text_json = Column(JSON, nullable=False)
     periods = Column(String, nullable=True)
 
     resilience_polygons = Column(JSON, nullable=False)
@@ -45,3 +46,4 @@ class PriorityManagementActionsPolygonsDB(DeclarativeBaseModel):
         uselist=False,
         back_populates="priority_management_action"
     )
+

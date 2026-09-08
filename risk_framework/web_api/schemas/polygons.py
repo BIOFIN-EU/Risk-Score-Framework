@@ -38,7 +38,7 @@ class PriorityManagementActionsRequest(BaseScoreIndexRequest):
             "sri_logic_type": "fuzzy",
             "sri_correction_method": "HFI",
             'risk_model': 'PontesEtAl2026',
-            'risk_type': 'All',
+            'risk_type': 'All'
         })
 
 
@@ -114,6 +114,13 @@ class PriorityManagementActionsResponse(BaseScoreIndexResponse):
             "Dictionary with metadata the biodiversity-risk polygons"
         )
     )
+    xai_summary: Dict[str, Any] = Field(
+        ...,
+        description=(
+            "General Explainability data as a flexible JSON/dict structure. "
+            "Can contain any keys and values "
+        )
+    )
 
     class Config(BaseScoreIndexResponse.Config):
         schema_extra = BaseScoreIndexResponse.Config.schema_extra.copy()
@@ -125,6 +132,11 @@ class PriorityManagementActionsResponse(BaseScoreIndexResponse):
             'risk_model': 'PontesEtAl2026',
             'risk_type': 'NonPA',
             "risk": "/api/v1/risk/get/550e8400-e29b-41d4-a716-446655440002/",
+            'xai_summary': {
+                "detailed_explanation": [
+                    {}
+                ]
+            }
             # need to add the polygons, and meta field
         })
 
