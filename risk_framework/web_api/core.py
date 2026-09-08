@@ -4,11 +4,13 @@ import uuid
 from typing import Optional
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 from fastapi.routing import APIRoute
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from risk_framework.conf import engine, SessionLocal, DeclarativeBaseModel
+from risk_framework.conf import engine, SessionLocal, DeclarativeBaseModel, ALLOWED_ORIGINS
+
 from risk_framework.web_api.routes import (
     hsi_router,
     sri_router,
@@ -80,4 +82,12 @@ app = Application(
     description="API for biodiversity risk assessment",
     version="0.1.0",
     default_response_class=ORJSONResponse
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,          # or ["*"] for development (allow all)
+    allow_credentials=True,
+    allow_methods=["*"],            # allow all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],            # allow all headers
 )

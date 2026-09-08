@@ -1,5 +1,5 @@
 import os, warnings, contextlib, io
-from decouple import config
+from decouple import config, Csv
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -29,6 +29,9 @@ DATABASE_URL = config(
 )
 WEB_PORT = config('WEB_PORT', '8000', cast=int)
 WEB_HOST = config('WEB_HOST', '0.0.0.0')
+
+ALLOWED_ORIGINS = config('ALLOWED_ORIGINS', '*', cast=Csv())
+
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
