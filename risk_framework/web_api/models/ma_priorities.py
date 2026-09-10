@@ -30,6 +30,7 @@ class PriorityManagementActionsPolygonsDB(DeclarativeBaseModel):
     xai_humam_text_json = Column(JSON, nullable=False)
     periods = Column(String, nullable=True)
 
+    resilience_dominant_class = Column(String, nullable=False)
     resilience_polygons = Column(JSON, nullable=False)
     risk_polygons = Column(JSON, nullable=False)
     recommendations_polygons = Column(JSON, nullable=False)

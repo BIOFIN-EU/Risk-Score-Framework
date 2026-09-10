@@ -43,7 +43,8 @@ class Application(FastAPI):
             logger.info("Creating database tables if they don't exist...")
 
             # Import models so they are registered with DeclarativeBaseModel
-            from risk_framework.web_api.models import scores_indexes, rasters, external_indexes
+            from risk_framework.web_api.models import scores_indexes, rasters, external_indexes, ma_priorities
+            # ma_priorities.PriorityManagementActionsPolygonsDB.__table__.drop(engine, checkfirst=True)
 
             # Create all tables
             DeclarativeBaseModel.metadata.create_all(bind=engine)

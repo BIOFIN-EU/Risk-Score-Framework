@@ -406,6 +406,8 @@ class BiofinMAPriorityModelWrapper(object):
             'risk_model': self.risk_model,
             'risk_type': self.risk_type,
             'periods': ['current', '2021-2060'],
+            'climate_scenarios': ['ssp245, ssp585'],
+            'resilience_dominant_class': self.cr_dominant_class,
             # 'resilience_raster': self.cr_raster,
             # "raster_data": {
             #     "raster": priority_raster.tolist(),

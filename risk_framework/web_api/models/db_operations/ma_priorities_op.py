@@ -84,6 +84,8 @@ def retrieve_or_caculate_priority_management_actions(
         PriorityManagementActionsPolygonsDB.risk_type == risk_type,
     )
     existing_record = query.first()
+    # db.delete(existing_record)
+    # db.commit()
     return calculate_priority_management_actions(
         geo_id,
         country_code,
@@ -139,6 +141,8 @@ def calculate_priority_management_actions(
         country_code=existing_record.country_code,
         geometry=existing_record.geometry,
         periods=existing_record.periods,
+        climate_model=existing_record.climate_model,
+        climate_scenarios="ssp245, ssp585", #hardcoding this for the moment
         risk_model=existing_record.risk_model,
         risk_type=existing_record.risk_type,
         sri_species_list=existing_record.sri_species_list,
@@ -150,6 +154,7 @@ def calculate_priority_management_actions(
         risk_polygons=existing_record.risk_polygons,
         recommendations_totals=existing_record.recommendations_totals,
         recommendations_meta=existing_record.polygons_meta['recommendations_meta'],
+        resilience_dominant_class=existing_record.resilience_dominant_class,
         resilience_meta=existing_record.polygons_meta['resilience_meta'],
         risk_meta=existing_record.polygons_meta['risk_meta'],
         xai_summary=existing_record.xai_humam_text_json
@@ -202,6 +207,7 @@ def create_management_actions_records(geo_id, result, db):
     risk_model = result['risk_model']
     risk_type = result['risk_type']
 
+    resilience_dominant_class = result['resilience_dominant_class']
     resilience_polygons = result['resilience_polygons']
     risk_polygons = result['risk_polygons']
     recommendations_polygons = result['recommendations_polygons']
@@ -223,6 +229,7 @@ def create_management_actions_records(geo_id, result, db):
         sri_correction_method=correction_method,
         sri_logic_type=logic_type,
         periods=periods,
+        resilience_dominant_class=resilience_dominant_class,
         resilience_polygons=resilience_polygons,
         risk_polygons=risk_polygons,
         recommendations_polygons=recommendations_polygons,

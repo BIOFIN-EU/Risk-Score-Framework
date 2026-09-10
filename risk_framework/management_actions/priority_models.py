@@ -81,38 +81,38 @@ class MAPriorityModel(object):
                 "label": "Active Protection Zones I (AP I)",
                 "label_short": "AP I",
                 "description": "Region with high resilience and high risk. Highest priority for active protection due to elevated risk levels.",
-                "color": "#135d18",
+                "color": "#286499",
                 "reasoning": "Low resilience"
             },
             2: {
                 "label": "Active Protection Zones II (AP II)",
                 "label_short": "AP II",
                 "description": "Region with high resilience and medium risk. Active protection with proactive management measures.",
-                "color": "#0cc02a"
+                "color": "#0066CC"
             },
             3: {
                 "label": "Passive Protection Zones (PP)",
                 "label_short": "PP",
                 "description": "Region with high resilience and low risk. Minimal intervention required.",
-                "color": "#86efac"
+                "color": "#99CCFF"
             },
             4: {
                 "label": "Active Restoration Zones I (AR I)",
                 "label_short": "AR I",
                 "description": "Region with medium resilience and high risk. Prioritizes assisted and reconstructive restoration.",
-                "color": "#eab308"
+                "color": "#C26600"
             },
             5: {
                 "label": "Active Restoration Zones II (AR II)",
                 "label_short": "AR II",
                 "description": "Region with medium resilience and medium risk. Restoration measures to overcome specific obstacles.",
-                "color": "#f97316"
+                "color": "#FF9933"
             },
             6: {
                 "label": "Passive Restoration Zones (PR)",
                 "label_short": "PR",
                 "description": "Region with medium resilience and low risk. Natural restoration strategies.",
-                "color": "#dc2626"
+                "color": "#FFCC99"
             }
         }
 

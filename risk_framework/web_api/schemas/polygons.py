@@ -47,6 +47,9 @@ class PriorityManagementActionsResponse(BaseScoreIndexResponse):
     """
     periods: str = Field(..., description="The time periods (e.g., 'current, 2021-2060')")
 
+    climate_scenarios: Optional[str] = Field(None, description="The climate scenarios used for the climate-resilience calculation (e.g., ssp245, ssp585)")
+    climate_model: str = Field(..., description="The climate model used in calculations (e.g., EC-Earth3-Veg)")
+
     sri_species_list: str = Field(..., description="Comma-separated list of Indicator Species used during SRI calculation (e.g., 'Anthus trivialis,Columba palumbus')")
     sri_logic_type: str = Field(
         ...,
@@ -102,6 +105,11 @@ class PriorityManagementActionsResponse(BaseScoreIndexResponse):
             "Dictionary with metadata the priority management action polygons"
         )
     )
+    resilience_dominant_class: str = Field(
+        ...,
+        description="The dominant class for the climate-resilience result in this region."
+    )
+
     resilience_meta: Dict[str, Any] = Field(
         ...,
         description=(
