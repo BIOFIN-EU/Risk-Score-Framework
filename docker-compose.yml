@@ -35,4 +35,4 @@ services:
     # volumes:
     #   - .:/service
     ports:
-      - "${APP_PORT}:${APP_PORT}"
+      - "${WEB_PORT}:${WEB_PORT}"
