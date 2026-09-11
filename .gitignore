@@ -178,3 +178,4 @@ catboost_info/*
 notebooks/*
 docs/*
 .env
+ee_secrets/*.json

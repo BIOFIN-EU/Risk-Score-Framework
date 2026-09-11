@@ -7,8 +7,24 @@ from sqlalchemy.orm import sessionmaker
 
 
 import ee
-ee.Authenticate()
-ee.Initialize(project='coral-subject-477515-k6')
+# ee.Authenticate()
+
+# ee.Initialize(project='coral-subject-477515-k6')
+
+
+
+EE_PROJECT = config('EE_PROJECT')
+EE_SERVICE_ACCOUNT = config('EE_SERVICE_ACCOUNT')
+EE_KEY_FILE = config('EE_KEY_FILE', default='/service/ee_secrets/ee-key.json')
+
+if not os.path.exists(EE_KEY_FILE):
+    raise FileNotFoundError(
+        f"Earth Engine key not found at {EE_KEY_FILE}. "
+        f"Is the volume mounted?"
+    )
+
+credentials = ee.ServiceAccountCredentials(EE_SERVICE_ACCOUNT, EE_KEY_FILE)
+ee.Initialize(credentials=credentials, project=EE_PROJECT)
 
 # -----------------------------
 # Folders

@@ -5,3 +5,4 @@ docs/*
 notebooks/*
 *.json
 *.tif
+ee_secrets/*
