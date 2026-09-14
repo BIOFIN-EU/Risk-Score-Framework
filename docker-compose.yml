@@ -16,23 +16,37 @@ services:
 
   service:
     image: ghcr.io/biofin-eu/risk-score-framework:v1.0.0
+    command: /service/run_server.sh
     build:
       context: .
       args:
         SOURCE_REPO: ${SOURCE_REPO}
 
-    # environment:
-    #   SECRET_KEY: ${SECRET_KEY}
-    #   DEBUG: ${DEBUG}
-    #   DATABASE_HOST: db
-    #   DATABASE_PORT: ${DATABASE_PORT}
-    #   DATABASE_NAME: ${DATABASE_NAME}
-    #   DATABASE_USER: ${DATABASE_USER}
-    #   DATABASE_PASS: ${DATABASE_PASS}
+    environment:
+      EE_PROJECT: ${EE_PROJECT}
+      EE_SERVICE_ACCOUNT: ${EE_SERVICE_ACCOUNT}
+      EE_KEY_FILE: /service/ee_secrets/ee-key.json
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: ${DEBUG}
+      DATABASE_HOST: db
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASS: ${DATABASE_PASS}
+      WEB_PORT: ${WEB_PORT}
     depends_on:
       db:
         condition: service_healthy
-    # volumes:
-    #   - .:/service
+    volumes:
+      - ./ee_secrets/ee-key.json:/service/ee_secrets/ee-key.json
+      - ./data/cached_eu_polygons.json:/service/data/cached_eu_polygons.json
+      - ./data/HFP2009_rep.tif:/service/data/HFP2009_rep.tif
+      - ./data/Basic_Critical_Habitat_2025_rep.tif:/service/data/Basic_Critical_Habitat_2025_rep.tif
+      - ./data/wc2.1_30s_bioc_EC-Earth3-Veg_ssp245_2021-2040.tif:/service/data/wc2.1_30s_bioc_EC-Earth3-Veg_ssp245_2021-2040.tif
+      - ./data/wc2.1_30s_bioc_EC-Earth3-Veg_ssp245_2041-2060.tif:/service/data/wc2.1_30s_bioc_EC-Earth3-Veg_ssp245_2041-2060.tif
+      - ./data/wc2.1_30s_bioc_EC-Earth3-Veg_ssp585_2021-2040.tif:/service/data/wc2.1_30s_bioc_EC-Earth3-Veg_ssp585_2021-2040.tif
+      - ./data/wc2.1_30s_bioc_EC-Earth3-Veg_ssp585_2041-2060.tif:/service/data/wc2.1_30s_bioc_EC-Earth3-Veg_ssp585_2041-2060.tif
+      - ./data/WDPA_Mar2026_Public_shp:/service/data/WDPA_Mar2026_Public_shp
+      - ./risk_framework:/service/risk_framework
     ports:
       - "${WEB_PORT}:${WEB_PORT}"
