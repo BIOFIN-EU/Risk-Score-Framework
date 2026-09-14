@@ -126,6 +126,8 @@ class CHModel(object):
         valid_mask = ch_index_raster != ch_raster_meta['nodata']
         mean_raster_value = float(np.mean(ch_index_raster[valid_mask]))
         std_raster_value =  float(np.std(ch_index_raster[valid_mask]))
+        if hasattr(ch_raster_meta['transform'], 'to_gdal'):
+            ch_raster_meta['transform'] = tuple(ch_raster_meta['transform'])
         return {
             "country_code": self.country_code,
             "wkt_polygon": self.wkt_polygon,

@@ -101,6 +101,10 @@ def run_and_create_new_hsi_records(geo_id, species_name, country_code, wkt_polyg
             raster_values = result['raster']
             raster_summary = result['summary_stats']
             raster_meta = result['meta']
+            # print("RASTER META ========================")
+            # print(raster_meta)
+            if hasattr(raster_meta['transform'], 'to_gdal'):
+                raster_meta['transform'] = tuple(raster_meta['transform'])
             raster_meta['nodata'] = -9999.0
             scenario_record = create_hsi_and_raster_records(
                 geo_id, all_results, scenario, period, wkt_polygon, raster_values, raster_summary, raster_meta, db)

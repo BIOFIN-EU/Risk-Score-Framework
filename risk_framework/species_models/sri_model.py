@@ -1,3 +1,5 @@
+import traceback
+
 import numpy as np
 import requests
 
@@ -269,10 +271,14 @@ class SRIBaseModel(object):
             try:
                 species_hsi_reg, species_hsi_raster, meta = self.get_hsi_and_meta_for_one_species(species_name, climate_scenario, climate_model, period)
             except Exception as e:
-                print(f'Error processing HSI of "{species_name}" for {self.country_code}')
+                print(traceback.format_exc())
+                print(f'Error (print error) processing HSI of "{species_name}" for {self.country_code}')
                 num_missing_species += 1
             else:
                 hsi_registry_list.append(species_hsi_reg.id)
+                # from affine import Affine
+                # # print(f'Error (print error) processing HSI of "{meta['transform']}')
+                # meta['transform'] = tuple(Affine.from_gdal(*meta['transform']))
                 list_of_species_hsi.append(species_hsi_raster)
                 list_of_species_meta.append(meta)
                 # clean_species_list[species_name]

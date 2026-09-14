@@ -161,6 +161,8 @@ class PAModel(object):
         pa_raster, pa_raster_meta = self.get_pa_raster()
         self.clean_up_temp_raster()
         pa_raster_meta['crs'] = str(pa_raster_meta['crs'])
+        if hasattr(pa_raster_meta['transform'], 'to_gdal'):
+            pa_raster_meta['transform'] = tuple(pa_raster_meta['transform'])
         mean_raster_value = float(np.mean(pa_raster))
         std_raster_value =  float(np.std(pa_raster))
         return {
