@@ -47,6 +47,7 @@ services:
       - ./data/wc2.1_30s_bioc_EC-Earth3-Veg_ssp585_2021-2040.tif:/service/data/wc2.1_30s_bioc_EC-Earth3-Veg_ssp585_2021-2040.tif
       - ./data/wc2.1_30s_bioc_EC-Earth3-Veg_ssp585_2041-2060.tif:/service/data/wc2.1_30s_bioc_EC-Earth3-Veg_ssp585_2041-2060.tif
       - ./data/WDPA_Mar2026_Public_shp:/service/data/WDPA_Mar2026_Public_shp
+      - ./data/countries:/service/data/countries
       # - ./risk_framework:/service/risk_framework
     ports:
       - "${WEB_PORT}:${WEB_PORT}"
