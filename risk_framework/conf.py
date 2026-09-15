@@ -33,6 +33,7 @@ ee.Initialize(credentials=credentials, project=EE_PROJECT)
 SOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SOURCE_DIR)
 BASE_DATA_DIR = os.path.join(PROJECT_ROOT, "data")
+COUNTRIES_DATA_DIR_NAME = config('COUNTRIES_DATA_DIR_NAME', 'countries')
 
 DATABASE_HOST = config('DATABASE_HOST')
 DATABASE_PORT = config('DATABASE_PORT')
@@ -72,12 +73,15 @@ PA_TEMP_FILE_FORMAT = os.path.join(BASE_DATA_DIR, 'country_{country_code}', 'pa_
 
 RISK_FUZZY_CACHED_FILE = os.path.join(BASE_DATA_DIR, 'risk_fuzzy_4f_cached.pkl')
 GLC_YEAR = 2020
-GLC_FILE_FORMAT = os.path.join(BASE_DATA_DIR, 'country_{country_code}', 'GLC_FCS_{year}_clsgroups_0to2.tif')
+GLC_FILE_FORMAT = os.path.join(BASE_DATA_DIR,  COUNTRIES_DATA_DIR_NAME, 'country_{country_code}', 'GLC_FCS_{year}_clsgroups_0to2.tif')
 
 CACHED_EU_WKT_POLYGONS = os.path.join(BASE_DATA_DIR, 'cached_eu_polygons.json')
 BASE_RESOLUTION = 1000
 
 DEFAULT_NODATA = -9999.0
+
+
+
 
 class SpeciesHabitatSuitabilityConfig():
     def __init__(self, **kwargs):
@@ -85,7 +89,7 @@ class SpeciesHabitatSuitabilityConfig():
         self.BASE_DATA_DIR = kwargs.get('BASE_DATA_DIR', BASE_DATA_DIR)
         self.COUNTRY_CODE = kwargs.get('COUNTRY_CODE', "LU")
         self.WKT_POLYGON = kwargs.get('WKT_POLYGON', "")
-        self.MYDRIVE = os.path.join(self.BASE_DATA_DIR, f'country_{self.COUNTRY_CODE}')
+        self.MYDRIVE = os.path.join(self.BASE_DATA_DIR, COUNTRIES_DATA_DIR_NAME, f'country_{self.COUNTRY_CODE}')
         self.SPECIES_SCIENTIFIC_NAME = kwargs.get('SPECIES_SCIENTIFIC_NAME', "Lullula arborea")
         self.SCENARIO_MODEL = kwargs.get('SCENARIO_MODEL', "EC-Earth3-Veg")
         self.MIDDLE_SCENARIO = kwargs.get('MIDDLE_SCENARIO', "ssp245")
