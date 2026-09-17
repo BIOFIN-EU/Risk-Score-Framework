@@ -1,6 +1,5 @@
 import numpy as np
 from risk_framework.web_api.utils import get_country_wkt, load_poligon_gdf
-import rasterio
 from rasterio.warp import reproject, Resampling, calculate_default_transform
 from rasterio.transform import from_origin
 from rasterio.mask import mask
@@ -79,11 +78,11 @@ class BiofinMAPriorityModelWrapper(object):
         # sri_override_species_list = self.sri_species_list
         # if sri_override_species_list:
         #     sri_override_species_list = sri_override_species_list.split(',')
-        crop_to_polygon = False
+        crop_to_polygon = True
         reg_index_response = self.risk_retrieval_method(
             self.country_code,
             self.wkt_polygon,
-            self.country_only_geo_id,
+            self.geo_id,
             climate_scenario,
             climate_model,
             period,
@@ -237,9 +236,9 @@ class BiofinMAPriorityModelWrapper(object):
 
         print('Cropping to polygon..')
         if self.crop_to_polygon:
-            polygon_gdf = load_poligon_gdf(self.wkt_polygon)
-            cr_raster, cr_meta = apply_geometry_mask_to_raster(polygon_gdf, cr_raster, cr_meta, crop=True, nodata=self.raster_nodata)
-            risk_raster, risk_meta = apply_geometry_mask_to_raster(polygon_gdf, risk_raster, risk_meta, crop=True, nodata=self.raster_nodata)
+            self.polygon_gdf = load_poligon_gdf(self.wkt_polygon)
+            cr_raster, cr_meta = apply_geometry_mask_to_raster(self.polygon_gdf, cr_raster, cr_meta, crop=True, nodata=self.raster_nodata)
+            risk_raster, risk_meta = apply_geometry_mask_to_raster(self.polygon_gdf, risk_raster, risk_meta, crop=True, nodata=self.raster_nodata)
 
         rasters_list = [cr_raster, risk_raster]
         metas_list = [cr_meta, risk_meta]
@@ -279,6 +278,7 @@ class BiofinMAPriorityModelWrapper(object):
         priority_categories = categories_dict
         result_polygons = {}
 
+        clip_geom = self.polygon_gdf.geometry.iloc[0]
         # Get unique priority values (excluding nodata)
         unique_values = np.unique(priority_raster)
         unique_values = unique_values[unique_values != self.raster_nodata]
@@ -304,7 +304,10 @@ class BiofinMAPriorityModelWrapper(object):
                 #     result_polygons[value] = polygons[0].wkt
                 # elif len(polygons) > 1:
                 multipolygon = MultiPolygon(polygons)
-                result_polygons[int(value)] = multipolygon.wkt
+                clipped = multipolygon.intersection(clip_geom)
+                if clipped.is_empty:
+                    continue
+                result_polygons[int(value)] = clipped.wkt
                 # else:
                     # result_polygons[value] = None
 
@@ -389,6 +392,7 @@ class BiofinMAPriorityModelWrapper(object):
 
         perc_cat = self.calculate_categories_percentages(priority_raster)
         # cats_polygons here
+
         priority_polygons = self.generate_polygons(priority_raster, priority_meta, self.ma_model.get_category_info())
 
         cr_polygons = self.generate_polygons(cr_raster_cls, priority_meta, cr_category_info)
