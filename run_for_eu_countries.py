@@ -2,17 +2,6 @@
 import time
 import requests
 import json
-import numpy as np
-
-import rasterio
-from rasterio.mask import mask
-import numpy as np
-from shapely import wkt
-from shapely.geometry import mapping
-import geopandas as gpd
-from rasterio.transform import from_origin
-from rasterio.io import MemoryFile
-from rasterio.transform import from_origin
 from risk_framework.conf import CACHED_EU_WKT_POLYGONS
 
 
