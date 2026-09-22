@@ -227,6 +227,9 @@ class BiofinBiodiversityRiskModelWrapper(object):
 
         xai_data = self.risk_model.get_explainability_info()
         risk_ling_thresholds = self.risk_model.get_risk_ling_thresholds()
+
+        if hasattr(risk_meta['transform'], 'to_gdal'):
+            risk_meta['transform'] = tuple(risk_meta['transform'])
         return {
             "country_code": self.country_code,
             "wkt_polygon": self.wkt_polygon,
