@@ -21,7 +21,7 @@ API_ENDPOINT = "management-actions/priority/"
 
 
 def run_single_country(url, country_code):
-    print(f"\Running for country code: {country_code}...")
+    print(f"Running for country code: {country_code}...")
     risk_type = 'Full'
 
     data = {
@@ -39,7 +39,7 @@ def run_single_country(url, country_code):
     result = response.json()
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time
-    print(f"\nExecution completed in: {elapsed_time:.4f} seconds")
+    print(f"Execution completed in: {elapsed_time:.4f} seconds")
 
 
 def run(base_url, country_code):
@@ -53,8 +53,8 @@ def run(base_url, country_code):
         with open(CACHED_EU_WKT_POLYGONS, 'r') as f:
             data = json.load(f)
         country_list = data.keys()
-    print(f"\Using url: {url}")
-    print(f"\Will run for country list: {country_list}.")
+    print(f"Using url: {url}")
+    print(f"Will run for country list: {country_list}.")
 
     for country_code in country_list:
         run_single_country(url, country_code)
