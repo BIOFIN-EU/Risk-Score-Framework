@@ -75,44 +75,52 @@ class MAPriorityModel(object):
                 "label_short": "Low Priority",
                 "description": "Low resilience areas where conservation resources should be allocated last, but deserve restoration when resources are abundant, especially in key locations for species migration.",
                 "color": "#374151",
-                "reasoning": "Low resilience"
+                "reasoning": "Low resilience",
+                "examples": "Monitor-only, deferred intervention, fine-tune based on ecological & social factors"
             },
             1: {
                 "label": "Active Protection Zones I (AP I)",
                 "label_short": "AP I",
                 "description": "Region with high resilience and high risk. Highest priority for active protection due to elevated risk levels.",
                 "color": "#286499",
-                "reasoning": "Low resilience"
+                "reasoning": "Low resilience",
+                "examples": "Urgent adaptive management, designating natural reserves, establishing monitoring networks, wildlife conservation institutes, immediate threat mitigation"
             },
             2: {
                 "label": "Active Protection Zones II (AP II)",
                 "label_short": "AP II",
                 "description": "Region with high resilience and medium risk. Active protection with proactive management measures.",
-                "color": "#0066CC"
+                "color": "#0066CC",
+                "examples": "Preventive conservation measures, wildlife corridor establishment, habitat connectivity enhancement, governance strategies for targeted species"
+
             },
             3: {
                 "label": "Passive Protection Zones (PP)",
                 "label_short": "PP",
                 "description": "Region with high resilience and low risk. Minimal intervention required.",
-                "color": "#99CCFF"
+                "color": "#99CCFF",
+                "examples": "Ecological Conservation Red Line policies, land-use restrictions, buffer zone maintenance, monitoring of encroachment risks"
             },
             4: {
                 "label": "Active Restoration Zones I (AR I)",
                 "label_short": "AR I",
                 "description": "Region with medium resilience and high risk. Prioritizes assisted and reconstructive restoration.",
-                "color": "#C26600"
+                "color": "#C26600",
+                "examples": "Tree planting on degraded farmland, soil and water conservation, fertilization, assisted natural regeneration"
             },
             5: {
                 "label": "Active Restoration Zones II (AR II)",
                 "label_short": "AR II",
                 "description": "Region with medium resilience and medium risk. Restoration measures to overcome specific obstacles.",
-                "color": "#FF9933"
+                "color": "#FF9933",
+                "examples": "Reforestation of native species, invasive species removal, habitat structure enhancement, ecological restoration planning"
             },
             6: {
                 "label": "Passive Restoration Zones (PR)",
                 "label_short": "PR",
                 "description": "Region with medium resilience and low risk. Natural restoration strategies.",
-                "color": "#FFCC99"
+                "color": "#FFCC99",
+                "examples": "Preventing grazing, abandoned cropland natural recovery, grazing exclusion, spontaneous regeneration monitoring"
             }
         }
 
