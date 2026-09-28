@@ -26,6 +26,9 @@ if not os.path.exists(EE_KEY_FILE):
 credentials = ee.ServiceAccountCredentials(EE_SERVICE_ACCOUNT, EE_KEY_FILE)
 ee.Initialize(credentials=credentials, project=EE_PROJECT)
 
+
+LIMIT_COUNTRY_CODE = config('LIMIT_COUNTRY_CODE', default='', cast=Csv())
+
 # -----------------------------
 # Folders
 # -----------------------------

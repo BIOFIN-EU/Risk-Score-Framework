@@ -14,6 +14,8 @@ from risk_framework.web_api.models.db_operations import (
     retrieve_priority_management_actions_by_id
 )
 
+from risk_framework.conf import LIMIT_COUNTRY_CODE
+
 
 
 ma_priorities_router = APIRouter()
@@ -25,6 +27,10 @@ async def calculate_priority_management_actions(request: PriorityManagementActio
 
     - JSON dictionary containing the Priority Management Actions result
     """
+
+    if LIMIT_COUNTRY_CODE and request.country_code not in LIMIT_COUNTRY_CODE:
+        raise HTTPException(status_code=451, detail=f"Country code '{request.country_code}' in the current list of available countries ({LIMIT_COUNTRY_CODE})")
+
     sri_logic_type = request.sri_logic_type
     sri_correction_method = request.sri_correction_method
     sri_override_species_list = request.sri_override_species_list
