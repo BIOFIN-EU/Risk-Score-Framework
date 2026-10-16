@@ -64,9 +64,10 @@ class BioRiskBasic(object):
 
         # base_template = 'This region {pa_text} with {critical_text} exhibits a {sri_text}. These characteristics collectively indicate a {risk_text}.'
 
-        base_template = "This region {{protected_area}} with {{critical_habitat}} status and exhibits a {{species_richness}}. These characteristics collectively indicate a {{biodiversity_loss}} in the overall region."
+        base_template = "On average, this region: {{protected_area}}, has a {{critical_habitat}} status, and exhibits a {{species_richness}}. These characteristics collectively indicate a {{biodiversity_loss}} in the overall region."
 
-        pa_text = "is within a Protected Area" if self.has_pa else "is not within a Protected Area"
+        self.has_pa_avg = self.avg_pa_score >= 0.5
+        pa_text = "is within a Protected Area" if self.has_pa_avg else "is not within a Protected Area"
 
         risk_xai = {
             "template": base_template,
@@ -80,7 +81,7 @@ class BioRiskBasic(object):
                     "data_type": "critical_habitat_status"
                 },
                 "species_richness": {
-                    "text": "low Species Richness Index",
+                    "text": f"{self.avg_sri_score_text} Species Richness Index",
                     "data_type": "species_richness_metrics"
                 },
                 "biodiversity_loss": {
@@ -118,11 +119,13 @@ class BioRiskBasic(object):
 
         self.explainable_data_rule_raster = np.full_like(self.ch_raster, self.raster_nodata, dtype=np.int16)
 
-        self.has_pa = np.any(self.pa_raster[self.valid_mask] == 1)
+        self.avg_pa_score = np.mean(self.pa_raster[self.valid_mask])
 
         self.avg_ch_score = np.mean(self.ch_raster[self.valid_mask])
         self.avg_risk_score = np.mean(risk_raster[self.valid_mask])
         self.avg_risk_score_text = self._class_from_value_and_thresholds(self.avg_risk_score)
+        self.avg_sri_score = np.mean(self.sri_raster[self.valid_mask])
+        self.avg_sri_score_text = self._class_from_value_and_thresholds(self.avg_sri_score)
 
         if self.avg_ch_score > 0.65:
             self.avg_ch_score_text = 'Likely'

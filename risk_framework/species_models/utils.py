@@ -7,6 +7,7 @@ import pandas as pd
 import geopandas as gpd
 import rasterio as rio
 from rasterio.transform import from_origin
+from rasterio.merge import merge
 from rasterio.io import MemoryFile
 from rasterio.enums import Resampling
 from rasterio.mask import mask
@@ -318,6 +319,155 @@ class SpeciesHabitatSuitabilityUtils():
 
         return aoi, aoi_gdf_wgs84, self.config.AOI_BBOX
 
+    def export_image_chunked(
+        self,
+        image: ee.Image,
+        filename: str,
+        region,
+        scale: int,
+        chunk_size_deg: float = 3.0,
+        crs: str = "EPSG:4326",
+    ):
+        # ---------- 1) Resolve the AOI bbox ----------
+        if isinstance(region, ee.Geometry):
+            aoi_geom = region
+            coords = region.bounds().coordinates().getInfo()[0]
+            xs = [c[0] for c in coords]
+            ys = [c[1] for c in coords]
+            xmin, ymin, xmax, ymax = min(xs), min(ys), max(xs), max(ys)
+        else:
+            aoi_geom = None
+            xmin, ymin, xmax, ymax = region
+
+        # ---------- 2) Build the tile grid ----------
+        nx = max(1, int(math.ceil((xmax - xmin) / chunk_size_deg)))
+        ny = max(1, int(math.ceil((ymax - ymin) / chunk_size_deg)))
+        dx = (xmax - xmin) / nx
+        dy = (ymax - ymin) / ny
+
+        base, ext = os.path.splitext(filename)
+
+        part_files = []
+
+        # ---------- 3) Download each chunk ----------
+        for i in range(nx):
+            for j in range(ny):
+                tx0 = xmin + i * dx
+                tx1 = tx0 + dx
+                ty0 = ymin + j * dy
+                ty1 = ty0 + dy
+
+                tile_region = ee.Geometry.Rectangle([tx0, ty0, tx1, ty1])
+                part_path = f"{base}_part_{i:02d}_{j:02d}{ext}"
+
+                try:
+                    geemap.ee_export_image(
+                        image.clip(tile_region),
+                        filename=part_path,
+                        scale=scale,
+                        region=tile_region,
+                        crs=crs,
+                    )
+                    if os.path.exists(part_path) and os.path.getsize(part_path) > 0:
+                        part_files.append(part_path)
+                        print(f"  ✅ chunk {i:02d},{j:02d} → {os.path.basename(part_path)}")
+                    else:
+                        print(f"  ⚠️ empty chunk {i:02d},{j:02d}, skipping")
+                except Exception as e:
+                    print(f"  ⚠️ chunk {i:02d},{j:02d} failed: {e}")
+
+        if not part_files:
+            raise RuntimeError(f"No chunks were exported for {filename}")
+
+        # ---------- 4) Mosaic chunks into a TEMP file ----------
+        merge_path = f"{base}_merge{ext}"
+        print(f" Mosaicking {len(part_files)} chunk(s) → {merge_path}")
+
+        srcs = [rio.open(p) for p in part_files]
+        try:
+            mosaic, out_transform = merge(srcs)
+
+            out_meta = srcs[0].meta.copy()
+            out_meta.update(
+                driver="GTiff",
+                height=mosaic.shape[1],
+                width=mosaic.shape[2],
+                transform=out_transform,
+                count=mosaic.shape[0],
+                compress="lzw",
+            )
+            descriptions = srcs[0].descriptions
+            src_nodata = srcs[0].nodata
+
+            with rio.open(merge_path, "w", **out_meta) as dest:
+                dest.write(mosaic)
+                if descriptions:
+                    for idx, desc in enumerate(descriptions, start=1):
+                        if desc:
+                            dest.set_band_description(idx, desc)
+        finally:
+            for s in srcs:
+                s.close()
+
+        # ---------- 5) Apply the AOI polygon clip LOCALLY, save as filename ----------
+        print(f" ✂️  Applying AOI clip → {filename}")
+        with rio.open(merge_path) as src:
+            if aoi_geom is not None:
+                shapes = [aoi_geom.getInfo()]      # GeoJSON dict — rasterio.mask accepts this
+
+                # pick a nodata that matches the data type if the source doesn't define one
+                nodata = src.nodata
+                if nodata is None:
+                    if np.issubdtype(np.dtype(src.dtypes[0]), np.floating):
+                        nodata = float("nan")
+                    else:
+                        nodata = 0
+
+                out_image, out_transform = mask(
+                    src,
+                    shapes,
+                    crop=True,
+                    filled=True,
+                    nodata=nodata,
+                )
+                out_meta = src.meta.copy()
+                out_meta.update(
+                    driver="GTiff",
+                    height=out_image.shape[1],
+                    width=out_image.shape[2],
+                    transform=out_transform,
+                    count=out_image.shape[0],
+                    nodata=nodata,
+                    compress="lzw",
+                )
+                descriptions = src.descriptions
+            else:
+                # bbox-only caller: nothing to clip, just copy the merged raster
+                out_image = src.read()
+                out_meta = src.meta.copy()
+                out_meta.update(driver="GTiff", compress="lzw")
+                descriptions = src.descriptions
+
+        with rio.open(filename, "w", **out_meta) as dest:
+            dest.write(out_image)
+            if descriptions:
+                for idx, desc in enumerate(descriptions, start=1):
+                    if desc:
+                        dest.set_band_description(idx, desc)
+
+        # ---------- 6) Cleanup ----------
+        for p in part_files:
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+        try:
+            os.remove(merge_path)
+        except OSError:
+            pass
+
+        print(f"✅ Re-united + clipped → {filename}")
+        return filename
 
     def export_and_interpolate_predictors(self, aoi_bbox, aoi=None):
         """Export current predictors from EE and interpolate them locally."""
@@ -329,9 +479,14 @@ class SpeciesHabitatSuitabilityUtils():
             bio = ee.Image('WORLDCLIM/V1/BIO').select(band_names).toFloat().reproject(crs='EPSG:4326', scale=self.config.GRAIN_SIZE)
 
             filename = os.path.join(self.config.INPUT_DIR, "worldclim_bio_current.tif")
+            aoi_geom = aoi if aoi is not None else ee.Geometry.Rectangle(aoi_bbox)
 
-            bio_clipped = bio.clip(aoi if aoi is not None else ee.Geometry.Rectangle(aoi_bbox))
-            geemap.ee_export_image(bio_clipped, filename=filename, scale=self.config.GRAIN_SIZE, region=aoi if aoi is not None else ee.Geometry.Rectangle(aoi_bbox))
+            self.export_image_chunked(
+                image=bio,
+                filename=filename,
+                region=aoi_geom,
+                scale=self.config.GRAIN_SIZE,
+            )
 
             print("✅ Local export: worldclim_bio_current.tif")
         except Exception as e:
