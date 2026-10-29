@@ -120,8 +120,22 @@ def apply_geometry_mask_to_raster(polygon_gdf, raster_array, raster_meta, crop=F
             if polygon_gdf.crs != dataset.crs:
                 polygon_gdf = polygon_gdf.to_crs(dataset.crs)
 
+            # # Apply mask
+            # geoms = [mapping(polygon_gdf.geometry.values[0])]
+            # mask_array, out_transform = mask(
+            #     dataset,
+            #     geoms,
+            #     crop=crop,
+            #     all_touched=True,
+            #     filled=True,
+            #     invert=False,
+            #     nodata=nodata
+            # )
+            pixel_size = abs(dataset.transform.a)   # pixel width, e.g. ~1000 for 1km
+            polygon = polygon_gdf.geometry.values[0]
             # Apply mask
-            geoms = [mapping(polygon_gdf.geometry.values[0])]
+            buffered_polygon = polygon.buffer(0.5 * pixel_size)
+            geoms = [mapping(buffered_polygon)]
             mask_array, out_transform = mask(
                 dataset,
                 geoms,
@@ -131,6 +145,7 @@ def apply_geometry_mask_to_raster(polygon_gdf, raster_array, raster_meta, crop=F
                 invert=False,
                 nodata=nodata
             )
+
             final_raster = mask_array[0]
             cliped_raster_meta.update({
                 'transform': out_transform,
